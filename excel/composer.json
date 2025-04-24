@@ -1,0 +1,17 @@
+{
+    "name": "madiopdiop/excel",
+    "autoload": {
+        "psr-4": {
+            "Madiopdiop\\Excel\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Madiop-diop",
+            "email": "diopelhadjimadiop@gmail.com"
+        }
+    ],
+    "require": {
+        "phpoffice/phpspreadsheet": "^4.0"
+    }
+}
