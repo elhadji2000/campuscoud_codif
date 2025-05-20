@@ -4,32 +4,23 @@ include( '../../traitement/fonction.php' );
 
 session_start(); // Démarrer la session au début
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['rechercher'])) {
-        // Récupérer les données du formulaire
-        $date_debut = $_POST['date_debut'];
-        $date_fin = $_POST['date_fin'];
-        $username = $_POST['regisseur'];
-        $libelle = $_POST['libelle'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rechercher'])) {
+    // Récupération des champs
+    $date_debut = urlencode($_POST['date_debut']);
+    $date_fin = urlencode($_POST['date_fin']);
+    $username = urlencode($_POST['regisseur']);
+    $libelle = urlencode($_POST['libelle']);
 
-        // Stocker les données dans la session
-        $_SESSION['debut'] = $date_debut;
-        $_SESSION['fin'] = $date_fin;
-        $_SESSION['regisseur'] = $username;
-        $_SESSION['libelle'] = $libelle;
+    $_SESSION['debut'] = $date_debut;
+    $_SESSION['fin'] = $date_fin;
+    $_SESSION['regisseur'] = $username;
+    $_SESSION['libelle'] = $libelle;
 
-        // Rechercher les paiements
-        $tabPaiment = getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libelle);
-        
-        if ($tabPaiment == null) {
-            header('Location: etatPaiement_cs.php?message=Aucun resultat trouvé');
-            exit();
-        } else {
-            $_SESSION['data'] = $tabPaiment;
-            header('Location: etatPaiement_cs.php');
-            exit();
-        }
-    }
+    // Redirection vers la même page avec paramètres GET
+    header("Location: etatPaiement_cs.php?date_debut=$date_debut&date_fin=$date_fin&regisseur=$username&libelle=$libelle&page=1");
+    exit();
+}
+
     
     // ##################### POUR IMPRIMER ###########################
  /*    elseif (isset($_POST['imprimer'])) {
@@ -56,6 +47,5 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             exit();
         }
     } */
-}
-
+?>
 

@@ -44,9 +44,9 @@ include('activite.php');
 
     <!-- CSS
     ================================================== -->
-    <link rel="stylesheet" href="assets/css/base.css">
-    <link rel="stylesheet" href="assets/css/vendor.css">
-    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="http://127.0.0.1/campuscoud.com/assets/css/base.css">
+    <link rel="stylesheet" href="http://127.0.0.1/campuscoud.com/assets/css/vendor.css">
+    <link rel="stylesheet" href="http://127.0.0.1/campuscoud.com/assets/css/main.css">
 
     <!-- script
     ================================================== -->
@@ -59,21 +59,12 @@ include('activite.php');
     <link rel="icon" href="log.gif" type="../image/x-icon">
 
 </head>
-
-
-
-
-
-
-
-
-
 <body id="top">
   <!-- header================================================== -->
   <header class="s-header">
     <div class="header-logo">
     
-	  <a class="site-logo" href="#"><img src="/assets/images/logo.png" alt="Homepage" /></a>
+	  <a class="site-logo" href="#"><img src="/campuscoud.com/assets/images/logo.png" alt="Homepage" /></a>
       CAMPUSCOUD
     </div>
     <nav class="header-nav-wrap">
@@ -277,15 +268,9 @@ if ($_SESSION['profil'] != 'user' ){ ?>
             </li>	
 <?php		  
 }	?>	
-
-
-
-
-		
-		
 		
         <li class="nav-item">
-          <a class="nav-link" href="https://campuscoud.com/" title="Déconnexion"><i class="fa fa-sign-out" aria-hidden="true"></i> Déconnexion</a>
+          <a class="nav-link" href="http://127.0.0.1/campuscoud.com/" title="Déconnexion"><i class="fa fa-sign-out" aria-hidden="true"></i> Déconnexion</a>
         </li>
 		
       </ul>
@@ -298,7 +283,7 @@ if ($_SESSION['profil'] != 'user' ){ ?>
 <section id="homedesigne" class="s-homedesigne">
   <?php   if (($_SESSION['profil'] == 'quota') || ($_SESSION['profil'] == 'paiement') || ($_SESSION['profil'] == 'validation') || ($_SESSION['profil'] == 'chef_residence') || ($_SESSION['profil'] == 'forclusion') || ($_SESSION['profil'] == 'delai') || ($_SESSION['profil'] == 'cs_acp') || ($_SESSION['profil'] == 'dba') || ($_SESSION['profil'] == 'chef_campus') || ($_SESSION['profil'] == 'sag') || ($_SESSION['profil'] == 'chef_departement')  || ($_SESSION['profil'] == 'chef_recette') || ($_SESSION['profil'] == 'pcs')) { ?>
   
-    <p class="lead">Espace Administration: Bienvenue! <br> <br> <span>
+    <p class="lead">Espace Administration: Bienvenue!  <br> <span>
         (<?= $_SESSION['prenom'] . "  " . $_SESSION['nom'] ?>)
       </span></p>
   <?php } elseif ($_SESSION['profil'] == 'user' and $_SESSION['type_mdp']=='updated') { ?>
@@ -318,7 +303,7 @@ if ($_SESSION['profil'] != 'user' ){ ?>
 		$resultatReqLitEtu = getOneLitByStudent($monTitulaire['num_etu']);
 		//$lit_titu=$resultatReqLitEtu['lit']; echo $lit_titu;
 		
-		?><br><br>
+		?><br>
         <?php
       } else if ($statutStudentConnect['statut'] == 'Attributaire') {
         if($monSuppleant = getOneSuppleantByTitulaire($quotaStudentConnect, $_SESSION['classe'], $_SESSION['sexe_etudiant'], $statutStudentConnect['rang']))

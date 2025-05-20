@@ -297,6 +297,140 @@ function getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libel
     ];
 }
 
+function getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libelle = "", $page = 1, $limit = 100)
+{
+    global $connexion;
+
+    // Sécuriser les entrées
+    $date_debut = !empty($date_debut) ? mysqli_real_escape_string($connexion, $date_debut) : '2025-01-01';
+    $date_fin = !empty($date_fin) ? mysqli_real_escape_string($connexion, $date_fin) : date('Y-m-d');
+    $username = mysqli_real_escape_string($connexion, $username);
+    $libelleFilter = $libelle;
+    $libelle = !empty($libelle) ? "%" . mysqli_real_escape_string($connexion, $libelle) . "%" : "";
+
+    // Pagination
+    $limit = max(1, (int)$limit);
+    $page = max(1, (int)$page);
+    $offset = ($page - 1) * $limit;
+
+    // Requête principale avec LIMIT et OFFSET
+    $sql = "SELECT ce.num_etu, ce.nom, ce.prenoms, pc.id_paie, pc.dateTime_paie, pc.montant, pc.an, 
+                   pc.id_val, pc.quittance, pc.username_user, pc.libelle 
+            FROM codif_etudiant ce 
+            JOIN codif_affectation a ON ce.id_etu = a.id_etu 
+            JOIN codif_validation vl ON a.id_aff = vl.id_aff 
+            JOIN codif_paiement pc ON pc.id_val = vl.id_val 
+            WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+
+    if (!empty($username)) {
+        $sql .= " AND pc.username_user = '$username'";
+    }
+
+    if (!empty($libelle)) {
+        if ($libelleFilter === "LOYER") {
+            $sql .= " AND pc.libelle != 'CAUTION'";
+        } else {
+            $sql .= " AND pc.libelle LIKE '$libelle'";
+        }
+    }
+
+    $sql .= " ORDER BY pc.dateTime_paie DESC, pc.quittance DESC, ce.nom ASC";
+    $sql .= " LIMIT $limit OFFSET $offset";
+
+    $result = $connexion->query($sql);
+    $data = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+
+    // Requête pour le total des enregistrements (sans LIMIT/OFFSET)
+    $sqlCount = "SELECT COUNT(*) as total FROM codif_paiement pc 
+                 JOIN codif_validation vl ON pc.id_val = vl.id_val 
+                 JOIN codif_affectation a ON vl.id_aff = a.id_aff 
+                 JOIN codif_etudiant ce ON ce.id_etu = a.id_etu 
+                 WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+
+    if (!empty($username)) {
+        $sqlCount .= " AND pc.username_user = '$username'";
+    }
+
+    if (!empty($libelle)) {
+        if ($libelleFilter === "LOYER") {
+            $sqlCount .= " AND pc.libelle != 'CAUTION'";
+        } else {
+            $sqlCount .= " AND pc.libelle LIKE '$libelle'";
+        }
+    }
+
+    $totalRecords = 0;
+    $resultCount = $connexion->query($sqlCount);
+    if ($rowCount = $resultCount->fetch_assoc()) {
+        $totalRecords = (int)$rowCount['total'];
+    }
+
+    // Calcul du montant total comme avant
+    $totalMontant = 0;
+    $sqlTotal = "";
+
+    if (empty($libelleFilter)) {
+        $sqlTotal = "SELECT SUM(pc.montant) AS montantTotal 
+                     FROM codif_paiement pc
+                     JOIN codif_validation vl ON pc.id_val = vl.id_val
+                     WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+
+        if (!empty($username)) {
+            $sqlTotal .= " AND pc.username_user = '$username'";
+        }
+
+    } elseif ($libelleFilter === "CAUTION") {
+        $sqlTotal = "SELECT COUNT(pc.montant) AS countPayments 
+                     FROM codif_paiement pc
+                     JOIN codif_validation vl ON pc.id_val = vl.id_val
+                     WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+
+        if (!empty($username)) {
+            $sqlTotal .= " AND pc.username_user = '$username'";
+        }
+
+        $sqlTotal .= " AND pc.libelle LIKE '%CAUTION%'";
+
+    } elseif ($libelleFilter === "LOYER") {
+        $sqlTotal = "SELECT SUM(
+                    CASE 
+                    WHEN pc.libelle LIKE '%CAUTION%' 
+                    THEN pc.montant - 5000 
+                    ELSE pc.montant 
+                    END
+                    ) AS montantTotal
+                     FROM codif_paiement pc
+                     JOIN codif_validation vl ON pc.id_val = vl.id_val
+                     WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+
+        if (!empty($username)) {
+            $sqlTotal .= " AND pc.username_user = '$username'";
+        }
+
+        $sqlTotal .= " AND pc.libelle NOT LIKE 'CAUTION'";
+    }
+
+    $resultTotal = $connexion->query($sqlTotal);
+    if ($rowTotal = $resultTotal->fetch_assoc()) {
+        $totalMontant = isset($rowTotal['montantTotal']) ? $rowTotal['montantTotal'] : 
+                        (isset($rowTotal['countPayments']) ? $rowTotal['countPayments'] * 5000 : 0);
+    }
+
+    // Retourner les données paginées
+    return [
+        'data' => $data,
+        'totalMontant' => $totalMontant,
+        'totalRecords' => $totalRecords,
+        'currentPage' => $page,
+        'totalPages' => ceil($totalRecords / $limit)
+    ];
+}
+
+
 
 
 
@@ -528,7 +662,7 @@ function getEtudiantByLit($lit, $paie, $connexion) {
 
 
 
-function getPaymentDetailsByPavillon($pavillonDonne, $connexion) {	
+/* function getPaymentDetailsByPavillon($pavillonDonne, $connexion) {	
 	$sql = "
    SELECT 
     l.pavillon,
@@ -639,8 +773,124 @@ ORDER BY
 
     $stmt->close();
     return $data;
+} */
+ function getPaymentDetailsByPavillon($pavillonDonne, $connexion) {    
+    $sql = "
+    SELECT 
+        l.pavillon,
+        l.chambre,
+        l.lit,
+        e.id_etu AS etudiant_id,
+        e.num_etu AS num_etu,
+        e.nom AS etudiant_nom,
+        e.prenoms AS etudiant_prenoms,
+        l.indiv AS type_chambre,
+        lg.id_log AS log_id,
+        lg.id_val AS validation_id,
+        lg.id_paie AS paiement_id,
+        lg.username_user AS utilisateur,
+        a.rappel_envoye,
+        lg.datetime_loger AS date_log,
+        COALESCE(
+            (SELECT SUM(p.montant)
+             FROM codif_paiement p
+             WHERE p.id_val = v.id_val), 0) AS montant_paye_total,
+        COALESCE(
+            (SELECT SUM(CASE WHEN p.libelle LIKE '%CAUTION%' THEN p.montant ELSE 0 END)
+             FROM codif_paiement p
+             WHERE p.id_val = v.id_val), 0) AS caution_payee,
+        COALESCE(
+            (SELECT SUM(CASE WHEN p.libelle NOT LIKE '%CAUTION%' THEN p.montant ELSE 0 END)
+             FROM codif_paiement p
+             WHERE p.id_val = v.id_val), 0) AS loyer_paye
+    FROM 
+        codif_lit l
+    JOIN 
+        codif_affectation a ON l.id_lit = a.id_lit
+    JOIN 
+        codif_etudiant e ON a.id_etu = e.id_etu
+    JOIN 
+        codif_validation v ON a.id_aff = v.id_aff
+    LEFT JOIN 
+        codif_loger lg ON lg.id_etu = e.id_etu  
+    WHERE 
+        (l.pavillon = '$pavillonDonne' AND lg.statut = 'Attributaire')
+    GROUP BY 
+        l.pavillon, l.chambre, l.lit, e.id_etu, lg.id_log
+    ORDER BY 
+        CAST(SUBSTRING_INDEX(l.pavillon, '(', 1) AS UNSIGNED), 
+        IF(LOCATE('(', l.pavillon) > 0, 
+            SUBSTRING(l.pavillon, LOCATE('(', l.pavillon) + 1, LOCATE(')', l.pavillon) - LOCATE('(', l.pavillon) - 1), 
+            ''
+        ),
+        CAST(SUBSTRING_INDEX(l.chambre, '(', 1) AS UNSIGNED),  
+        IF(LOCATE('(', l.chambre) > 0, 
+            SUBSTRING(l.chambre, LOCATE('(', l.chambre) + 1, LOCATE(')', l.chambre) - LOCATE('(', l.chambre) - 1), 
+            ''
+        ),
+        CAST(SUBSTRING_INDEX(l.lit, '_', -1) AS UNSIGNED)";
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $etudiantId = $row['etudiant_id'];
+        $etudiant_num = $row['num_etu'];
+        
+        // Calculer le nombre de mois pour l'étudiant
+        $nombreMois = getNbreMois2($etudiant_num);
+
+        // Déterminer le prix du lit
+        $prixLit = getMontant($row['type_chambre']);
+        
+        // Calculer le montant facturé
+        $montantLoyerFacture = ($nombreMois * $prixLit);
+        $montantCautionFacture = verifCaution($etudiantId) ? 5000 : 0;
+        $montantFactureTotal = $montantLoyerFacture + $montantCautionFacture;
+
+        // Récupérer les montants payés
+        $montantPayeTotal = $row['montant_paye_total'] ?? 0;
+        $cautionPayee = $row['caution_payee'] ?? 0;
+        //$loyerPaye = $row['loyer_paye'] ?? 0;
+        $loyerPaye = $montantPayeTotal - $montantCautionFacture;
+        
+        // Calculer les restes à payer
+        $resteLoyer = max(0, $montantLoyerFacture - $loyerPaye);
+        $resteCaution = max(0, $montantCautionFacture - $cautionPayee);
+        $resteAPayerTotal = $resteLoyer + $resteCaution;
+
+        $data[] = [
+            'pavillon' => $row['pavillon'],
+            'chambre' => $row['chambre'],
+            'lit' => $row['lit'],
+            'etudiant_id' => $row['etudiant_id'],
+            'etudiant_nom' => $row['etudiant_nom'],
+            'etudiant_prenoms' => $row['etudiant_prenoms'],
+            'num_etu' => $row['num_etu'],
+            'type_chambre' => $row['type_chambre'],
+            'montant_facture_total' => $montantFactureTotal,
+            'montant_loyer_facture' => $montantLoyerFacture,
+            'montant_caution_facture' => $montantCautionFacture,
+            'montant_paye_total' => $montantPayeTotal,
+            'loyer_paye' => $loyerPaye,
+            'caution_payee' => $cautionPayee,
+            'reste_loyer' => $resteLoyer,
+            'reste_caution' => $resteCaution,
+            'reste_a_payer_total' => $resteAPayerTotal,
+            'log_id' => $row['log_id'],
+            'validation_id' => $row['validation_id'],
+            'paiement_id' => $row['paiement_id'],
+            'utilisateur' => $row['utilisateur'],
+            'rappel_envoye' => $row['rappel_envoye'],
+            'date_log' => $row['date_log']
+        ];
+    }
+
+    $stmt->close();
+    return $data;
 }
- 
 
 
 /*
