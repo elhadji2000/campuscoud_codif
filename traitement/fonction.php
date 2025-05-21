@@ -478,11 +478,11 @@ function verifierDemarrage($niveauEtudiant) {
     if ($result['total'] == 0) {
         
         	?>
-                 <script langage='javascript'>
-                 alert('La codification n’est pas encore ouverte pour votre niveau de formation!')
-                 window.history.back();
-                 </script>
-                 <?php
+<script langage='javascript'>
+alert('La codification n’est pas encore ouverte pour votre niveau de formation!')
+window.history.back();
+</script>
+<?php
         
         exit();
     }
@@ -774,7 +774,17 @@ ORDER BY
     $stmt->close();
     return $data;
 } */
- function getPaymentDetailsByPavillon($pavillonDonne, $connexion) {    
+ function getPaymentDetailsByPavillon($pavillonDonne, $connexion, $dateDebut = null, $dateFin = null) {    
+    // Construction de la condition de date si les paramètres sont fournis
+    $dateCondition = "";
+    if ($dateDebut && $dateFin) {
+        $dateCondition = "AND p.dateTime_paie BETWEEN '$dateDebut' AND '$dateFin'";
+    } elseif ($dateDebut) {
+        $dateCondition = "AND p.dateTime_paie >= '$dateDebut'";
+    } elseif ($dateFin) {
+        $dateCondition = "AND p.dateTime_paie <= '$dateFin'";
+    }
+
     $sql = "
     SELECT 
         l.pavillon,
@@ -794,15 +804,22 @@ ORDER BY
         COALESCE(
             (SELECT SUM(p.montant)
              FROM codif_paiement p
-             WHERE p.id_val = v.id_val), 0) AS montant_paye_total,
+             WHERE p.id_val = v.id_val $dateCondition), 0) AS montant_paye_total,
         COALESCE(
-            (SELECT SUM(CASE WHEN p.libelle LIKE '%CAUTION%' THEN p.montant ELSE 0 END)
-             FROM codif_paiement p
-             WHERE p.id_val = v.id_val), 0) AS caution_payee,
+    (SELECT 
+        CASE 
+            WHEN EXISTS (
+                SELECT 1 FROM codif_paiement p 
+                WHERE p.id_val = v.id_val $dateCondition
+                AND (p.libelle LIKE '%CAUTION%' OR p.libelle LIKE '%caution%')
+            ) THEN 5000 
+            ELSE 0 
+        END
+    ), 0) AS caution_payee,
         COALESCE(
             (SELECT SUM(CASE WHEN p.libelle NOT LIKE '%CAUTION%' THEN p.montant ELSE 0 END)
              FROM codif_paiement p
-             WHERE p.id_val = v.id_val), 0) AS loyer_paye
+             WHERE p.id_val = v.id_val $dateCondition), 0) AS loyer_paye
     FROM 
         codif_lit l
     JOIN 
@@ -853,8 +870,7 @@ ORDER BY
         // Récupérer les montants payés
         $montantPayeTotal = $row['montant_paye_total'] ?? 0;
         $cautionPayee = $row['caution_payee'] ?? 0;
-        //$loyerPaye = $row['loyer_paye'] ?? 0;
-        $loyerPaye = $montantPayeTotal - $montantCautionFacture;
+        $loyerPaye = $montantPayeTotal - $cautionPayee;
         
         // Calculer les restes à payer
         $resteLoyer = max(0, $montantLoyerFacture - $loyerPaye);
@@ -892,7 +908,161 @@ ORDER BY
     return $data;
 }
 
+function getPaiementWithDateInterval_4($date_debut, $date_fin, $username, $libelle = "", $pavillon = "", $page = 1, $limit = 100)
+{
+    global $connexion;
 
+    // Sécuriser les entrées
+    $date_debut = !empty($date_debut) ? mysqli_real_escape_string($connexion, $date_debut) : '2025-01-01';
+    $date_fin = !empty($date_fin) ? mysqli_real_escape_string($connexion, $date_fin) : date('Y-m-d');
+    $username = mysqli_real_escape_string($connexion, $username);
+    $libelleFilter = $libelle;
+    $libelle = !empty($libelle) ? "%" . mysqli_real_escape_string($connexion, $libelle) . "%" : "";
+    $pavillon = mysqli_real_escape_string($connexion, $pavillon);
+
+    // Pagination
+    $limit = max(1, (int)$limit);
+    $page = max(1, (int)$page);
+    $offset = ($page - 1) * $limit;
+
+    // Requête principale avec LIMIT et OFFSET
+    $sql = "SELECT e.num_etu, e.nom, e.prenoms, p.id_paie, p.dateTime_paie, p.montant, p.an, 
+                   p.id_val, p.quittance, p.username_user, p.libelle, l.pavillon
+            FROM codif_lit l
+            JOIN codif_affectation a ON l.id_lit = a.id_lit
+            JOIN codif_etudiant e ON a.id_etu = e.id_etu
+            JOIN codif_validation v ON a.id_aff = v.id_aff
+            LEFT JOIN codif_loger lg ON lg.id_etu = e.id_etu
+            LEFT JOIN codif_paiement p ON p.id_val = v.id_val
+            WHERE p.dateTime_paie >= '$date_debut' 
+            AND p.dateTime_paie <= '$date_fin'
+            AND (l.pavillon = '$pavillon' AND lg.statut = 'Attributaire')";
+
+    if (!empty($username)) {
+        $sql .= " AND p.username_user = '$username'";
+    }
+
+    if (!empty($libelle)) {
+        if ($libelleFilter === "LOYER") {
+            $sql .= " AND p.libelle != 'CAUTION'";
+        } else {
+            $sql .= " AND p.libelle LIKE '$libelle'";
+        }
+    }
+
+    $sql .= " ORDER BY p.dateTime_paie DESC, p.quittance DESC, e.nom ASC";
+    $sql .= " LIMIT $limit OFFSET $offset";
+
+    $result = $connexion->query($sql);
+    $data = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+
+    // Requête pour le total des enregistrements (sans LIMIT/OFFSET)
+    $sqlCount = "SELECT COUNT(*) as total
+                FROM codif_lit l
+                JOIN codif_affectation a ON l.id_lit = a.id_lit
+                JOIN codif_etudiant e ON a.id_etu = e.id_etu
+                JOIN codif_validation v ON a.id_aff = v.id_aff
+                LEFT JOIN codif_loger lg ON lg.id_etu = e.id_etu
+                LEFT JOIN codif_paiement p ON p.id_val = v.id_val
+                WHERE p.dateTime_paie >= '$date_debut' 
+                AND p.dateTime_paie <= '$date_fin'
+                AND (l.pavillon = '$pavillon' AND lg.statut = 'Attributaire')";
+
+    if (!empty($username)) {
+        $sqlCount .= " AND p.username_user = '$username'";
+    }
+
+    if (!empty($libelle)) {
+        if ($libelleFilter === "LOYER") {
+            $sqlCount .= " AND p.libelle != 'CAUTION'";
+        } else {
+            $sqlCount .= " AND p.libelle LIKE '$libelle'";
+        }
+    }
+
+    $totalRecords = 0;
+    $resultCount = $connexion->query($sqlCount);
+    if ($rowCount = $resultCount->fetch_assoc()) {
+        $totalRecords = (int)$rowCount['total'];
+    }
+
+    // Calcul du montant total
+    $totalMontant = 0;
+    $sqlTotal = "";
+
+    if (empty($libelleFilter)) {
+        $sqlTotal = "SELECT SUM(p.montant) AS montantTotal 
+                     FROM codif_paiement p
+                     JOIN codif_validation v ON p.id_val = v.id_val
+                     JOIN codif_affectation a ON v.id_aff = a.id_aff
+                     JOIN codif_lit l ON a.id_lit = l.id_lit
+                     LEFT JOIN codif_loger lg ON lg.id_etu = a.id_etu
+                     WHERE p.dateTime_paie >= '$date_debut' 
+                     AND p.dateTime_paie <= '$date_fin'
+                     AND (l.pavillon = '$pavillon' AND lg.statut = 'Attributaire')";
+
+        if (!empty($username)) {
+            $sqlTotal .= " AND p.username_user = '$username'";
+        }
+
+    } elseif ($libelleFilter === "CAUTION") {
+        $sqlTotal = "SELECT COUNT(p.montant) AS countPayments 
+                     FROM codif_paiement p
+                     JOIN codif_validation v ON p.id_val = v.id_val
+                     JOIN codif_affectation a ON v.id_aff = a.id_aff
+                     JOIN codif_lit l ON a.id_lit = l.id_lit
+                     LEFT JOIN codif_loger lg ON lg.id_etu = a.id_etu
+                     WHERE p.dateTime_paie >= '$date_debut' 
+                     AND p.dateTime_paie <= '$date_fin'
+                     AND (l.pavillon = '$pavillon' AND lg.statut = 'Attributaire')
+                     AND p.libelle LIKE '%CAUTION%'";
+
+        if (!empty($username)) {
+            $sqlTotal .= " AND p.username_user = '$username'";
+        }
+
+    } elseif ($libelleFilter === "LOYER") {
+        $sqlTotal = "SELECT SUM(
+                    CASE 
+                    WHEN p.libelle LIKE '%CAUTION%' 
+                    THEN p.montant - 5000 
+                    ELSE p.montant 
+                    END
+                    ) AS montantTotal
+                     FROM codif_paiement p
+                     JOIN codif_validation v ON p.id_val = v.id_val
+                     JOIN codif_affectation a ON v.id_aff = a.id_aff
+                     JOIN codif_lit l ON a.id_lit = l.id_lit
+                     LEFT JOIN codif_loger lg ON lg.id_etu = a.id_etu
+                     WHERE p.dateTime_paie >= '$date_debut' 
+                     AND p.dateTime_paie <= '$date_fin'
+                     AND (l.pavillon = '$pavillon' AND lg.statut = 'Attributaire')
+                     AND p.libelle NOT LIKE 'CAUTION'";
+
+        if (!empty($username)) {
+            $sqlTotal .= " AND p.username_user = '$username'";
+        }
+    }
+
+    $resultTotal = $connexion->query($sqlTotal);
+    if ($rowTotal = $resultTotal->fetch_assoc()) {
+        $totalMontant = isset($rowTotal['montantTotal']) ? $rowTotal['montantTotal'] : 
+                        (isset($rowTotal['countPayments']) ? $rowTotal['countPayments'] * 5000 : 0);
+    }
+
+    // Retourner les données paginées
+    return [
+        'data' => $data,
+        'totalMontant' => $totalMontant,
+        'totalRecords' => $totalRecords,
+        'currentPage' => $page,
+        'totalPages' => ceil($totalRecords / $limit)
+    ];
+}
 /*
 function getPaymentDetailsByPavillon($pavillonDonne, $connexion) {
     $sql = "
@@ -3547,11 +3717,11 @@ function controlSaisieQuota($faculte)
 	if($row['count'] == 0){
 		
 		?>
-                 <script langage='javascript'>
-                 alert('Veuiller renseigner au prealable toutes les dates butoirs!')
-                 window.history.back();
-                 </script>
-                 <?php exit();	
+<script langage='javascript'>
+alert('Veuiller renseigner au prealable toutes les dates butoirs!')
+window.history.back();
+</script>
+<?php exit();	
 }		
 		
 }

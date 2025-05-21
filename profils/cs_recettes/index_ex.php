@@ -1,11 +1,14 @@
 <?php session_start(); 
-
 include('../../traitement/fonction.php');
-
 verif_type_mdp_2($_SESSION['username']);
 $pavillons = getAllPavillons($connexion);
 $pavillonDonne = isset($_GET["pavillon"]) ? $_GET["pavillon"] : htmlspecialchars($pavillons[0]);
-$result = getPaymentDetailsByPavillon($pavillonDonne, $connexion);
+
+// Récupération des dates de filtrage
+$dateDebut = isset($_GET["date_debut"]) ? $_GET["date_debut"] : null;
+$dateFin = isset($_GET["date_fin"]) ? $_GET["date_fin"] : null;
+
+$result = getPaymentDetailsByPavillon($pavillonDonne, $connexion, $dateDebut, $dateFin);
 
 // Regrouper les lits par chambre
 $chambres = [];
@@ -16,9 +19,9 @@ foreach ($result as $row) {
 $totalFacture = 0;
 $totalPaye = 0;
 $totalRestant = 0;
-
- ?>
-
+$totalCaution = 0;
+$totalLoyer = 0;
+?>
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -26,221 +29,353 @@ $totalRestant = 0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COUD: CODIFICATION</title>
-    <!-- CSS================================================== -->
-    <link rel="stylesheet" href="../../assets/css/main.css">
-    <!-- script================================================== -->
-    <script src="../../assets/js/modernizr.js"></script>
-    <script src="../../assets/js/pace.min.js"></script>
-    <link rel="stylesheet" href="../../assets/css/styles.css">
+    <title>COUD - Gestion des Recouvrements</title>
+
+    <!-- CSS -->
     <link rel="stylesheet" href="../../assets/bootstrap/css/bootstrap.min.css">
-    <link rel="stylesheet" href="../../assets/bootstrap/js/bootstrap.min.js">
-    <link rel="stylesheet" href="../../assets/bootstrap/js/bootstrap.bundle.min.js">
-    <link rel="stylesheet" href="../../assets/css/base.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+    :root {
+        --primary-color: #3498db;
+        --secondary-color: rgb(26, 102, 177);
+        --success-color: #27ae60;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --light-color: #f8f9fa;
+        --dark-color: #343a40;
+    }
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #f5f7fa;
+        color: #333;
+    }
+
+    .header {
+        background-color: var(--light-color);
+        color: black;
+        padding: 1.5rem 0;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+    }
+
+    .card-header {
+        background-color: var(--secondary-color);
+        color: white;
+        border-radius: 10px 10px 0 0 !important;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .table {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .table thead th {
+        background-color: var(--secondary-color);
+        color: white;
+        font-weight: 500;
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .table tbody td {
+        text-align: center;
+    }
+
+    .table tbody th {
+        text-align: center;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+
+    .badge-pill {
+        border-radius: 50px;
+        padding: 5px 10px;
+        font-weight: 500;
+    }
+
+    .btn-action {
+        border-radius: 50px;
+        padding: 8px 15px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+    }
+
+    .total-row {
+        font-weight: 600;
+        background-color: rgba(249, 202, 36, 0.2) !important;
+    }
+
+    .pavillon-select {
+        border-radius: 50px;
+        padding: 10px 20px;
+        height: auto;
+        border: 2px solid var(--primary-color);
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 5px;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    }
+
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+
+    .status-paid {
+        background-color: var(--success-color);
+    }
+
+    .status-pending {
+        background-color: var(--warning-color);
+    }
+
+    .status-overdue {
+        background-color: var(--danger-color);
+    }
+
+    .amount-cell {
+        font-weight: 500;
+        text-align: right !important;
+    }
+
+    .student-name {
+        font-weight: 500;
+        color: var(--secondary-color);
+    }
+
+    @media (max-width: 768px) {
+        .table-responsive {
+            font-size: 14px;
+        }
+
+        .btn-action {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+    }
+    </style>
 
     <?php include('../../head.php'); ?>
-    <style>
-    select.pavillon {
-        width: 250px;
-        /* Ajuste la largeur */
-        height: 50px;
-        /* Augmente la hauteur */
-        font-size: 16px;
-        /* Augmente la taille du texte si nécessaire */
-        padding: 5px;
-        /* Ajoute un peu d’espace à l’intérieur */
-        border-radius: 5px;
-        /* Arrondi les bords */
-    }
-
-    .row {
-        display: flex;
-        align-items: center;
-        /* Aligne les éléments verticalement */
-        gap: 10px;
-        /* Réduit l’espace entre les éléments */
-    }
-
-    </style>
 </head>
 
 <body>
-    <div class="container-fluid" style="font-size:16px;">
-        <br>
-        <center>
-            <div class="container" style="width:80%;">
-                <form method="get" action="index">
-                    <center>
-                        <div class="row justify-content-center">
-                            <!-- Select et bouton Rechercher collés -->
-                            <div class="col-7 d-flex p-0">
-                                <select class="pavillon form-control" name="pavillon" required>
-                                    <option value="">Sélectionnez un pavillon</option>
-                                    <?php
-                                        // Boucle pour ajouter les options
-                                        foreach ($pavillons as $pavillon) {
-                                            echo "<option value='" . htmlspecialchars($pavillon) . "'>" . htmlspecialchars($pavillon) . "</option>";
-                                        }
-                                    ?>
-                                </select>
-
-                                <button type="submit" class="btn btn-primary pavillon ms-2">
-                                    <strong>Rechercher</strong>
-                                </button>
-                            </div>
-
-                            <!-- Bouton Download Excel aligné à droite -->
-                            <div class="col-4 d-flex justify-content-end">
-                                <a href="export_excel.php?pavillon=<?= urlencode($pavillonDonne) ?>"
-                                    class="btn btn-info">
-                                    <strong>Download Excel</strong>
-                                </a>
-                            </div>
-
-                        </div>
-
-                    </center>
-                </form>
-            </div>
-        </center>
-        <center>
-            <br><br>
-            <h1> GESTION DES RECOUVREMENTS</h1><br>
-            <h2> PAVILLON : <?= htmlspecialchars($pavillonDonne) ?></h2>
-        </center>
-        <br><br>
-        <center>
-            <table class="table">
-                <thead class="thead-dark">
-                    <tr class="table-info">
-                        <th scope="col"><strong>#</strong></th>
-                        <th scope="col"><strong>Chambre</strong></th>
-                        <th scope="col"><strong>Lit</strong></th>
-                        <th scope="col"><strong>Num Etudiant</strong></th>
-                        <th scope="col"><strong>Nom</strong></th>
-                        <th scope="col"><strong>Montant Facturé</strong></th>
-                        <th scope="col"><strong>Montant Payé</strong></th>
-                        <th scope="col"><strong>Restant</strong></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($chambres)) : ?>
-                    <?php $counter = 1; ?>
-                    <?php foreach ($chambres as $chambre => $lits) : ?>
-                    <tr>
-                        <th scope="row" rowspan="<?= count($lits) ?>"><?= $counter++ ?></th>
-                        <td rowspan="<?= count($lits) ?>"><?= htmlspecialchars($chambre) ?></td>
-                        <?php foreach ($lits as $i => $litRow) : ?>
-                        <?php
-                                    // Vérification du statut du rappel pour chaque étudiant dans la ligne
-                                    $resteAPayer = (int)$litRow['reste_a_payer'];
-                                    $canRemind = false;
-
-                                    // Vérification du montant restant à payer et de la date du dernier rappel
-                                    if ($resteAPayer >= 6000) {
-                                        if (!empty($litRow['rappel_envoye'])) {
-                                            $lastReminderDate = new DateTime($litRow['rappel_envoye']);
-                                            $currentDate = new DateTime();
-                                            $interval = $lastReminderDate->diff($currentDate);
-
-                                            // Si le dernier rappel a plus de 2 mois, autoriser le rappel
-                                            if ($interval->m >= 2) {
-                                                $canRemind = true;
-                                            }
-                                        } else {
-                                            $canRemind = true;  // Si aucun rappel n'a été envoyé
-                                        }
-                                    }
-                                ?>
-                        <?php if ($i > 0): ?>
-                    <tr>
-                        <?php endif; ?>
-                        <td><?= htmlspecialchars($litRow['lit']) ?></td>
-                        <td><?= htmlspecialchars($litRow['num_etu']) ?></td>
-                        <td><?= htmlspecialchars($litRow['etudiant_prenoms'] . " " . $litRow['etudiant_nom']) ?></td>
-                        <td><?= number_format($litRow['montant_facture'], 0, ',', ' ') ?> F CFA</td>
-                        <td>
-                            <a
-                                href="details.php?id_etu=<?= urlencode($litRow['etudiant_id']) ?>&etu=<?= urlencode($litRow['num_etu']) ?>">
-                                <?= number_format($litRow['montant_paye'], 0, ',', ' ') ?> F CFA
-                            </a>
-                        </td>
-                        <td><?= number_format($litRow['reste_a_payer'], 0, ',', ' ') ?> F CFA</td>
-                    </tr>
-                    <?php 
-                        $totalFacture += (int)$litRow['montant_facture'];
-                        $totalPaye += (int)$litRow['montant_paye'];
-                        $totalRestant += (int)$litRow['reste_a_payer'];                        
-                    ?>
-
-                    <?php endforeach; ?>
-                    <?php endforeach; ?>
-                    <tr class="table-warning">
-                        <td colspan="5" class="text-center"><strong>TOTAUX :</strong></td>
-                        <td><strong><?= number_format($totalFacture, 0, ',', ' ') ?> F CFA</strong></td>
-                        <td><strong><?= number_format($totalPaye, 0, ',', ' ') ?> F CFA</strong></td>
-                        <td><strong><?= number_format($totalRestant, 0, ',', ' ') ?> F CFA</strong></td>
-                    </tr>
-                    <?php else : ?>
-                    <tr>
-                        <td colspan="9">Aucun étudiant trouvé pour ce pavillon.</td>
-                    </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-
-            <br><br>
-            <br><br>
-            <button class="btn btn-success" onclick="goBack()">Retour</button>
-
-            <script>
-            function goBack() {
-                window.history.back();
-            }
-            </script>
-        </center>
-    </div>
-    <!-- footer
-    ================================================== -->
-    <footer>
-        <div class="row">
-            <div class="col-full">
-
-                <div class="footer-logo">
-                    <a class="footer-site-logo" href="#0"><img src="../../assets/images/logo.png" alt="Homepage"></a>
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Gestion des Recettes</h1>
                 </div>
+                <div class="col-md-6 text-md-end">
+                    <span class="badge bg-light text-dark">
+                        <i class="fas fa-building me-1"></i> <?= htmlspecialchars($pavillonDonne) ?>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <div class="container-fluid">
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" action="index_ex" class="row g-3 align-items-center">
+                    <!-- Sélection du pavillon -->
+                    <div class="col-md-3">
+                        <label for="pavillon" class="form-label">Pavillon</label>
+                        <div class="input-group">
+                            <select class="form-select pavillon-select" name="pavillon" id="pavillon" required>
+                                <option value="">Sélectionnez un pavillon...</option>
+                                <?php foreach ($pavillons as $pavillon): ?>
+                                <option value="<?= htmlspecialchars($pavillon) ?>"
+                                    <?= ($pavillon == $pavillonDonne) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($pavillon) ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
 
+                    <!-- Période de paiement -->
+                    <div class="col-md-3">
+                        <label for="date_debut" class="form-label">Date début</label>
+                        <input type="date" id="date_debut" name="date_debut" class="form-control"
+                            value="<?= htmlspecialchars($date_debut) ?>">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_fin" class="form-label">Date fin</label>
+                        <input type="date" id="date_fin" name="date_fin" class="form-control"
+                            value="<?= htmlspecialchars($date_fin) ?>">
+                    </div>
 
+                    <!-- Boutons d'action -->
+                    <div class="col-md-3 d-flex align-items-end justify-content-end gap-2">
+                        <button type="submit" class="btn btn-primary btn-action">
+                            <i class="fas fa-search me-1"></i> Appliquer
+                        </button>
+                        <a href="export_excel.php?pavillon=<?= urlencode($pavillonDonne) ?>&date_debut=<?= urlencode($dateDebut) ?>&date_fin=<?= urlencode($dateFin) ?>"
+                            class="btn btn-success btn-action">
+                            <i class="fas fa-file-excel me-1"></i> Export Excel
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
 
-        <div class="row footer-bottom">
-
-            <div class="col-twelve">
-                <div class="copyright">
-                    <span>&copy;Copyright Centre des Oeuvres universitaires de Dakar</span>
-                </div>
-
-                <div class="go-top">
-                    <a class="smoothscroll" title="Back to Top" href="#top"><i class="im im-arrow-up"
-                            aria-hidden="true"></i></a>
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-list me-2"></i>Détails des recouvrements</span>
+                    <span class="badge bg-light text-dark">
+                        <?= count($result) ?> <?= (count($result) > 1) ? 'étudiants' : 'étudiant' ?>
+                    </span>
                 </div>
             </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="5%">#</th>
+                                <th width="10%">Chambre</th>
+                                <th width="8%">Lit</th>
+                                <th width="12%">Numéro</th>
+                                <th width="15%">Étudiant</th>
+                                <th width="10%" class="text-end">Facturé</th>
+                                <th width="10%" class="text-end">Payé</th>
+                                <th width="10%" class="text-end">Caution</th>
+                                <th width="10%" class="text-end">Loyer</th>
+                                <th width="10%" class="text-end">Reste</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($chambres)): ?>
+                            <?php $counter = 1; ?>
+                            <?php foreach ($chambres as $chambre => $lits): ?>
+                            <?php foreach ($lits as $i => $litRow): ?>
+                            <?php
+                                            $resteAPayer = (int)$litRow['reste_a_payer_total'];
+                                            $statusClass = ($resteAPayer == 0) ? 'status-paid' : 
+                                                         (($resteAPayer >= 6000) ? 'status-overdue' : 'status-pending');
+                                        ?>
+                            <tr>
+                                <?php if ($i == 0): ?>
+                                <th scope="row" rowspan="<?= count($lits) ?>"><?= $counter++ ?></th>
+                                <td rowspan="<?= count($lits) ?>">
+                                    <span class="badge bg-primary"><?= htmlspecialchars($chambre) ?></span>
+                                </td>
+                                <?php endif; ?>
+                                <td><?= htmlspecialchars($litRow['lit']) ?></td>
+                                <td><?= htmlspecialchars($litRow['num_etu']) ?></td>
+                                <td class="student-name">
+                                    <?= htmlspecialchars($litRow['etudiant_prenoms'] . " " . $litRow['etudiant_nom']) ?>
+                                </td>
+                                <td class="amount-cell">
+                                    <?= number_format($litRow['montant_facture_total'], 0, ',', ' ') ?> F</td>
+                                <td class="amount-cell">
+                                    <a href="details.php?id_etu=<?= urlencode($litRow['etudiant_id']) ?>&etu=<?= urlencode($litRow['num_etu']) ?>"
+                                        class="text-decoration-none">
+                                        <span class="<?= $statusClass ?>"></span>
+                                        <?= number_format($litRow['montant_paye_total'], 0, ',', ' ') ?> F
+                                    </a>
+                                </td>
+                                <td class="amount-cell">
+                                    <?= number_format($litRow['caution_payee'], 0, ',', ' ') ?> F
+                                </td>
+                                <td class="amount-cell"><?= number_format($litRow['loyer_paye'], 0, ',', ' ') ?> F</td>
+                                <td
+                                    class="amount-cell <?= ($resteAPayer > 0) ? 'text-danger fw-bold' : 'text-success' ?>">
+                                    <?= number_format($resteAPayer, 0, ',', ' ') ?> F
+                                </td>
+                            </tr>
+                            <?php 
+                                            $totalFacture += (int)$litRow['montant_facture_total'];
+                                            $totalPaye += (int)$litRow['montant_paye_total'];
+                                            $totalRestant += (int)$litRow['reste_a_payer_total']; 
+                                            $totalCaution += (int)$litRow['caution_payee'];  
+                                            $totalLoyer += (int)$litRow['loyer_paye'];
+                                        ?>
+                            <?php endforeach; ?>
+                            <?php endforeach; ?>
+                            <tr class="total-row">
+                                <td colspan="5" class="text-end fw-bold">TOTAUX :</td>
+                                <td class="amount-cell"><?= number_format($totalFacture, 0, ',', ' ') ?> F</td>
+                                <td class="amount-cell"><?= number_format($totalPaye, 0, ',', ' ') ?> F</td>
+                                <td class="amount-cell"><?= number_format($totalCaution, 0, ',', ' ') ?> F</td>
+                                <td class="amount-cell"><?= number_format($totalLoyer, 0, ',', ' ') ?> F</td>
+                                <td class="amount-cell <?= ($totalRestant > 0) ? 'text-danger' : 'text-success' ?>">
+                                    <?= number_format($totalRestant, 0, ',', ' ') ?> F
+                                </td>
+                            </tr>
+                            <?php else: ?>
+                            <tr>
+                                <td colspan="10" class="text-center py-4">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i> Aucun étudiant trouvé pour ce pavillon
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-        </div> <!-- end footer-bottom -->
+        <div class="text-center mt-4">
+            <button class="btn btn-secondary btn-action" onclick="goBack()">
+                <i class="fas fa-arrow-left me-1"></i> Retour
+            </button>
+        </div>
+    </div>
 
-    </footer> <!-- end footer -->
+    <script>
+    function goBack() {
+        window.history.back();
+    }
+    </script>
+
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <?php //include('footer.php'); ?>
-    <script src="../../assets/js/script.js"></script>
-    <script src="../../assets/js/jquery-3.2.1.min.js"></script>
-    <script src="../../assets/js/plugins.js"></script>
     <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/script.js"></script>
 </body>
 
 </html>
