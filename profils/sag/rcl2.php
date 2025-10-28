@@ -150,6 +150,7 @@ $datecreation=$st['datesys'];  $type_mdp=$st['type_mdp']; $is_active=$st['is_act
 //if($privil=='dba')
 //{
 ?>
+<a href="rcl3?var=rm&ne=<?php echo $num_etu; ?>&nr=<?php echo $numreclame; ?>">Reinitialiser Mot de Passe</a><br>
 <a href="rcl3?var=mi&ne=<?php echo $num_etu; ?>&nr=<?php echo $numreclame; ?>">Modifier infos</a><br>
 <a href="rcl3?var=su&ne=<?php echo $num_etu; ?>&nr=<?php echo $numreclame; ?>">Supprimer user</a><br>
 <a href="rcl3?var=sms&ne=<?php echo $num_etu; ?>&nr=<?php echo $numreclame; ?>">SMS</a><br>

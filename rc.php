@@ -91,7 +91,9 @@ window.onunload=function(){void(0)}
 					 
 					 <option>Un message me dit que les informations saisies semblent incorrectes...</option>
 					 <option>Je nai plus le Numero de Telephone que jai fourni à linscription</option>
-					 <option>Apres ceation du compte, jai nai pas recu le SMS contenant le mot de passe</option>					
+					 <option>Apres creation du compte, je nai pas recu le SMS contenant le mot de passe</option>
+					 <option>Mon Titulaire est injoignable</option>
+					 <option>Mon Titulaire ne veut pas codifier</option>
 					<option>Autre</option>
 					
                      </select>

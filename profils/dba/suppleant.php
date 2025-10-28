@@ -62,8 +62,8 @@ $dataEtablissement = getAllEtablissement();
                     $quota = getQuotaClasse($row_formation["niveauFormation"], $row_formation["sexe"])['COUNT(*)'];
                     $tableau_data_etudiant = getAllDatastudentStatus($quota, $row_formation["niveauFormation"], $row_formation["sexe"]);
                     for ($i = 0; $i < count($tableau_data_etudiant); $i++) {
-                         // if ($tableau_data_etudiant[$i]['statut'] == 'Suppleant(e)') {  
-                          if ($tableau_data_etudiant[$i]['statut'] == 'Suppleant(e)' and ($tableau_data_etudiant[$i]['niveauFormation'] == 'Dentaire / Licence 3')) { 
+                         //   if ($tableau_data_etudiant[$i]['statut'] == 'Suppleant(e)') {  
+                        if ($tableau_data_etudiant[$i]['statut'] == 'Suppleant(e)' and ($tableau_data_etudiant[$i]['niveauFormation'] == 'I.S.A.C Licence1')) { 
                           
                          // verifierDemarrage($tableau_data_etudiant[$i]['niveauFormation']);
                           
@@ -80,7 +80,7 @@ $dataEtablissement = getAllEtablissement();
                             </tr>
                 <?php
                 //Envoi SMS
-             //  sms_suppleants($tableau_data_etudiant[$i]['num_etu']);   //die;
+              // sms_suppleants($tableau_data_etudiant[$i]['num_etu']);   //die;
                             
                         }
                     }

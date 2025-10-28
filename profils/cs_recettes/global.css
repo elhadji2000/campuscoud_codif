@@ -1,0 +1,97 @@
+:root {
+    --primary: #3498db;
+    --secondary: #1a66b1;
+    --success: #28a745;
+    --danger: #dc3545;
+    --warning: #ffc107;
+    --info: #17a2b8;
+}
+
+body {
+    font-family: 'Poppins', sans-serif !important;
+    background-color: #f5f7fa !important;
+    color: #333 !important;
+}
+
+body .header {
+    background: white !important;
+    padding: 1.5rem 0 !important;
+    margin-bottom: 2rem !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+}
+
+body .table-container {
+    background: white !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
+    padding: 25px !important;
+    margin-top: 20px !important;
+}
+
+body .recette-table {
+    width: 100% !important;
+    font-size: 1.1rem !important;
+}
+
+body .recette-table th {
+    background-color: var(--secondary) !important;
+    color: white !important;
+    padding: 15px !important;
+    font-size: 1.2rem !important;
+}
+
+body .recette-table td {
+    padding: 15px !important;
+    font-weight: 500 !important;
+}
+
+body .recette-table tr:nth-child(even) {
+    background-color: #f8f9fa !important;
+}
+
+body .total-facture {
+    color: var(--secondary) !important;
+    font-size: 1.3rem !important;
+}
+
+body .loyer-paye {
+    color: var(--success) !important;
+    font-size: 1.3rem !important;
+}
+
+body .caution-payee {
+    color: var(--info) !important;
+    font-size: 1.3rem !important;
+}
+
+body .total-paye {
+    color: var(--warning) !important;
+    font-size: 1.3rem !important;
+}
+
+body .reste-payer {
+    color: var(--danger) !important;
+    font-size: 1.3rem !important;
+}
+
+body .form-control,
+body .form-select {
+    border-radius: 8px !important;
+    padding: 12px 15px !important;
+    font-size: 1rem !important;
+    border: 1px solid #ced4da !important;
+    box-shadow: none !important;
+}
+
+body .btn-excel {
+    background-color: #1d6f42 !important;
+    color: white !important;
+    font-size: 1rem !important;
+    padding: 10px 20px !important;
+    border: none !important;
+}
+
+body .btn-excel:hover {
+    background-color: #165a36 !important;
+    color: white !important;
+}

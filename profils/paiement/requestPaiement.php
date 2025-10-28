@@ -12,12 +12,20 @@ $datesys = strtotime($datesys0);
 $an0 = date('Y', $datesys);
 $an = substr($an0,2,2);
 
-if (isset($_POST['numEtudiant'])) {
+// Si on a reçu des données GET, on les transforme en POST
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_GET)) {
+    foreach ($_GET as $key => $value) {
+        $_POST[$key] = $value;
+    }
+    $_SERVER['REQUEST_METHOD'] = 'POST'; // Simule une requête POST
+}
+
+if (isset($_POST['numEtudiant'])) { 
     $num_etu = $_POST['numEtudiant'];
     $_SESSION['num_etu'] = $_POST['numEtudiant'];
     if (getIsForclu($num_etu)) {
         $queryString = http_build_query(['data' => getIsForclu($num_etu)]);
-        header('Location: paiement.php?erreurForclo=ETUDIANT FORCLOS(E) !!!&statut=forclos(e)&' . $queryString);
+        header('Location: paiement.php?erreurForclo=ETUDIANT FORCLOS(E) !!!&statut=Forclos(e)&' . $queryString);
     } else {
         if ($dataStudentConnect = studentConnect($num_etu)) {
             $dataStudentConnect_classe = $dataStudentConnect['niveauFormation'];
@@ -67,6 +75,20 @@ if (isset($_POST['valide'])) {
         $id_val = $_POST['valide'];
         $user = $_SESSION['username'];
         $montant_recu = $_POST['montant_recu'];
+        $montantDu = $_POST['montantDu'];  
+        
+        
+       // var_dump(verifPremierPaiement($_SESSION['num_etu']));die;
+        
+       // if(($montantDu>$montant_recu) and (!verifPremierPaiement($_SESSION['num_etu'])))
+     //   {
+             
+      //         header("location: paiement.php?montantMinAvantLoger=MONTANT INSUFFISANT !!!");
+      //       exit();
+      //  }
+        
+       // echo "STOP"; exit();
+        
         $libelle = [];
         foreach ($_POST['libelle'] as $mois_caution => $value) {
             try {
@@ -99,6 +121,9 @@ if (isset($_POST['valide'])) {
 $user=$_SESSION['username'];
 $accronyme=accronyme($user); 		//echo $user;
 $link = connexionBD();
+
+
+
 $ins00 = "select max(num_ordre_user) as numauto from codif_paiement where an='$an0' and username_user='$user'"; //echo $ins00;
 $exx00 = mysqli_query($link, $ins00); $n_rows0 = mysqli_fetch_assoc($exx00); 	
 $ordre=$n_rows0['numauto']+1;  $quittance=$an."-".$accronyme."-".$ordre;		

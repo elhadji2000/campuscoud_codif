@@ -88,7 +88,7 @@ verif_type_mdp_2($_SESSION['username']);
                 <?php if (!empty($chambres)) : ?>
                 <?php $index = 1; ?>
                 <?php foreach ($chambres as $chambre => $lits) : ?>
-                <tr>
+                <tr style="font-family:Times;font-size:15px;">
                     <td rowspan="<?= count($lits) ?>"><?= $index++ ?></td>
                     <td rowspan="<?= count($lits) ?>"><?= htmlspecialchars($chambre) ?></td>
                     <td><?= htmlspecialchars($lits[0]['lit']) ?></td>
@@ -101,7 +101,7 @@ verif_type_mdp_2($_SESSION['username']);
                     </td>
                 </tr>
                 <?php foreach (array_slice($lits, 1) as $lit) : ?>
-                <tr>
+                <tr style="font-family:Times;font-size:15px;">
                     <td><?= htmlspecialchars($lit['lit']) ?></td>
                     <td><?= htmlspecialchars($lit['num_etu']) ?></td>
                     <td><?= htmlspecialchars($lit['titulaire_nom']) ?></td>

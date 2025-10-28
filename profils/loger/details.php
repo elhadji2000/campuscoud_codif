@@ -54,7 +54,7 @@ $total= 0;
                     <?php if (!empty($data)) : ?>
                     <?php foreach ($data as $index => $row) : ?>
 
-                    <tr>
+                    <tr style="font-family:Times;font-size:15px;">
                         <td><?= $index + 1 ?></td>
                         <td><?= htmlspecialchars($row['quittance']) ?></td>
                         <td><?= htmlspecialchars($row['dateTime_paie']) ?></td>

@@ -1,5 +1,6 @@
 <?php session_start();
 
+
 if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
     header('Location: /campuscoud.com/');
     exit();
@@ -9,6 +10,19 @@ if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
 
 require('../../traitement/fonction.php');
 verif_type_mdp($_SESSION['username']);
+
+if (isset($_GET['success_delete'])) {
+    $_SESSION['success_delete'] = $_GET['success_delete'];
+} else {
+    $_SESSION['success_delete'] = '';
+}
+
+$is_valider_choix = getValidateLitByStudent_2($_SESSION['username']);
+$inforequeteAffectEtu = getStudentChoiseLit($_SESSION['id_etu']);
+$affecter = 0;
+while ($row = $inforequeteAffectEtu->fetch_assoc()) {
+    $affecter++;
+}
 
 //$total_pagesEtudiant = getLitByStudent($_SESSION['classe'], $_SESSION['sexe_etudiant']);
 $resultRequeteLitClasseEtudiant = getLitValideByClasse($_SESSION['classe'], $_SESSION['sexe_etudiant']);
@@ -22,8 +36,8 @@ if (isset($_POST['filter']) && $_POST['filter']) {
     $_SESSION['filter'] = $_POST['filter'];
 }
 
-//echo "hello ".$_SESSION['classe'];
-verifierDemarrage($_SESSION['classe']);
+//echo "hello ".$_SESSION['sexe_etudiant'];
+verifierDemarrage($_SESSION['classe'],$_SESSION['sexe_etudiant']);
 
 
 //if (isset($_SESSION['filter'])) {
@@ -51,7 +65,13 @@ $resultatRequetePavillonClasse = getPavillonOneByNiveau($_SESSION['classe'], $_S
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
+
+
+
 <body>
+    
+    
+    
     <?php include('../../head.php'); ?>
     <div class="container">
         <div class="row">
@@ -65,7 +85,17 @@ $resultatRequetePavillonClasse = getPavillonOneByNiveau($_SESSION['classe'], $_S
                             <?= $_SESSION['erreurLitCodifier']; ?>
                         </div>
                     </div>
+              
+                
+                <?php } else if ($_SESSION['success_delete']) { ?>
+                    <div class="col-md-3">
+                        <div class="alert alert-success" role="alert">
+                            <?= $_SESSION['success_delete']; ?>
+                        </div>
+                    </div>
                 <?php } ?>
+                
+                
             </div>
         </div>
         <!--div class="row">
@@ -116,29 +146,40 @@ $resultatRequetePavillonClasse = getPavillonOneByNiveau($_SESSION['classe'], $_S
                     <?php
                             } ?>
             </div><br><br>
-            <div class="row justify-content-center">
-                <div class="col-md-2">
-                    <input type='reset' onclick="choi()" class="btn btn-outline-danger fw-bold" title="Annulé la selectionnée" value="REINITIALISER">
-                </div>
-                <!--div class="col-md-2">
+            <?php
+            if ($affecter == 0) {
+            ?>
+                <div class="row justify-content-center">
+                    <div class="col-md-2">
+                        <input type='reset' onclick="choi()" class="btn btn-outline-danger fw-bold" title="Annulé la selectionnée" value="EFFACER">
+                    </div>
+                    <!--div class="col-md-2">
                     <select class='form-select' onchange='location = this.value;'>
-                        <?php/*
+                        <?php
                         for ($i = 1; $i <= $total_pagesEtudiant; $i++) {
                             $offset_value = ($i - 1) * $limit;
                             $selected = ($i == $page) ? "selected" : "";
                             $lower_bound = $offset_value + 1;
                             $upper_bound = min($offset_value + $limit, $count_datas['total']);
                             echo "<option value='codifier.php?page=$i' $selected>De $lower_bound à $upper_bound</option>";
-                        } -*?>
+                        } ?>
                     </select>
                 </div-->
-                <?php
-                mysqli_close($connexion);
-                ?>
-                <div class="col-md-2">
-                    <button class="btn btn-outline-success fw-bold" type="submit" title="Sauvegarder les lits selectionnés">VALIDER</button>
+                    <?php
+                    mysqli_close($connexion);
+                    ?>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-success fw-bold" type="submit" title="Sauvegarder les lits selectionnés">ENREGISTRER</button>
+                    </div>
                 </div>
-            </div>
+            <?php } else { ?>
+                <div class="row justify-content-center">
+                    <div class="col-md-2">
+                        <input type="text" name="id_etu" value="<?= $_SESSION['id_etu'] ?>" style="visibility: hidden;">
+                        <button class="btn btn-outline-success fw-bold" type="submit" title="ANNULER LE CHOIX DU LIT">ANNULER LE CHOIX </button>
+                    </div>
+                </div>
+            <?php } ?>
             </form>
             </ul>
         </div>

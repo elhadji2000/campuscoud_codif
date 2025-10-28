@@ -5,7 +5,7 @@ include('../../traitement/fonction.php');
 verif_type_mdp_2($_SESSION['username']);
 
 $pavillonDonne = $_SESSION['pavillon'];
-$result = getPaymentDetailsByPavillon($pavillonDonne, $connexion);
+$result = getPaymentDetailsByPavillon1($pavillonDonne, $connexion);
 
 if (isset($_GET['alert']) && $_GET['alert'] == 'success') {
     echo "<script type='text/javascript'>alert('Rappel envoyé avec succès!');</script>";
@@ -130,7 +130,7 @@ function confirmRappel(form) {
                                     <?php foreach ($chambreRows as $i => $litRow): ?>
                                         <?php 
                                         // Vérification du statut du rappel pour chaque étudiant dans la ligne
-                                        $resteAPayer = (int)$litRow['reste_a_payer'];
+                                        $resteAPayer = (int)$litRow['reste_a_payer_total'];
                                         $canRemind = false;
 
                                         // Vérification du montant restant à payer et de la date du dernier rappel
@@ -155,16 +155,16 @@ function confirmRappel(form) {
                                             <td><?= htmlspecialchars($litRow['lit']) ?></td>
                                             <td><?= htmlspecialchars($litRow['num_etu']) ?></td>
                                             <td><?= htmlspecialchars($litRow['etudiant_prenoms'] . " " . $litRow['etudiant_nom']) ?></td>
-                                            <td><?= number_format($litRow['montant_facture'], 0, ',', ' ') ?> F CFA</td>
+                                            <td><?= number_format($litRow['montant_facture_total'], 0, ',', ' ') ?> F CFA</td>
 											
 											 <td>
                             <a
                                 href="details.php?id_etu=<?= urlencode($litRow['etudiant_id']) ?>&etu=<?= urlencode($litRow['num_etu']) ?>">
-                                <?= number_format($litRow['montant_paye'], 0, ',', ' ') ?> F CFA
+                                <?= number_format($litRow['montant_paye_total'], 0, ',', ' ') ?> F CFA
                             </a>
                         </td>
 										
-                                            <td><?= number_format($litRow['reste_a_payer'], 0, ',', ' ') ?> F CFA</td>
+                                            <td><?= number_format($litRow['reste_a_payer_total'], 0, ',', ' ') ?> F CFA</td>
                                             <td>
                                              <form method="GET" action="" onsubmit="return confirmRappel(this);">
     <input type="hidden" name="etudiant_id" value="<?= $litRow['etudiant_id'] ?>">
@@ -195,7 +195,7 @@ function confirmRappel(form) {
                             <?php foreach ($chambreRows as $i => $litRow): ?>
                                 <?php 
                                 // Vérification du statut du rappel pour chaque étudiant dans la ligne
-                                $resteAPayer = (int)$litRow['reste_a_payer'];
+                                $resteAPayer = (int)$litRow['reste_a_payer_total'];
                                 $canRemind = false;
 
                                 if ($resteAPayer >= 6000) {
@@ -218,14 +218,14 @@ function confirmRappel(form) {
                                     <td><?= htmlspecialchars($litRow['lit']) ?></td>
                                     <td><?= htmlspecialchars($litRow['num_etu']) ?></td>
                                     <td><?= htmlspecialchars($litRow['etudiant_prenoms'] . " " . $litRow['etudiant_nom']) ?></td>
-                                    <td><?= number_format($litRow['montant_facture'], 0, ',', ' ') ?> F CFA</td>
+                                    <td><?= number_format($litRow['montant_facture_total'], 0, ',', ' ') ?> F CFA</td>
                                      <td>
                             <a
                                 href="details.php?id_etu=<?= urlencode($litRow['etudiant_id']) ?>&etu=<?= urlencode($litRow['num_etu']) ?>">
-                                <?= number_format($litRow['montant_paye'], 0, ',', ' ') ?> F CFA
+                                <?= number_format($litRow['montant_paye_total'], 0, ',', ' ') ?> F CFA
                             </a>
                         </td>
-                                    <td><?= number_format($litRow['reste_a_payer'], 0, ',', ' ') ?> F CFA</td>
+                                    <td><?= number_format($litRow['reste_a_payer_total'], 0, ',', ' ') ?> F CFA</td>
                                     <td>
                                       <form method="GET" action="" onsubmit="return confirmRappel(this);">
     <input type="hidden" name="etudiant_id" value="<?= $litRow['etudiant_id'] ?>">

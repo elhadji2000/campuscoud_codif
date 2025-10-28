@@ -81,7 +81,7 @@ $occupants = getEtudiantByLit($lit,$paie, $connexion); ;
                 <tbody>
                     <?php if (!empty($occupants)) : ?>
                     <?php foreach ($occupants as $index => $row): ?>
-                    <tr>
+                    <tr style="font-family:Times;font-size:15px;">
                         <td><?= $index + 1 ?></td>
                         <td><?= htmlspecialchars($row['num_etu']) ?></td>
                         <td><?= htmlspecialchars($row['nom']) ?></td>

@@ -127,6 +127,15 @@ echo "Voulez vous supprimer le user cree ?"; ?>	 <a href="rcl4?var=su&ne=<?php e
 	
 <?php	
 }
+elseif($var=='rm') {
+	
+	
+echo "Voulez vous reinitialiser le mot de passe ?"; ?>	 <a href="rcl4?var=rm&ne=<?php echo $ne; ?>&nr=<?php echo $nr; ?>">Oui</a>
+
+
+	
+<?php	
+}
 elseif($var=='cl') {
 	
 	

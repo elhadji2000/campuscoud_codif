@@ -117,6 +117,16 @@ echo "<meta http-equiv='refresh' content='0;URL=rcl2?nr=$nr'>";
 //echo "<meta http-equiv='refresh' content='0;URL=index'>";
 	exit();
 }
+elseif($var=='rm') {
+	
+//UPDATE `codif_user` SET `password_user` = SHA1('COUD') WHERE `codif_user`.`id_user` = 8183;	
+$rr=("update  `codif_user` set `password_user` = SHA1('COUD'),`type_mdp`='default'   where username_user ='$ne'");                               							 
+$ee = mysqli_query($link, $rr);
+
+echo "<meta http-equiv='refresh' content='0;URL=rcl2?nr=$nr'>";	
+//echo "<meta http-equiv='refresh' content='0;URL=index'>";
+	exit();
+}
 elseif($var=='cl') {
 	
 $rr=("update  `codif_reclamation` set statut='OK' where num_etu ='$ne'");                               							 

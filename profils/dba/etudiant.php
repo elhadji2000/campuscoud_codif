@@ -146,14 +146,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 <body>
     <div class="container">
-        <h2 class="text-center text-primary">Rechercher un étudiant</h2>
+        <h2 class="text-center text-primary">Rechercher un étudiant par Numéro carte</h2>
 
         <form method="GET" action="etudiant.php" class="text-center mt-4">
             <center>
                 <div class="text-center row">
 
                     <div class="col-md-6">
-                        <input type="text" required placeholder="Numéro Étudiant" name="numCarte"
+                        <input type="text" value="<?php echo maxIdEtu();  ?>" name="numCarte"
                             class="form-control" />
                     </div>
                     <div class="col-md-4">
@@ -177,7 +177,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <th>Num_Carte</th>
                         <th>Prénom&Nom</th>
                         <th>Téléphone</th>
-                        <th>Classe</th>
+                        <th>Faculte</th>
+                        <th>Departement</th>
+                        <th>NiveauFormation</th>
                         <th>date_naissance</th>
                         <th>Statut</th>
                         <th>Choix</th>
@@ -192,6 +194,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <th><?= htmlspecialchars($etudiant['num_etu']) ?></th>
                         <td><?= htmlspecialchars($etudiant['prenoms']) ?> <?= htmlspecialchars($etudiant['nom']) ?></td>
                         <td><?= htmlspecialchars($etudiant['telephone']) ?></td>
+                         <td><?= htmlspecialchars($etudiant['etablissement']) ?></td>
+                        <td><?= htmlspecialchars($etudiant['departement']) ?></td>
                         <td><?= htmlspecialchars($etudiant['niveauFormation']) ?></td>
                         <td><?= htmlspecialchars($etudiant['dateNaissance']) ?></td>
                         <td><?= $statut['statut'] ?></td>

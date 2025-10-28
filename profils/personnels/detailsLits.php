@@ -53,6 +53,51 @@ if (isset($_GET['successLitDeaffecter'])) {
     <link rel="stylesheet" href="../../assets/bootstrap/js/bootstrap.min.js">
     <link rel="stylesheet" href="../../assets/bootstrap/js/bootstrap.bundle.min.js">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    
+    
+    <style>
+    .options-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .option,
+    .archive {
+        display: inline-block;
+        padding: 8px 10px;
+        margin: 5px;
+        font-size: 12px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        min-width: 60px;
+        max-width: 200px;
+        background-color: #f8f9fa;
+    }
+
+    .archive {
+        background-color: #e9ecef;
+        color: #6c757d;
+    }
+
+    /* Responsive - pour écran inférieur à 576px (mobile) */
+    @media screen and (max-width: 576px) {
+
+        .option,
+        .archive {
+            font-size: 12px;
+            padding: 6px;
+            min-width: 50px;
+            max-width: 200px;
+        }
+
+        .options-container {
+            gap: 6px;
+        }
+    }
+    </style>
 </head>
 
 <body>
@@ -94,38 +139,29 @@ if (isset($_GET['successLitDeaffecter'])) {
         <div class="row">
             <div class="col-md-12">
                 <form id="myForm" action="../../traitement/removeQuotas" method="GET">
-                    <div class='options-container'>
+                     <div class='options-container'>
                         <?php
-                        while ($row = mysqli_fetch_array($resultatRequeteLitClasse)) {
-                            if ($row['statut_migration'] == 'Migré dans les deux') {
-                                $countIn++;
-                            }
-                            if ($counter % 9 == 0) { ?>
-                                <div class='column'>
-                                <?php
-                            }
-                            if ($row['statut_migration'] == 'Migré vers codif_quota uniquement') {
-                                ?>
-                                    <label class="option" title="Lit non choisi">
-                                        <input type="checkbox" name="<?= $row['id_lit'] ?>" id="<?= $row['id_lit'] ?>"><?= $row['lit'] ?></input>
-                                    </label>
-                                <?php
-                            }
-                            if ($row['statut_migration'] == 'Migré dans les deux') {
-                                ?>
-                                    <label class="archive" title="Lit déja choisi!"><?= $row['lit'] ?> </label>
-                                <?php
-                            }
-                            $counter++;
-                            if ($counter % 9 == 0) { ?>
-                                </div>
-                            <?php
+                            while ($row = mysqli_fetch_array($resultatRequeteLitClasse)) {
+                                if ($row['statut_migration'] == 'Migré dans les deux') {
+                                    $countIn++;
+                                }
+
+                                if ($row['statut_migration'] == 'Migré vers codif_quota uniquement') {
+                            ?>
+                        <label class="option" title="Lit non choisi">
+                            <input type="checkbox" name="<?= $row['id_lit'] ?>" id="<?= $row['id_lit'] ?>">
+                            <?= $row['lit'] ?>
+                        </label>
+                        <?php
+                            } elseif ($row['statut_migration'] == 'Migré dans les deux') {
+                        ?>
+                        <label class="archive" title="Lit déjà choisi!"><?= $row['lit'] ?></label>
+                        <?php
                             }
                         }
-                        if ($counter % 9 != 0) { ?>
+                        ?>
                     </div>
-                <?php
-                        } ?>
+               
             </div><br>
             <div class="row justify-content-center">
 

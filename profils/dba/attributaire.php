@@ -53,6 +53,7 @@ $_SESSION['error'] = '';
                     <td>N° Etudiant</td>
                     <td>PRENOM</td>
                     <td>NOM</td>
+                    <td>TELEPHONE</td>
                     <td>FACULTE</td>
                     <td>NIVEAU FORMATION</td>
                     <td>SEXE</td>
@@ -63,9 +64,9 @@ $_SESSION['error'] = '';
                     $quota = getQuotaClasse($row_formation["niveauFormation"], $row_formation["sexe"])['COUNT(*)'];
                     $tableau_data_etudiant = getAllDatastudentStatus($quota, $row_formation["niveauFormation"], $row_formation["sexe"]);
                     for ($i = 0; $i < count($tableau_data_etudiant); $i++) {  
-                      //  if ($tableau_data_etudiant[$i]['statut'] == 'Attributaire') {  
-                          if ($tableau_data_etudiant[$i]['statut'] == 'Attributaire' and ($tableau_data_etudiant[$i]['niveauFormation'] == 'Dentaire / Licence 3' )) { 
-                          
+                       //   if ($tableau_data_etudiant[$i]['statut'] == 'Attributaire') {  
+                        if ($tableau_data_etudiant[$i]['statut'] == 'Attributaire' and ($tableau_data_etudiant[$i]['niveauFormation'] == 'C.U.R.I Licence1' )) { 
+                                                                                                                                            
                          // verifierDemarrage($tableau_data_etudiant[$i]['niveauFormation']);
                           
                           ?>
@@ -73,6 +74,7 @@ $_SESSION['error'] = '';
                                 <td><?= $tableau_data_etudiant[$i]['num_etu'] ?></td>
                                 <td><?= $tableau_data_etudiant[$i]['prenoms'] ?></td>
                                 <td><?= $tableau_data_etudiant[$i]['nom'] ?></td>
+                                <td><?= $tableau_data_etudiant[$i]['telephone'] ?></td>
                                 <td><?= $tableau_data_etudiant[$i]['etablissement'] ?></td>
                                 <td><?= $tableau_data_etudiant[$i]['niveauFormation'] ?></td>
                                 <td><?= $tableau_data_etudiant[$i]['sexe'] ?></td>
@@ -80,7 +82,7 @@ $_SESSION['error'] = '';
                             </tr>
                 <?php
                 //Envoi SMS
-              //  sms_attributaires($tableau_data_etudiant[$i]['num_etu']);     //die;
+               sms_attributaires($tableau_data_etudiant[$i]['num_etu']);     //die;
                             
                         }
                     }

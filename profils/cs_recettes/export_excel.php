@@ -7,7 +7,11 @@ verif_type_mdp_2($_SESSION['username']);
 
 // Récupérer les données
 $pavillonDonne = isset($_GET["pavillon"]) ? $_GET["pavillon"] : '';
-$result = getPaymentDetailsByPavillon($pavillonDonne, $connexion);
+$dateDebut = isset($_GET["date_debut"]) ? $_GET["date_debut"] : null;
+$dateFin = isset($_GET["date_fin"]) ? $_GET["date_fin"] : null;
+//$result = getPaymentDetailsByPavillon($pavillonDonne, $connexion);
+
+$result = getPaymentDetailsByPavillon($pavillonDonne, $connexion, $dateDebut, $dateFin);
 
 // Initialisation de PhpSpreadsheet
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -20,7 +24,7 @@ $spreadsheet = new Spreadsheet();
 $sheet = $spreadsheet->getActiveSheet();
 
 // Titre du document
-$sheet->setCellValue('A1', 'Détails des recouvrements - Pavillon ' . $pavillonDonne);
+$sheet->setCellValue('A1', 'Détails des recettes - Pavillon ' . $pavillonDonne);
 $sheet->mergeCells('A1:J1');
 $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
 $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);

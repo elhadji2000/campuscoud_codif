@@ -51,9 +51,15 @@ if (!empty($_POST['username_user']) && !empty($_POST['password_user'])) {
 		 $_SESSION['chef_acp'] = $row['profil_user'];
             header('Location: ../profils/cs_acp/etatPaiement_cs');
             exit();
-        } else if ($row['profil_user'] == 'dba') {
+        } 
+         else if ($row['profil_user'] == 'message') {
+		 $_SESSION['chef_acp'] = $row['profil_user'];
+            header('Location: ../profils/cs_departement/sendMessage');
+            exit();
+        } 
+        else if ($row['profil_user'] == 'dba') {
 		 $_SESSION['dba'] = $row['profil_user'];
-            header('Location: ../profils/dba/addUser');
+            header('Location: ../profils/dba/etudiant');
             exit();
         }
         else if ($row['profil_user'] == 'chef_campus') {
@@ -70,6 +76,11 @@ if (!empty($_POST['username_user']) && !empty($_POST['password_user'])) {
         else if ($row['profil_user'] == 'chef_recette') {
 		 $_SESSION['chef_recette'] = $row['profil_user'];
             header('Location: ../profils/cs_recettes/index');
+            exit();
+        }
+         else if ($row['profil_user'] == 'audit') {
+		 $_SESSION['audit'] = $row['profil_user'];
+            header('Location: ../profils/cs_campus/niveau2');
             exit();
         }
         else if ($row['profil_user'] == 'pcs') {

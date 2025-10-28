@@ -126,36 +126,36 @@ if (isset($_GET['erreurNonTrouver'])) {
                     ?>
                         <form action="requestForclore" method="POST">
                             <div class="row " style="display: flex;justify-content: center;color:black;">
-                                <div class="col-md-4 ">
+                                <div class="col-md-6 ">
                                     <input type="text" class="form-control " placeholder="<?= $data['prenoms'] ?>" disabled>
                                     <input class="form-control" name="num_etu" value="<?= $data['num_etu'] ?>" style="visibility: hidden;">
                                 </div>
-                                <div class="col-md-4 ">
+                                <div class="col-md-6 ">
                                     <input  type="text" class="form-control "  placeholder="<?= $data['nom'] ?>" disabled>
                                 </div>
                             </div>
                             <div class="row" style="display: flex;justify-content: center;">
 
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <input  type="text" class="form-control "  placeholder="FAC: <?= $data['etablissement'] ?> " disabled>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <input  type="text" class="form-control " placeholder="Classe: <?= $data['niveauFormation'] ?>" disabled>
                                 </div>
                             </div><br>
                             <div class="row" style="display: flex;justify-content: center;color:black;">
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <input  type="text" class="form-control" placeholder="Numero Carte: <?= $data['num_etu'] ?>" disabled>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <input  type="text" class="form-control" placeholder="Date Naissance: <?= $data['dateNaissance'] ?>" disabled>
                                 </div>
                             </div><br>
                             <div class="row" style="display: flex;justify-content: center;color:black;">
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <input  type="text" class="form-control" placeholder="Anciennete: <?= $data['typeEtudiant']  ?>" disabled>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <input  type="text" class="form-control" placeholder=" Moyenne: <?= $data['moyenne'] ?>" disabled>
                                 </div>
                             </div>

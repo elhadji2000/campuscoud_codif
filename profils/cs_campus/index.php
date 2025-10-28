@@ -6,7 +6,7 @@ verif_type_mdp_2($_SESSION['username']);
 $campus = $_SESSION['campus'];
 $pavillons = getPavillonsByCampus2($connexion,$campus);
 $pavillonDonne = isset($_GET["pavillon"]) ? $_GET["pavillon"] : htmlspecialchars($pavillons[0]);
-$result = getPaymentDetailsByPavillon($pavillonDonne, $connexion);
+$result = getPaymentDetailsByPavillon1($pavillonDonne, $connexion);
 
 // Regrouper les lits par chambre
 $chambres = [];
@@ -101,6 +101,7 @@ foreach ($result as $row) {
             <br><br>
             <h1> GESTION DES RECOUVREMENTS</h1><br>
             <h2> PAVILLON : <?= htmlspecialchars($pavillonDonne) ?></h2>
+             <h2> <a href="pavillon_nonLoger?pavillon=<?php echo $pavillonDonne; ?>">Voir Les Etudiants du Pavillon <?php echo $pavillonDonne; ?> A Surveiller</a></h2>
         </center>
         <br><br>
         <center>
@@ -128,7 +129,7 @@ foreach ($result as $row) {
                         <?php foreach ($lits as $i => $litRow) : ?>
                         <?php
                                     // Vérification du statut du rappel pour chaque étudiant dans la ligne
-                                    $resteAPayer = (int)$litRow['reste_a_payer'];
+                                    $resteAPayer = (int)$litRow['reste_a_payer_total'];
                                     $canRemind = false;
 
                                     // Vérification du montant restant à payer et de la date du dernier rappel
@@ -153,14 +154,14 @@ foreach ($result as $row) {
                         <td><?= htmlspecialchars($litRow['lit']) ?></td>
                         <td><?= htmlspecialchars($litRow['num_etu']) ?></td>
                         <td><?= htmlspecialchars($litRow['etudiant_prenoms'] . " " . $litRow['etudiant_nom']) ?></td>
-                        <td><?= number_format($litRow['montant_facture'], 0, ',', ' ') ?> F CFA</td>
+                        <td><?= number_format($litRow['montant_facture_total'], 0, ',', ' ') ?> F CFA</td>
                         <td>
                             <a
                                 href="details.php?id_etu=<?= urlencode($litRow['etudiant_id']) ?>&etu=<?= urlencode($litRow['num_etu']) ?>">
-                                <?= number_format($litRow['montant_paye'], 0, ',', ' ') ?> F CFA
+                                <?= number_format($litRow['montant_paye_total'], 0, ',', ' ') ?> F CFA
                             </a>
                         </td>
-                        <td><?= number_format($litRow['reste_a_payer'], 0, ',', ' ') ?> F CFA</td>
+                        <td><?= number_format($litRow['reste_a_payer_total'], 0, ',', ' ') ?> F CFA</td>
                         <td>
                             <button class="btn btn-secondary" disabled="disabled">rappel</button>
                         </td>

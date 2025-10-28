@@ -5,13 +5,16 @@
 
 require_once(__DIR__ . '/traitement/fonction.php');
 
+$is_valider_choix = getValidateLitByStudent_2($_SESSION['username']);
+
 if ($_SESSION['profil'] == 'user') {
   $inforequeteAffectEtu = getStudentChoiseLit($_SESSION['id_etu']);
 
-  $affecter = 0;
-  while ($row = $inforequeteAffectEtu->fetch_assoc()) {
-    $affecter++;
-  }
+  $affecter = $inforequeteAffectEtu->num_rows;
+  ///while ($row = $inforequeteAffectEtu->fetch_assoc()) {
+  //  $affecter++;
+  //}
+
 
   $quotaStudentConnect = getQuotaClasse($_SESSION['classe'], $_SESSION['sexe_etudiant'])['COUNT(*)']; //var_dump($quotaStudentConnect); die;
   $statutStudentConnect = getOnestudentStatus($quotaStudentConnect, $_SESSION['classe'], $_SESSION['sexe_etudiant'], $_SESSION['num_etu']);
@@ -44,9 +47,9 @@ include('activite.php');
 
     <!-- CSS
     ================================================== -->
-    <link rel="stylesheet" href="http://127.0.0.1/campuscoud.com/assets/css/base.css">
-    <link rel="stylesheet" href="http://127.0.0.1/campuscoud.com/assets/css/vendor.css">
-    <link rel="stylesheet" href="http://127.0.0.1/campuscoud.com/assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/base.css">
+    <link rel="stylesheet" href="assets/css/vendor.css">
+    <link rel="stylesheet" href="assets/css/main.css">
 
     <!-- script
     ================================================== -->
@@ -59,12 +62,21 @@ include('activite.php');
     <link rel="icon" href="log.gif" type="../image/x-icon">
 
 </head>
+
+
+
+
+
+
+
+
+
 <body id="top">
   <!-- header================================================== -->
   <header class="s-header">
     <div class="header-logo">
     
-	  <a class="site-logo" href="#"><img src="/campuscoud.com/assets/images/logo.png" alt="Homepage" /></a>
+	  <a class="site-logo" href="#"><img src="/campuscoud/assets/images/logo.png" alt="Homepage" /></a>
       CAMPUSCOUD
     </div>
     <nav class="header-nav-wrap">
@@ -78,6 +90,28 @@ include('activite.php');
             <a class="nav-link" href="etatPaiement" title="Changer de niveau de formation ">Etat</a>
           </li>
         <?php } ?>
+        
+        
+        
+        
+               <?php if (($_SESSION['profil'] == 'audit')) { ?>
+          <li class="nav-item">
+            <a class="nav-link" href="niveau2" title="Valider les quotas saisis">Changer_de_Formation</a>
+          </li>
+
+        <?php } ?>
+        
+        
+        
+                
+               <?php if (($_SESSION['profil'] == 'message')) { ?>
+          <li class="nav-item">
+            <a class="nav-link" href="niveau3" title="Valider les quotas saisis">Changer_de_Formation</a>
+          </li>
+
+        <?php } ?>
+        
+        
         
         
                 <?php if (($_SESSION['profil'] == 'cs_acp')) { ?>
@@ -103,12 +137,12 @@ include('activite.php');
            <li class="nav-item">
             <a class="nav-link" href="addUser" title="Affiche users ">Add_users</a>
           </li>
-           <li class="nav-item">
+           <!--li class="nav-item">
             <a class="nav-link" href="attributaire" title="Affiche Attributaires ">Attributaires</a>
           </li>
            <li class="nav-item">
             <a class="nav-link" href="suppleant" title="Affiche Suppleants ">Suppleants</a>
-          </li>
+          </li-->
            <li class="nav-item">
             <a class="nav-link" href="evolution" title="Affiche evolution ">Evolution</a>
           </li >
@@ -123,6 +157,10 @@ include('activite.php');
           
           <li class="nav-item">
             <a class="nav-link" href="index" title="Suivre les recettes ">Suivi_Recettes</a>
+          </li>
+          
+           <li class="nav-item">
+            <a class="nav-link" href="global" title="Suivre les recettes ">Suivi_Global</a>
           </li>
 
            <!-- li class="nav-item">
@@ -164,6 +202,10 @@ include('activite.php');
            <li class="nav-item">
             <a class="nav-link" href="evolution" title="Evolution ">Evolution</a>
           </li>
+          </li>
+           <li class="nav-item">
+            <a class="nav-link" href="black_list" title="black_list ">Black_list</a>
+          </li>
 
         <?php } ?>
         
@@ -200,6 +242,11 @@ include('activite.php');
 		  <!--li class="nav-item active">
             <a class="nav-link" href="clando" title="Loger un etudiant Non Attributaire">Loger_1_Non_Attributaire</a>
           </li-->
+          
+           <li class="nav-item active">
+            <a class="nav-link" href="pavillon_nonLoger" title="Ils ont payé et doivent venir se presenter ...">A Surveiller</a>
+          </li>
+          
 		  <li class="nav-item active">
             <a class="nav-link" href="loger" title="Loger un etudiant">Loger</a>
           </li>
@@ -215,15 +262,17 @@ include('activite.php');
 		  
 
   <?php        
-          if (($affecter == 0) && ($statutStudentConnect['statut'] == 'Attributaire')) {
+          if ( ( ($affecter == 1) && ($is_valider_choix!="oui")) or (($affecter == 0) && ($statutStudentConnect['statut'] == 'Attributaire'))) {
+             // if (($is_valider_choix!="oui") && ($statutStudentConnect['statut'] == 'Attributaire') || ($affecter)) {
             $_SESSION['lit_choisi'] = ''; ?>
             <li class="nav-item active">
               <a class="nav-link" href="../etudiants/codifier" title="Aller à la page des codifications">Choisir_un_lit</a>
 			  </li>			
 			<?php	
            } 
-		   
-		   else {
+           
+           
+           if (($affecter == 1) && ($statutStudentConnect['statut'] == 'Attributaire')) {
             while ($rows = $resultatReqLitEtu->fetch_assoc()) {
               if ($rows['lit']) {
                 $_SESSION['lit_choisi'] = $rows['lit'];
@@ -268,9 +317,15 @@ if ($_SESSION['profil'] != 'user' ){ ?>
             </li>	
 <?php		  
 }	?>	
+
+
+
+
+		
+		
 		
         <li class="nav-item">
-          <a class="nav-link" href="http://127.0.0.1/campuscoud.com/" title="Déconnexion"><i class="fa fa-sign-out" aria-hidden="true"></i> Déconnexion</a>
+          <a class="nav-link" href="http://localhost/campuscoud/" title="Déconnexion"><i class="fa fa-sign-out" aria-hidden="true"></i> Déconnexion</a>
         </li>
 		
       </ul>
@@ -281,9 +336,9 @@ if ($_SESSION['profil'] != 'user' ){ ?>
   <!-- end s-header -->
 </body>
 <section id="homedesigne" class="s-homedesigne">
-  <?php   if (($_SESSION['profil'] == 'quota') || ($_SESSION['profil'] == 'paiement') || ($_SESSION['profil'] == 'validation') || ($_SESSION['profil'] == 'chef_residence') || ($_SESSION['profil'] == 'forclusion') || ($_SESSION['profil'] == 'delai') || ($_SESSION['profil'] == 'cs_acp') || ($_SESSION['profil'] == 'dba') || ($_SESSION['profil'] == 'chef_campus') || ($_SESSION['profil'] == 'sag') || ($_SESSION['profil'] == 'chef_departement')  || ($_SESSION['profil'] == 'chef_recette') || ($_SESSION['profil'] == 'pcs')) { ?>
+  <?php   if (($_SESSION['profil'] == 'quota') || ($_SESSION['profil'] == 'paiement') || ($_SESSION['profil'] == 'validation') || ($_SESSION['profil'] == 'chef_residence') || ($_SESSION['profil'] == 'forclusion') || ($_SESSION['profil'] == 'delai') || ($_SESSION['profil'] == 'cs_acp') || ($_SESSION['profil'] == 'dba') || ($_SESSION['profil'] == 'chef_campus') || ($_SESSION['profil'] == 'sag') || ($_SESSION['profil'] == 'chef_departement')  || ($_SESSION['profil'] == 'chef_recette') || ($_SESSION['profil'] == 'audit') || ($_SESSION['profil'] == 'message') || ($_SESSION['profil'] == 'pcs')) { ?>
   
-    <p class="lead">Espace Administration: Bienvenue!  <br> <span>
+    <p class="lead">Espace Administration: Bienvenue! <br> <br> <span>
         (<?= $_SESSION['prenom'] . "  " . $_SESSION['nom'] ?>)
       </span></p>
   <?php } elseif ($_SESSION['profil'] == 'user' and $_SESSION['type_mdp']=='updated') { ?>
@@ -303,7 +358,7 @@ if ($_SESSION['profil'] != 'user' ){ ?>
 		$resultatReqLitEtu = getOneLitByStudent($monTitulaire['num_etu']);
 		//$lit_titu=$resultatReqLitEtu['lit']; echo $lit_titu;
 		
-		?><br>
+		?><br><br>
         <?php
       } else if ($statutStudentConnect['statut'] == 'Attributaire') {
         if($monSuppleant = getOneSuppleantByTitulaire($quotaStudentConnect, $_SESSION['classe'], $_SESSION['sexe_etudiant'], $statutStudentConnect['rang']))

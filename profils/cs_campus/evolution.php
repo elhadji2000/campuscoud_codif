@@ -108,6 +108,7 @@ $openModal = isset($_GET['openModal']) && $_GET['openModal'] == 'getClasse';
                                 <td>N° Etudiant</td>
                                 <td>PRENOM</td>
                                 <td>NOM</td>
+                                <td>Telephone</td>
                                 <td>RANG</td>
                                 <td>STATUT</td>
                                 <td>SITUATION</td>
@@ -120,6 +121,7 @@ $openModal = isset($_GET['openModal']) && $_GET['openModal'] == 'getClasse';
                                             <td><?= $tableau_data_etudiant[$i]['num_etu'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['prenoms'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['nom'] ?></td>
+                                             <td><?= $tableau_data_etudiant[$i]['telephone'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['rang'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['statut'] ?></td>
                                             <td>
@@ -144,6 +146,7 @@ $openModal = isset($_GET['openModal']) && $_GET['openModal'] == 'getClasse';
                                             <td><?= $tableau_data_etudiant[$i]['num_etu'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['prenoms'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['nom'] ?></td>
+                                             <td><?= $tableau_data_etudiant[$i]['telephone'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['rang'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['statut'] ?></td>
                                             <td>Forclos(e)</td>
@@ -154,6 +157,7 @@ $openModal = isset($_GET['openModal']) && $_GET['openModal'] == 'getClasse';
                                             <td><?= $tableau_data_etudiant[$i]['num_etu'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['prenoms'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['nom'] ?></td>
+                                             <td><?= $tableau_data_etudiant[$i]['telephone'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['rang'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['statut'] ?></td>
                                             <td>
@@ -175,6 +179,7 @@ $openModal = isset($_GET['openModal']) && $_GET['openModal'] == 'getClasse';
                                             <td><?= $tableau_data_etudiant[$i]['num_etu'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['prenoms'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['nom'] ?></td>
+                                             <td><?= $tableau_data_etudiant[$i]['telephone'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['rang'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['statut'] ?></td>
                                             <td>
@@ -196,6 +201,7 @@ $openModal = isset($_GET['openModal']) && $_GET['openModal'] == 'getClasse';
                                             <td><?= $tableau_data_etudiant[$i]['num_etu'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['prenoms'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['nom'] ?></td>
+                                             <td><?= $tableau_data_etudiant[$i]['telephone'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['rang'] ?></td>
                                             <td><?= $tableau_data_etudiant[$i]['statut'] ?></td>
                                             <td>Non Défini</td>

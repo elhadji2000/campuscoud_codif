@@ -166,15 +166,14 @@ include('foot.html');
                 <h4 class="h06">Adresses:</h4>
                 <p>
                  <u>Hebergement:</u><br>
-				 Rez de chaussee<br>
-                 Pavillon E<br>
-                 Grand Campus COUD
+				 <b>Garcons:</b> Rez de chaussee Pavillon E (Grand_Campus) <br>
+				 <b>Filles:</b> Alioune Sitoe Jatta (Ex Claudel) <br>
                 </p>
 				<p>
                  <u>Informatique:</u><br>
 				 Rez de chaussee<br>
                  Pavillon B<br>
-                 Grand Campus COUD
+                 Grand Campus
                 </p>
             </div>
 

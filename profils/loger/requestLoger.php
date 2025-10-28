@@ -30,7 +30,7 @@ if (isset($_POST['numEtudiant'])) {
                         header('Location: loger.php?erreurValider=Etudiant déja logé !!!&' . $queryString);
                     }
                 } else {
-                    header("location: loger.php?erreurNonTrouver=Cet etudiant n'est pas resident du pavillon =>" . $_SESSION['pavillon'] . " !!!");
+                    header("location: loger.php?erreurNonTrouver=Cet etudiant n'a pas un choix de lit valide au pavillon =>" . $_SESSION['pavillon'] . " !!!");
                 }
                 mysqli_free_result($data);
             } 

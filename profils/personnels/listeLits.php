@@ -35,7 +35,17 @@ if (isset($_GET['successLitAffecter'])) {
     $_SESSION['successLitAffecter'] = '';
 }
 
+include('../../head.php'); 
+
+//Verifier si les quotas sont saisis
 controlSaisieQuota($faculte);
+
+//Eviter ajout quota apres debut choix lits
+if (verifajoutquota($_SESSION['classe'],$_SESSION['sexe_agent'])) {
+    echo "<script>alert('Les etudiant de cette classe ont déjà commencé a choisir des lits. Vous ne pouvez plus ajouter de lits au quota.');</script>";
+    exit ();
+} 
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -55,13 +65,9 @@ controlSaisieQuota($faculte);
 </head>
 
 <body>
-    <?php include('../../head.php'); 
+    <?php 
     
-//Eviter ajout quota apres debut choix lits
-if (verifajoutquota($_SESSION['classe'])) {
-    echo "<script>alert('les etudiant de cette classe ont déjà commencé a choisir des lits. Vous ne pouvez plus ajouter de lits au quota.');</script>";
-    exit ();
-} 
+
     
     ?>
     <div class="container-fluid">

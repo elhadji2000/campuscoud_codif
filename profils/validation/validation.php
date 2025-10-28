@@ -140,9 +140,47 @@ alert('Veuillez reessayer plus tard.')
         <div class="row">
             <div class="col-md-12">
                 <ul class="options">
+                    
+                    
+                    
                     <?php
                     if (isset($_GET['data'])) {
                         $data = $_GET['data'];
+                        
+                        
+                        
+                        
+                         
+                      
+                    /* if (isset($data)) {
+                        $tableau_data_etudiant = getAllSituation($data['num_etu']);
+                        
+                        if($data['niveauFormation']=='Droit Prive/Master1' or $data['niveauFormation']=='Droit Prive/Master1/Indiv' or $data['niveauFormation']=='Droit Public/Master1' or $data['niveauFormation']=='Droit Public/Master1/Indiv' or $data['niveauFormation']=='Sciences Politiques/Master1' or $data['niveauFormation']=='Sciences Politiques/Master1/Indiv')
+                        {
+                            echo "La Codification est momentanement suspendue pour votre Formation!";
+                            exit();
+                            
+                        }
+                        } 
+                        */
+                        
+                        
+                             if (isset($data)) {
+                        $tableau_data_etudiant = getAllSituation($data['num_etu']);
+                        
+                        if($data['departement']=='F.L.S.H/M1')
+                        {
+                            echo "La Codification est momentanement suspendue pour votre Formation!";
+                            exit();
+                            
+                        }
+                        } 
+                        
+                        
+                        
+                        
+                        
+                        
                         if (isset($_GET['statut'])) { ?>
                             <form action="requestValidation" method="POST">
                                 <div class="row" style="display: flex;justify-content: center;color:black;">
@@ -285,7 +323,28 @@ $pavillon=$rows['pavillon'];$lit=$rows['lit'];
                                         </div>
                                     </div>
                                     <a class="btn btn-secondary" href="/campuscoud.com/profils/validation/validation" type="button">RETOUR</a>
-                                <?php } else { ?>
+                                <?php } else { 
+                                
+                               // DEBUT INFOS FACTURATION    
+                                
+                                    // Recuperation du date debut de codification du niveauFormation de l'etudiant
+    $date_debut = getAllDelai("depart", info($data['num_etu'])[5]);
+    $date_debut = dateFromat($date_debut['data_limite']);  
+    
+    // Calcul du Montant du
+    $montantDu=0;$moisFactures=0;$montantLit=0;
+    $moisFactures = calcul_nbreMois($date_debut); 
+    $montantLit = getPrixMensuelLit($data['num_etu']); 
+    $montantDu=$moisFactures * $montantLit;
+                                
+                          ?>       <div class="row" style="display: flex;justify-content: center;color:black;">
+                                        <div class="col-md-4     mb-3">
+                                            <input class="form-control" placeholder="Facture: Caution=5.000F. <?= $moisFactures ?> Mensualites=<?= $montantDu ?> F." disabled>
+                                        </div>
+                                    </div>
+                                    
+                                <!-- FIN INFOS FACTURATION    -->
+                                
                                     <button class="btn btn-success" type="button" data-toggle="modal" data-target="#confirmationModal">VALIDER</button>
                                 <?php } ?>
                                 <!-- Modal -->

@@ -65,6 +65,7 @@ if (isset($_GET['data'])) {
             </div>
         </div>
         <?php
+ 
         if (isset($_SESSION['lit_choisi']) && $_SESSION['lit_choisi'] != '') {
         ?>
             <div class="alert alert-success" role="alert">

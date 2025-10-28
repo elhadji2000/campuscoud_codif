@@ -228,7 +228,7 @@ if ($_SESSION['profil'] != 'user' ){ ?>
 </body>
 <section id="homedesigne" class="s-homedesigne">
   <?php 
-  if (($_SESSION['profil'] == 'quota') || ($_SESSION['profil'] == 'paiement') || ($_SESSION['profil'] == 'validation') || ($_SESSION['profil'] == 'chef_residence') || ($_SESSION['profil'] == 'forclusion') || ($_SESSION['profil'] == 'delai') || ($_SESSION['profil'] == 'cs_acp') || ($_SESSION['profil'] == 'dba') || ($_SESSION['profil'] == 'chef_campus') || ($_SESSION['profil'] == 'sag') || ($_SESSION['profil'] == 'chef_departement') || ($_SESSION['profil'] == 'chef_recette') || ($_SESSION['profil'] == 'pcs') )  { ?>
+  if (($_SESSION['profil'] == 'quota') || ($_SESSION['profil'] == 'paiement') || ($_SESSION['profil'] == 'validation') || ($_SESSION['profil'] == 'chef_residence') || ($_SESSION['profil'] == 'forclusion') || ($_SESSION['profil'] == 'delai') || ($_SESSION['profil'] == 'cs_acp') || ($_SESSION['profil'] == 'dba') || ($_SESSION['profil'] == 'chef_campus') || ($_SESSION['profil'] == 'sag') || ($_SESSION['profil'] == 'chef_departement') || ($_SESSION['profil'] == 'chef_recette') || ($_SESSION['profil'] == 'audit') || ($_SESSION['profil'] == 'pcs') || ($_SESSION['profil'] == 'message') )  { ?>
   
     <p class="lead">Espace Administration: Bienvenue! <br> <br> <span>
         (<?= $_SESSION['prenom'] . "  " . $_SESSION['nom'] ?>)
