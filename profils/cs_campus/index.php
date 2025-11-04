@@ -152,12 +152,12 @@ foreach ($result as $row) {
                     <tr>
                         <?php endif; ?>
                         <td><?= htmlspecialchars($litRow['lit']) ?></td>
-                        <td><?= htmlspecialchars($litRow['num_etu']) ?></td>
-                        <td><?= htmlspecialchars($litRow['etudiant_prenoms'] . " " . $litRow['etudiant_nom']) ?></td>
+                        <td><?= htmlspecialchars($litRow['num_etu']??"") ?></td>
+                        <td><?= htmlspecialchars($litRow['etudiant_prenoms']??"NR" . " " . $litRow['etudiant_nom']) ?></td>
                         <td><?= number_format($litRow['montant_facture_total'], 0, ',', ' ') ?> F CFA</td>
                         <td>
                             <a
-                                href="details.php?id_etu=<?= urlencode($litRow['etudiant_id']) ?>&etu=<?= urlencode($litRow['num_etu']) ?>">
+                                href="details.php?id_etu=<?= urlencode($litRow['etudiant_id']??"") ?>&etu=<?= urlencode($litRow['num_etu']??"") ?>">
                                 <?= number_format($litRow['montant_paye_total'], 0, ',', ' ') ?> F CFA
                             </a>
                         </td>

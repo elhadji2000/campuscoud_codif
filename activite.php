@@ -23,7 +23,7 @@
 
 			  alert('Votre session a expiré. Veuillez vous reconnecter!');
 			 //   top.location.href="index"			   
-			  top.location.href="https://campuscoud.com"			 
+			  top.location.href="http://localhost/campuscoud/"			 
 
 		}
 	}

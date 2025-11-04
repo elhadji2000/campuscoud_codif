@@ -102,12 +102,12 @@ $users = getUsers();
                     <?php foreach ($users as $index => $user) : ?>
                     <tr>
                         <th scope="row"><?= $index + 1 ?></th>
-                        <td><?= htmlspecialchars($user['prenom_user']) ?></td>
-                        <td><?= htmlspecialchars($user['nom_user']) ?></td>
-                        <td><?= htmlspecialchars($user['telephone_user']) ?></td>
-                        <td><?= htmlspecialchars($user['sexe_user']) ?></td>
-                        <td><?= htmlspecialchars($user['username_user']) ?></td>
-                        <td><?= htmlspecialchars($user['profil_user']) ?></td>
+                        <td><?= htmlspecialchars($user['prenom_user']??"") ?></td>
+                        <td><?= htmlspecialchars($user['nom_user']??"") ?></td>
+                        <td><?= htmlspecialchars($user['telephone_user']??"") ?></td>
+                        <td><?= htmlspecialchars($user['sexe_user']??"") ?></td>
+                        <td><?= htmlspecialchars($user['username_user']??"") ?></td>
+                        <td><?= htmlspecialchars($user['profil_user']??"") ?></td>
                         <td><?= !empty($user['pavillon']) ? htmlspecialchars($user['pavillon']) : "NULL" ?></td>
                         <td><?= !empty($user['campus']) ? htmlspecialchars($user['campus']) : "NULL" ?></td>
                         <td><?= htmlspecialchars($user['type_mdp']) ?></td>

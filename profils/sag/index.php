@@ -55,7 +55,13 @@ echo "Espace S.A.G: Bienvenue!";
 							<tbody>
 <?php  
 
-	  $requet=("SELECT DISTINCT(num_etu) as num_etu FROM `codif_reclamation` WHERE statut is NULL  GROUP by codif_reclamation.numreclame asc, codif_reclamation.num_etu asc");
+	$requet = "
+    SELECT DISTINCT num_etu 
+    FROM codif_reclamation 
+    WHERE statut IS NULL 
+    ORDER BY codif_reclamation.numreclame ASC, codif_reclamation.num_etu ASC
+";
+
 
 $reponse = mysqli_query($link, $requet);//die;
 while($rst_cons = mysqli_fetch_array($reponse))

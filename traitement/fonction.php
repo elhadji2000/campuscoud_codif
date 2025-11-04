@@ -1431,39 +1431,52 @@ curl_close($curl);
 
 function getDonneesEtudiant($numero_carte)
 {
-	$telephone0="777089812";$telephone="";
-	
-try
-{
-$json_url = "https://coud@ucad.sn:dhHNg4VmpfZYR6Q@coudservice.ucad.sn/api/etudiant/$numero_carte";
-$json = file_get_contents($json_url);
-$data = json_decode($json);
+    $result = [
+        'faculte' => null,
+        'departement' => null,
+        'nom' => null,
+        'prenom' => null,
+        'date_naissance' => null,
+        'lieu_naissance' => null,
+        'sexe' => null,
+        'num_identite' => null,
+        'telephone' => null
+    ];
 
-$faculte= $data[0]->faculte;
-$departement= $data[0]->departement; 
-//$niveauFormation= $data[0]->niveauFormation;  //NON DISPO
-$nom= $data[0]->nom; 
-$prenom= $data[0]->prenom;
-$date_naissance= $data[0]->date_naissance; 
-$lieu_naissance= $data[0]->lieu_naissance;
-$sexe= $data[0]->sexe; 
-//$nationalite= $data[0]->nationalite;           //NON DISPO
-$num_identite= $data[0]->num_identite; 
-//$typeEtudiant= $data[0]->typeEtudiant;        // NON DISPO
-//$moyenne= $data[0]->moyenne;                 //NON DISPO
-//$sessionId= $data[0]->sessionId;           //NON DISPO
-//$niveau= $data[0]->niveau;                 //NON DISPO
-//$email_perso= $data[0]->email_perso;       //  NON DISPO
-//$email_ucad= $data[0]->email_ucad; 
-$telephone= $data[0]->telephone;
-}
-catch (Exception $e) {
-   // echo 'Caught exception: ',  $e->getMessage(), "\n";
+    try {
+        $json_url = "https://coud@ucad.sn:dhHNg4VmpfZYR6Q@coudservice.ucad.sn/api/etudiant/$numero_carte";
+        $json = @file_get_contents($json_url);
+
+        // Si l'API ne répond pas ou retourne une erreur
+        if ($json === false) {
+            return null;
+        }
+
+        $data = json_decode($json);
+
+        // Vérifie si $data contient bien un index 0 et que c’est un objet
+        if (isset($data[0]) && is_object($data[0])) {
+            $result['faculte'] = $data[0]->faculte ?? null;
+            $result['departement'] = $data[0]->departement ?? null;
+            $result['nom'] = $data[0]->nom ?? null;
+            $result['prenom'] = $data[0]->prenom ?? null;
+            $result['date_naissance'] = $data[0]->date_naissance ?? null;
+            $result['lieu_naissance'] = $data[0]->lieu_naissance ?? null;
+            $result['sexe'] = $data[0]->sexe ?? null;
+            $result['num_identite'] = $data[0]->num_identite ?? null;
+            $result['telephone'] = $data[0]->telephone ?? null;
+        } else {
+            // Si l'API ne renvoie rien ou pas de résultat
+            return null;
+        }
+
+    } catch (Exception $e) {
+        return null;
+    }
+
+    return $result;
 }
 
-return array($faculte,$departement,$nom,$prenom,$date_naissance,$lieu_naissance,$sexe,$num_identite,$telephone); 
-	
-}
 
 
 /////////////////sms Suppleants
@@ -5670,7 +5683,69 @@ function getBlackListInfo($num_etu, $connexion)
     ];
 }
 
+function getLitParChambre($link, $chambre) {
+    // Requête SQL avec jointure gauche (LEFT JOIN)
+    $sql = "SELECT 
+                l.id_lit, 
+                l.lit, 
+                af.niveauFormation
+            FROM codif_lit l
+            LEFT JOIN codif_quota af ON l.id_lit = af.id_lit_q
+            WHERE l.chambre = ?";
+    
+    $stmt = $link->prepare($sql);
+    $stmt->bind_param("s", $chambre);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
+    // Tableau des résultats
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+    return $data;
+}
 
+// ********POUR OBTENIR LE NOMBRE EXACTES DES QUOTA DEJA ATTRIBUER A UNE FORMATION PAR SEXE*****
+function quota_saisie($connexion, $niveauFormation, $sexe) {
+    // Préparer la requête SQL
+    $sql = "SELECT COUNT(*) AS total_lits
+            FROM codif_quota cq
+            INNER JOIN codif_lit cl ON cq.id_lit_q = cl.id_lit
+            WHERE cq.niveauFormation = ? 
+              AND cl.sexe = ?";
+
+    // Préparer la requête
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("ss", $niveauFormation, $sexe); // deux paramètres string
+
+    // Exécuter
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+
+    // Retourner le total
+    return $row['total_lits'] ?? 0;
+}
+function quota_prevu($connexion, $niveauFormation, $sexe) {
+    // Préparer la requête SQL
+    $sql = "SELECT nombre 
+            FROM codif_ref_quota
+            WHERE niveauFormation = ? 
+              AND sexe = ? 
+            LIMIT 1"; // on suppose une seule ligne par combinaison
+
+    // Préparer la requête
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("ss", $niveauFormation, $sexe); // deux paramètres string
+
+    // Exécuter
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+
+    // Retourner le nombre trouvé ou 0 par défaut
+    return $row['nombre'] ?? 0;
+}
 
 ?>

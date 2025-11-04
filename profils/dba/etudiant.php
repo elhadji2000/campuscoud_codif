@@ -9,9 +9,27 @@ $etudiant = null;
 if (isset($_GET["numCarte"])) {
     $numCarte = $_GET["numCarte"];
     $etudiant = studentConnect2($numCarte); // Doit retourner un tableau ou null
-    $quota = getQuotaClasse($etudiant['niveauFormation'], $etudiant['sexe'])['COUNT(*)'];
-    $statut = getOnestudentStatus($quota, $etudiant['niveauFormation'], $etudiant['sexe'], $numCarte);
-    //var_dump($statut);die;
+
+if ($etudiant && is_array($etudiant)) {
+    $quota = getQuotaClasse($etudiant['niveauFormation'], $etudiant['sexe'])['COUNT(*)'] ?? 0;
+
+    $statut = getOnestudentStatus(
+        $quota,
+        $etudiant['niveauFormation'],
+        $etudiant['sexe'],
+        $numCarte
+    );
+}
+}
+if (isset($_GET["suppr"])) {
+    $numCarte = $_GET["suppr"];
+    $req = " DELETE FROM codif_etudiant WHERE num_etu='$numCarte'";
+    $result = $connexion->prepare($req);
+    $result->execute(); 
+    echo"<script>alert('etudiant supprimer avec success');
+    window.location.href = 'etudiant';
+    </script>";
+    
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -98,7 +116,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     .container-fluid {
-        max-width: 90%;
+        max-width: 100%;
         margin: 30px auto;
         padding: 20px;
         background: white;
@@ -153,8 +171,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="text-center row">
 
                     <div class="col-md-6">
-                        <input type="text" value="<?php echo maxIdEtu();  ?>" name="numCarte"
-                            class="form-control" />
+                        <input type="text" value="<?php echo maxIdEtu();  ?>" name="numCarte" class="form-control" />
                     </div>
                     <div class="col-md-4">
                         <button type="submit" class="btn btn-primary btn-block btn-custom">
@@ -186,7 +203,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <th>Validation</th>
                         <th>Paiement</th>
                         <th>Loger</th>
-                        
+                        <th>suppr</th>
+
                     </tr>
                 </thead>
                 <tbody>
@@ -194,18 +212,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <th><?= htmlspecialchars($etudiant['num_etu']) ?></th>
                         <td><?= htmlspecialchars($etudiant['prenoms']) ?> <?= htmlspecialchars($etudiant['nom']) ?></td>
                         <td><?= htmlspecialchars($etudiant['telephone']) ?></td>
-                         <td><?= htmlspecialchars($etudiant['etablissement']) ?></td>
+                        <td><?= htmlspecialchars($etudiant['etablissement']) ?></td>
                         <td><?= htmlspecialchars($etudiant['departement']) ?></td>
                         <td><?= htmlspecialchars($etudiant['niveauFormation']) ?></td>
                         <td><?= htmlspecialchars($etudiant['dateNaissance']) ?></td>
                         <td><?= $statut['statut'] ?></td>
-                        <td><?= !empty($etudiant['dateTime_aff']) ? htmlspecialchars($etudiant['dateTime_aff']) : 'NON' ?> / <?= !empty($etudiant['lit']) ? htmlspecialchars($etudiant['lit']) : 'NON' ?>
+                        <td><?= !empty($etudiant['dateTime_aff']) ? htmlspecialchars($etudiant['dateTime_aff']) : 'NON' ?>
+                            / <?= !empty($etudiant['lit']) ? htmlspecialchars($etudiant['lit']) : 'NON' ?>
                         </td>
                         <td><?= !empty($etudiant['dateTime_val']) ? htmlspecialchars($etudiant['dateTime_val']) : 'NON' ?>
                         </td>
-                         <td><?= !empty($etudiant['dateTime_paie']) ? htmlspecialchars($etudiant['dateTime_paie']) : 'NON' ?></td>
-                        <td><?= !empty($etudiant['dateTime_loger']) ? htmlspecialchars($etudiant['dateTime_loger']) : 'NON' ?></td>
-                       
+                        <td><?= !empty($etudiant['dateTime_paie']) ? htmlspecialchars($etudiant['dateTime_paie']) : 'NON' ?>
+                        </td>
+                        <td><?= !empty($etudiant['dateTime_loger']) ? htmlspecialchars($etudiant['dateTime_loger']) : 'NON' ?>
+                        </td>
+                        <?php 
+                        if ($statut['statut'] == "Non Attributaire" || $statut['statut'] == "Non Defini") :?>
+                        <td><a href="?suppr=<?= $etudiant['num_etu'] ?>" onclick="return confirm('Etes-vous sûr de vouloir supprimer cette etudiant ?');" class="text-decoration-underline text-danger">suppr</a></td>
+                        <?php else : ?>
+                        <td><a href="#" class="text-decoration-underline">ND</a></td>
+                        <?php endif; ?>
 
                     </tr>
                 </tbody>
@@ -223,7 +249,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="alert alert-danger">
             <h3>Étudiant non trouvé</h3>
             <p>Aucun étudiant trouvé avec ce numéro.</p>
-                <a href="etudiant.php?ajouter&num_etu=<?php echo $num_etu; ?>" class="btn btn-success btn-custom">
+            <a href="etudiant.php?ajouter&num_etu=<?php echo $num_etu; ?>" class="btn btn-success btn-custom">
                 <i class="fas fa-user-plus"></i> Ajouter un étudiant
             </a>
         </div>
@@ -234,22 +260,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <!-- Condition pour afficher le formulaire d'ajout d'étudiant -->
     <?php if (isset($_GET["ajouter"])) : ?>
-<?php  
+    <?php  
 $num_etu=$_GET["num_etu"];  
-$data=getDonneesEtudiant($num_etu); //var_dump ($data); //die;						
-$faculte= $data[0];
-$departement= $data[1]; 
-$nom= $data[2]; 
-$prenom= $data[3];
-$date_naissance= $data[4]; 
-$lieu_naissance= $data[5];
-//$sexe= $data[6]; 
-$num_identite= $data[7]; 
-$var=substr($num_identite,0,1); 
-if($var=='1'){$sexe='G';}if($var=='2'){$sexe='F';} //echo $sexe; exit();
-$telephone= $data[8];
+$data = getDonneesEtudiant($num_etu);
+
+if ($data !== null) {
+    $faculte        = $data['faculte'];
+    $departement    = $data['departement'];
+    $nom            = $data['nom'];
+    $prenom         = $data['prenom'];
+    $date_naissance = $data['date_naissance'];
+    $lieu_naissance = $data['lieu_naissance'];
+    $sexe           = $data['sexe'];
+    $num_identite   = $data['num_identite'];
+    $telephone      = $data['telephone'];
+} else {
+   // Aucun étudiant trouvé ou données insuffisantes
+    $faculte = $departement = $nom = $prenom = $date_naissance = $lieu_naissance = $num_identite = $telephone = $sexe = "";
+}
+
 ?>
-    
+
     <div class="container">
         <div class="mt-4">
             <h3 class="text-center text-primary">Ajouter un étudiant</h3>
@@ -257,23 +288,23 @@ $telephone= $data[8];
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Numéro Étudiant</label>
-                        <input type="text" name="num_etu" style="background-color: rgba(161, 187, 228, 0.1);" required value="<?php  echo $num_etu;  ?>"
-                            class="form-control" placeholder="">
+                        <input type="text" name="num_etu" style="background-color: rgba(161, 187, 228, 0.1);" required
+                            value="<?php  echo $num_etu;  ?>" class="form-control" placeholder="">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Prénom</label>
-                        <input type="text" style="background-color: rgba(161, 187, 228, 0.1);" name="prenoms" required value="<?php  echo $prenom;  ?>"
-                            class="form-control">
+                        <input type="text" style="background-color: rgba(161, 187, 228, 0.1);" name="prenoms" required
+                            value="<?php  echo $prenom;  ?>" class="form-control">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nom</label>
-                        <input type="text" name="nom" style="background-color: rgba(161, 187, 228, 0.1);" required value="<?php  echo $nom;  ?>"
-                            class="form-control">
+                        <input type="text" name="nom" style="background-color: rgba(161, 187, 228, 0.1);" required
+                            value="<?php  echo $nom;  ?>" class="form-control">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Téléphone</label>
-                        <input type="text" name="telephone" style="background-color: rgba(161, 187, 228, 0.1);" required value="<?php  echo $telephone;  ?>"
-                            class="form-control">
+                        <input type="text" name="telephone" style="background-color: rgba(161, 187, 228, 0.1);" required
+                            value="<?php  echo $telephone;  ?>" class="form-control">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Lieu de Naissance</label>
@@ -298,11 +329,11 @@ $telephone= $data[8];
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Niveau de Formation</label>
                         <input type="text" name="niveauFormation" style="background-color: rgba(161, 187, 228, 0.1);"
-                            required  class="form-control">
+                            required class="form-control">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Moyenne</label>
-                        <input type="text" name="moyenne" style="background-color: rgba(161, 187, 228, 0.1);" required 
+                        <input type="text" name="moyenne" style="background-color: rgba(161, 187, 228, 0.1);" required
                             class="form-control">
                     </div>
                     <div class="col-md-6 mb-3">
@@ -312,8 +343,8 @@ $telephone= $data[8];
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Sexe</label>
-                        <input type="text" name="sexe" style="background-color: rgba(161, 187, 228, 0.1);" required value="<?php  echo $sexe;  ?>"
-                            class="form-control">
+                        <input type="text" name="sexe" style="background-color: rgba(161, 187, 228, 0.1);" required
+                            value="<?php  echo $sexe;  ?>" class="form-control">
                     </div>
                 </div>
                 <div class="text-center mt-3">

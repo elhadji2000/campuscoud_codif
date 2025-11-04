@@ -111,6 +111,7 @@ $ee = mysqli_query($link, $rr);
 
 $datecreation="";
 $type_mdp="";
+$is_active="NaN";
 
 if($cpt = mysqli_num_rows($ee))
 {	
