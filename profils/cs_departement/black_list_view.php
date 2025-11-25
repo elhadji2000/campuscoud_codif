@@ -60,10 +60,10 @@ $result = getBlack_list($connexion);
         <center>
             <h2>LA BLACK LIST</h2><br>
             <a href="black_list" class="text-decoration-underline"> voir la gestion</a> |
-            <a href="#" class="text-danger text-decoration-underline"
+            <!-- <a href="#" class="text-danger text-decoration-underline"
                 onclick="ajouterBlackList('<?php echo $departementDonne; ?>')">
                 Ajouter cette liste
-            </a>
+            </a> -->
 
             <script>
             function ajouterBlackList(departement) {

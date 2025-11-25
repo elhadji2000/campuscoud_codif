@@ -57,13 +57,14 @@ $lits = getLitParChambre($link, $numch);
                             <th>ID</th>
                             <th>Lit</th>
                             <th>NiveauFormation</th>
+                            <th>Etudiant</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($numch)) : ?>
                         <tr>
-                            <td colspan="4" style="text-align:center;">
-                                🔸 Veuillez entrer un numéro de chambre pour lancer la recherche.
+                            <td colspan="5" style="text-align:center;">
+                                Veuillez entrer un numéro de chambre pour lancer la recherche.
                             </td>
                         </tr>
                         <?php elseif (!empty($lits)) : ?>
@@ -74,8 +75,12 @@ $lits = getLitParChambre($link, $numch);
                             <td><?= htmlspecialchars($lit['id_lit']); ?></td>
                             <td><?= htmlspecialchars($lit['lit']); ?></td>
                             <td style="color:<?= !empty($lit['niveauFormation']) ? 'black' : 'gray'; ?>">
-                                <?= !empty($lit['niveauFormation']) ? $lit['niveauFormation'] : 'NaN'; ?>
+                                <?= !empty($lit['niveauFormation']) ? $lit['niveauFormation'] : 'vide'; ?>
                             </td>
+                            <td style="color:<?= !empty($lit['prenom']) ? 'black' : 'gray'; ?>">
+                                <?= !empty($lit['prenoms']) ? $lit['prenoms'].' '.$lit['nom'].' ( '.$lit['num_etu'].' )' : 'vide'; ?>
+                            </td>
+
                         </tr>
                         <?php endforeach; ?>
                         <?php else : ?>

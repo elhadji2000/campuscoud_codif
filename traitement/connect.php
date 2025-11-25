@@ -25,7 +25,7 @@ if (!empty($_POST['username_user']) && !empty($_POST['password_user'])) {
         $_SESSION['prenom'] = $row['prenom_user'];
         $_SESSION['nom'] = $row['nom_user'];
         if ($row['profil_user'] == 'quota') {
-            header('Location: ../profils/personnels/niveau');
+            header('Location: ../profils/personnels/index');
             exit();
         } else if ($row['profil_user'] == 'delai') {
             header('Location: ../profils/personnels/add_delai');
@@ -78,6 +78,11 @@ if (!empty($_POST['username_user']) && !empty($_POST['password_user'])) {
             header('Location: ../profils/cs_recettes/index');
             exit();
         }
+        else if ($row['profil_user'] == 'lit') {
+		 $_SESSION['lit'] = $row['profil_user'];
+            header('Location: ../profils/lit/index');
+            exit();
+        }
          else if ($row['profil_user'] == 'audit') {
 		 $_SESSION['audit'] = $row['profil_user'];
             header('Location: ../profils/cs_campus/niveau2');
@@ -86,7 +91,7 @@ if (!empty($_POST['username_user']) && !empty($_POST['password_user'])) {
         else if ($row['profil_user'] == 'pcs') {
 		 $_SESSION['pcs'] = $row['profil_user'];
 		 $_SESSION['fac'] = $row['fac'];
-            header('Location: ../profils/pcs/evolution');
+            header('Location: ../profils/pcs/index');
             exit();
         } else if ($row['profil_user'] == 'user') {
 			

@@ -4,7 +4,7 @@ if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
     exit();
 }
 unset($_SESSION['classe']);
-include('../../traitement/fonction.php');
+include('../../traitement/fonction.php'); 
 include('../../traitement/requete.php');
 
 verif_type_mdp_2($_SESSION['username']);
@@ -29,6 +29,7 @@ verif_type_mdp_2($_SESSION['username']);
 
 <body>
     <?php include('../../head.php'); ?>
+    </br></br>
     <div class="container">
         <div class="row">
             <form class="form" id="selectForm" action="" method="post">
@@ -72,6 +73,9 @@ verif_type_mdp_2($_SESSION['username']);
                 </div>
             </form>
         </div>
+
+        </br></br>
+        <div class="row justify-content-center text-decoration-underline"> <a href="index">Menu</a></div>
     </div>
     <script src="../../assets/js/jquery-3.2.1.min.js"></script>
     <script src="../../assets/js/plugins.js"></script>

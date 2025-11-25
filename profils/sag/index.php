@@ -1,107 +1,132 @@
 <?php session_start();
-if(! isset( $_SESSION['sag'] ) )
-{header("location: ../");}		 // deconnexion();
+if (!isset($_SESSION['sag'])) {
+    header('location: ../');
+}  // deconnexion();
 
-require_once('../../traitement/fonction.php'); ?>
-  
+require_once ('../../traitement/fonction.php'); ?>
+
 <html lang="en">
 
-<?php 
-//if($_SERVER["HTTP_REFERER"]==""){echo '<meta http-equiv="refresh" content="0;URL=../">'; exit();}  
+<?php
+// if($_SERVER["HTTP_REFERER"]==""){echo '<meta http-equiv="refresh" content="0;URL=../">'; exit();}
 
-include('head.html');	  
-   /* include ('../../fonction.php');*/
-    $link =  connexionBD();
-		  
+include ('head.html');
+/* include ('../../fonction.php'); */
+$link = connexionBD();
 
-include('../../activite.php'); 
+include ('../../activite.php');
 
-	
-verif_type_mdp_2($_SESSION['username']);	
+verif_type_mdp_2($_SESSION['username']);
 ?>
 
 
-<section id="homedesigne" class="s-homedesigne">   
-<p class="lead">
-<?php
-echo "Espace S.A.G: Bienvenue!";
- ?>
-</p>
+<section id="homedesigne" class="s-homedesigne">
+    <p class="lead">
+        <?php
+echo 'Espace S.A.G: Bienvenue!';
+?>
+    </p>
 </section> <!-- end s-stats -->
-	
-  <section id="styles" class="s-styles">
-    
 
-	  
-	  
-	   <div class="row add-bottom">
+<section id="styles" class="s-styles">
 
-            <div class="col-twelve">
 
-                <p>Liste des Reclamations Etudiants</p>
 
-                <div class="table-responsive">
-                    <table border="1">
-                            <thead>
-                            <tr>
-							     <th>Numero</th>
-                                <th>Carte</th>
-								<th>Type</th>
-                                <th>Contenu</th>
-								<th>Action</th>
-								<th>Date</th>
-                            </tr>
-                            </thead>
-							<tbody>
-<?php  
 
-	$requet = "
+    <div class="row add-bottom">
+        <div class="col-auto" style="margin-left: 35%;margin-top: 10px;">
+            <input type="text" id="search" class="form-control" placeholder="EX: 20230HBKN" style="padding:3px;background-color: #ceced5ff;">
+        </div>
+        <div class="col-twelve">
+
+            <p>Liste des Reclamations Etudiants</p>
+
+            <div class="table-responsive">
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th>Numero</th>
+                            <th>Carte</th>
+                            <th>Type</th>
+                            <th>Contenu</th>
+                            <th>Action</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+
+$requet = '
     SELECT DISTINCT num_etu 
     FROM codif_reclamation 
     WHERE statut IS NULL 
-    ORDER BY codif_reclamation.numreclame ASC, codif_reclamation.num_etu ASC
-";
+    ORDER BY codif_reclamation.datesys DESC, codif_reclamation.numreclame DESC
+';
 
+$reponse = mysqli_query($link, $requet);  // die;
+while ($rst_cons = mysqli_fetch_array($reponse)) {
+    $num_etu = $rst_cons['num_etu'];
 
-$reponse = mysqli_query($link, $requet);//die;
-while($rst_cons = mysqli_fetch_array($reponse))
-{                     
-$num_etu=$rst_cons['num_etu']; 
+    $rr = "SELECT * FROM `codif_reclamation` WHERE num_etu='$num_etu' order by datesys DESC";
+    $rp = mysqli_query($link, $rr);
+    $st = mysqli_fetch_array($rp);
 
-$rr="SELECT * FROM `codif_reclamation` WHERE num_etu='$num_etu' order by datesys desc";
-$rp = mysqli_query($link, $rr);
-$st = mysqli_fetch_array($rp);
+    $type = $st['type'];
+    $contenu = $st['contenu'];
+    $numreclame = $st['numreclame'];
+    $datesys = $st['datesys'];
 
-$type=$st['type']; $contenu=$st['contenu'];$numreclame=$st['numreclame']; $datesys=$st['datesys'];
+    ?>
 
- ?> 							
-                            
-                            <tr>
-							    <td><?php echo $numreclame ;?></td>
-                                <td><?php echo $num_etu ;?></td>
-                                <td><?php echo $type ; ?></td>
-                                <td><?php echo $contenu ;?></td> 
-								<td><a href="rcl2?nr=<?php echo $numreclame; ?>">Traiter</a></td>  
-								<td><?php echo $datesys ;?></td> 
-                            </tr>
-                         							
-<?php
-	  }
- ?> 								
-                            </tbody>
-                    </table>
+                        <tr>
+                            <td><?php echo $numreclame; ?></td>
+                            <td><?php echo $num_etu; ?></td>
+                            <td><?php echo $type; ?></td>
+                            <td><?php echo $contenu; ?></td>
+                            <td><a href="rcl2?nr=<?php echo $numreclame; ?>">Traiter</a></td>
+                            <td><?php echo $datesys; ?></td>
+                        </tr>
 
-                </div>
+                        <?php
+}
+?>
+                    </tbody>
+                </table>
 
             </div>
-          
-        </div> <!-- end row -->
-	  </section> <!-- end styles -->
 
-    <?php
-include('../../foot.html'); 
-?>
+        </div>
 
+    </div> <!-- end row -->
+</section> <!-- end styles -->
+
+<?php
+    include ('../../foot.html');
+    ?>
+
+<script>
+    // Exécution après chargement de la page
+    document.addEventListener("DOMContentLoaded", function() {
+        const searchInput = document.getElementById("search"); // champ de recherche
+        const tableRows = document.querySelectorAll("table tbody tr"); // toutes les lignes du tableau
+
+        searchInput.addEventListener("keyup", function() {
+            const searchValue = searchInput.value.toLowerCase().trim();
+
+            tableRows.forEach(row => {
+                const numEtuCell = row.cells[1]; // la 2ème colonne contient le num_etu
+                const numEtu = numEtuCell.textContent.toLowerCase();
+
+                // Vérifie si le texte tapé est contenu dans le num_etu
+                if (numEtu.includes(searchValue)) {
+                    row.style.display = ""; // montre la ligne
+                } else {
+                    row.style.display = "none"; // cache la ligne
+                }
+            });
+        });
+    });
+</script>
 
 </body>
 

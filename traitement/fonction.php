@@ -1924,6 +1924,21 @@ function getAllEtablissement()
     return $resultatRequeteEtablissement;
 }
 
+function getAllEtablissement_1()
+{
+    global $connexion;
+    $sql = "SELECT DISTINCT etablissement FROM codif_etudiant";
+    $result = mysqli_query($connexion, $sql);
+
+    $liste = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $liste[] = $row["etablissement"];
+    }
+
+    return $liste;
+}
+
+
 
 /********************************************************************************** 
 Fonction d'affichage de la liste des etablissements, elle est appeler dans requette.php et affiché dans la page niveau.php
@@ -2217,6 +2232,38 @@ function getLitByQuotas($classe, $sexe)
         return $total_pagess;
     }
 }
+function getLitByQuotas2($classe, $sexe)
+{
+    global $connexion, $limit, $count_datas;
+
+    // Préparer la chaîne LIKE
+    $classe_like = $classe . "%";   // commence par $classe
+
+    $sql = "
+        SELECT COUNT(*) AS total
+        FROM codif_quota 
+        JOIN codif_lit ON codif_quota.id_lit_q = codif_lit.id_lit
+        WHERE codif_quota.NiveauFormation LIKE ?
+          AND codif_lit.sexe = ?
+    ";
+
+    $stmt = $connexion->prepare($sql);
+
+    // ss = deux strings
+    $stmt->bind_param("ss", $classe_like, $sexe);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+
+    if ($result) {
+        $count_datas = $result->fetch_assoc();
+        $total_pagess = ceil($count_datas['total'] / $limit);
+        return $total_pagess;
+    } else {
+        return 1;
+    }
+}
+
 
 /********************************************************************************** 
 Fonction pour enregistrer les donnees des codif_quota
@@ -2503,6 +2550,45 @@ function setFiltre_detail($filter, $sexe, $niveau)
         $resultatRequeteTotalLit = mysqli_query($connexion, $sqlFilter);
         return $resultatRequeteTotalLit;
     }
+}
+function setFiltre_detail2($filter, $sexe, $niveau)
+{
+    global $connexion;
+
+    // Préparer la valeur pour LIKE
+    $niveau_like = $niveau . "%";
+
+    $sql = "
+        SELECT 
+            codif_lit.*,
+            CASE 
+                WHEN codif_quota.id_lit_q IS NOT NULL 
+                     AND codif_affectation.id_lit IS NOT NULL 
+                    THEN 'Migré dans les deux'
+                WHEN codif_quota.id_lit_q IS NOT NULL 
+                    THEN 'Migré vers codif_quota uniquement'
+                WHEN codif_affectation.id_lit IS NOT NULL 
+                    THEN 'Migré vers codif_affectation uniquement'
+                ELSE 'Non migré'
+            END AS statut_migration
+        FROM codif_lit
+        LEFT JOIN codif_quota 
+            ON codif_lit.id_lit = codif_quota.id_lit_q
+        LEFT JOIN codif_affectation 
+            ON codif_lit.id_lit = codif_affectation.id_lit
+        WHERE codif_lit.pavillon = ?
+          AND codif_lit.sexe = ?
+          AND (codif_affectation.statut != 'Suppleant(e)' OR codif_affectation.statut IS NULL)
+          AND codif_quota.NiveauFormation LIKE ?
+    ";
+
+    $stmt = $connexion->prepare($sql);
+    
+    // sss = 3 strings
+    $stmt->bind_param("sss", $filter, $sexe, $niveau_like);
+    $stmt->execute();
+
+    return $stmt->get_result();
 }
 
 
@@ -2935,7 +3021,8 @@ function addPolitiqueConf($idEtu)
 function getQuotaClasse($classe, $sexe)
 {
     global $connexion;
-    $requeteQuotaClasse = "SELECT COUNT(*) FROM `codif_quota` JOIN codif_lit ON codif_lit.id_lit = codif_quota.id_lit_q WHERE `NiveauFormation` = '$classe' AND codif_lit.sexe = '$sexe'";
+    $classe = $classe . '%';
+    $requeteQuotaClasse = "SELECT COUNT(*) FROM `codif_quota` JOIN codif_lit ON codif_lit.id_lit = codif_quota.id_lit_q WHERE `NiveauFormation` LIKE '$classe' AND codif_lit.sexe = '$sexe'";
     $resultRequeteQuotaClasse = mysqli_query($connexion, $requeteQuotaClasse);
     return $resultRequeteQuotaClasse->fetch_assoc();
 }
@@ -4978,8 +5065,6 @@ function getPavillonsByCampus0($connexion, $campus)
     return $pavillons; // Retourne un tableau des pavillons
 }
 
-
-
 function getPavillonsByCampus($connexion, $campus)
 {
     $query = "SELECT DISTINCT pavillon FROM codif_lit_complet WHERE campus='$campus'";
@@ -4998,6 +5083,24 @@ function getPavillonsByCampus($connexion, $campus)
 
     return $pavillons; // Retourne un tableau des pavillons
 }
+
+function getCampusByPavillon($connexion, $pavillon)
+{
+    // Échapper la valeur pour éviter l'injection SQL
+    $pavillon = mysqli_real_escape_string($connexion, $pavillon);
+
+    $query = "SELECT DISTINCT campus FROM codif_lit_complet WHERE pavillon='$pavillon' LIMIT 1";
+    $result = mysqli_query($connexion, $query);
+
+    if (!$result) {
+        die("Erreur lors de l'exécution de la requête : " . mysqli_error($connexion));
+    }
+
+    // Récupérer le campus
+    $row = mysqli_fetch_assoc($result);
+    return $row['campus'] ?? null; // Retourne le campus ou null si aucun résultat
+}
+
 
 
 function getPavillonsByCampus2($connexion, $campus)
@@ -5241,7 +5344,32 @@ $sql = "INSERT INTO codif_etudiant (num_etu, prenoms, nom, telephone, lieuNaissa
     }
 }
 
+function enregistrerEtudiant2($connexion, $num_etu, $prenoms, $nom, $telephone, $lieuNaissance, $dateNaissance, $etablissement, $departement, $niveauFormation, $moyenne, $numIdentite, $sexe) {
+    // Sécurisation des entrées
+    $num_etu = mysqli_real_escape_string($connexion, $num_etu);
+    $prenoms = mysqli_real_escape_string($connexion, $prenoms);
+    $nom = mysqli_real_escape_string($connexion, $nom);
+    $telephone = mysqli_real_escape_string($connexion, $telephone);
+    $lieuNaissance = mysqli_real_escape_string($connexion, $lieuNaissance);
+    $dateNaissance = mysqli_real_escape_string($connexion, $dateNaissance);
+    $etablissement = mysqli_real_escape_string($connexion, $etablissement);
+    $departement = mysqli_real_escape_string($connexion, $departement);
+    $niveauFormation = mysqli_real_escape_string($connexion, $niveauFormation);
+    $moyenne = mysqli_real_escape_string($connexion, $moyenne);
+    $numIdentite = mysqli_real_escape_string($connexion, $numIdentite);
+    $sexe = mysqli_real_escape_string($connexion, $sexe);
 
+    // Requête SQL d'insertion
+$datesys=date("Y-m-d H:i:s"); $var='Ajout Manuel '.$datesys=date("Y-m-d H:i:s");   
+$sql = "INSERT INTO codif_etudiant (num_etu, prenoms, nom, telephone, lieuNaissance, dateNaissance, etablissement, departement, niveauFormation, moyenne, numIdentite, sexe, var) 
+            VALUES ('$num_etu', '$prenoms', '$nom', '$telephone', '$lieuNaissance', '$dateNaissance', '$etablissement', '$departement', '$niveauFormation', '$moyenne', '$numIdentite', '$sexe', '$var')";
+
+    if (mysqli_query($connexion, $sql)) {
+        return mysqli_insert_id($connexion); // retourne l'id du nouvel étudiant
+    } else {
+        return false;
+    }
+}
 
 
 
@@ -5265,14 +5393,16 @@ WHERE ce.num_etu = '$username'";
 function getQuotaClasse_2($classe, $sexe)
 {
     global $connexion;
-    $requeteQuotaClasse = "SELECT DISTINCT pavillon, chambre, lit, id_lit_q  FROM `codif_quota` JOIN codif_lit ON codif_lit.id_lit = codif_quota.id_lit_q WHERE `NiveauFormation` = '$classe' AND codif_lit.sexe = '$sexe'";
+    $classe = $classe.'%';
+    $requeteQuotaClasse = "SELECT DISTINCT pavillon, chambre, lit, id_lit_q  FROM `codif_quota` JOIN codif_lit ON codif_lit.id_lit = codif_quota.id_lit_q WHERE `NiveauFormation` LIKE '$classe' AND codif_lit.sexe = '$sexe'";
     $resultRequeteQuotaClasse = mysqli_query($connexion, $requeteQuotaClasse);
     return $resultRequeteQuotaClasse;
 }
 function isDemarre($classe, $sexe)
 {
     global $connexion;
-    $requeteQuotaClasse = "SELECT * FROM `codif_demarrage` WHERE `niveauFormation`='$classe' AND `sexe`='$sexe'";
+    $classe = $classe . '%';
+    $requeteQuotaClasse = "SELECT * FROM `codif_demarrage` WHERE `niveauFormation` LIKE '$classe' AND `sexe`='$sexe'";
     $resultRequeteQuotaClasse = mysqli_query($connexion, $requeteQuotaClasse);
     return $resultRequeteQuotaClasse->fetch_assoc();
 }
@@ -5688,9 +5818,14 @@ function getLitParChambre($link, $chambre) {
     $sql = "SELECT 
                 l.id_lit, 
                 l.lit, 
-                af.niveauFormation
+                af.niveauFormation,
+                e.nom,
+                e.prenoms,
+                e.num_etu
             FROM codif_lit l
             LEFT JOIN codif_quota af ON l.id_lit = af.id_lit_q
+            LEFT JOIN codif_affectation cc ON  cc.id_lit = l.id_lit 
+            LEFT JOIN codif_etudiant e ON  cc.id_etu = e.id_etu
             WHERE l.chambre = ?";
     
     $stmt = $link->prepare($sql);
@@ -5712,10 +5847,11 @@ function quota_saisie($connexion, $niveauFormation, $sexe) {
     $sql = "SELECT COUNT(*) AS total_lits
             FROM codif_quota cq
             INNER JOIN codif_lit cl ON cq.id_lit_q = cl.id_lit
-            WHERE cq.niveauFormation = ? 
+            WHERE cq.niveauFormation LIKE ? 
               AND cl.sexe = ?";
 
     // Préparer la requête
+    $niveauFormation = $niveauFormation . "%";
     $stmt = $connexion->prepare($sql);
     $stmt->bind_param("ss", $niveauFormation, $sexe); // deux paramètres string
 
@@ -5747,5 +5883,405 @@ function quota_prevu($connexion, $niveauFormation, $sexe) {
     // Retourner le nombre trouvé ou 0 par défaut
     return $row['nombre'] ?? 0;
 }
+
+function getLitByPcs($fac)
+{
+    global $connexion;
+
+    $sql = "
+        SELECT l.lit
+        FROM codif_lit AS l
+        JOIN codif_quota q ON q.id_lit_q = l.id_lit
+        WHERE q.niveauFormation LIKE ? COLLATE utf8mb4_unicode_ci
+        AND q.niveauFormation COLLATE utf8mb4_unicode_ci 
+            LIKE (
+                SELECT CONCAT(niveauFormation, '%') COLLATE utf8mb4_unicode_ci
+                FROM codif_demarrage
+                WHERE niveauFormation LIKE ? COLLATE utf8mb4_unicode_ci
+                LIMIT 1
+            )
+    ";
+
+    $stmt = $connexion->prepare($sql);
+
+    // Exemple : FSLH/SOCIALE%  
+    $param = $fac . "%";
+
+    $stmt->bind_param("ss", $param, $param);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+
+    $lits = [];
+    while ($row = $result->fetch_assoc()) {
+        $lits[] = $row['lit'];
+    }
+
+    return $lits;
+}
+
+
+
+function isLitIndividuel($lit) {
+    global $connexion;
+    $query = "SELECT indiv FROM codif_lit WHERE lit = '$lit' LIMIT 1";
+    $result = mysqli_query($connexion, $query);
+
+    if ($row = mysqli_fetch_assoc($result)) {
+        return (int)$row['indiv'] === 1;
+    }
+
+    return false; // si lit introuvable ou indiv = 0
+}
+
+function getSexeLit($lit) {
+    global $connexion;
+    $query = "SELECT sexe FROM codif_lit WHERE lit = '$lit' LIMIT 1";
+    $result = mysqli_query($connexion, $query);
+
+    if ($row = mysqli_fetch_assoc($result)) {
+        return $row['sexe'];
+    }
+
+    return 'NaN'; 
+}
+
+function getIdByNumCarte($num_carte)
+{
+    global $connexion;
+
+    $sql = "SELECT id_etu FROM codif_etudiant WHERE num_etu = ?";
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("s", $num_carte);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+
+    return $row ? $row['id_etu'] : null;
+}
+function getIdByLit($lit)
+{
+    global $connexion;
+
+    $sql = "SELECT id_lit FROM codif_lit WHERE lit = ?";
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("s", $lit);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+
+    return $row ? $row['id_lit'] : null;
+}
+
+function isAffecte($idEtu)
+{
+    global $connexion;
+    $sql = "SELECT id_aff FROM codif_affectation WHERE id_etu = ? LIMIT 1";
+    $stmt = mysqli_prepare($connexion, $sql);
+
+    if (!$stmt) return false;
+
+    mysqli_stmt_bind_param($stmt, "i", $idEtu);
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    return mysqli_num_rows($result) > 0;
+}
+
+function getAffectationByLit($lit) {
+    global $connexion;
+    $sql = "
+        SELECT 
+            a.id_lit,
+            a.id_etu,
+            l.lit,
+            e.num_etu,
+            e.prenoms,
+            e.nom,
+            e.sexe,
+            e.telephone,
+            e.etablissement as faculte,
+            e.departement
+        FROM codif_affectation a
+        JOIN codif_lit l ON l.id_lit = a.id_lit
+        LEFT JOIN codif_etudiant e ON e.id_etu = a.id_etu
+        WHERE l.lit = ?
+    ";
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->execute([$lit]);
+    return $stmt->fetch();
+}
+
+// -> À placer dans traitement/fonction.php
+// Utilise l'objet mysqli $connexion attendu dans ton projet.
+
+function getOccupantsByLitName($litName) {
+    global $connexion;
+    $sql = "
+        SELECT e.id_etu AS id_etu, e.num_etu, e.prenoms, e.nom
+        FROM codif_affectation a
+        INNER JOIN codif_lit l ON l.id_lit = a.id_lit
+        LEFT JOIN codif_etudiant e ON e.id_etu = a.id_etu
+        WHERE l.lit = ?
+    ";
+    $stmt = mysqli_prepare($connexion, $sql);
+    if (!$stmt) return [];
+    mysqli_stmt_bind_param($stmt, "s", $litName);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $rows = [];
+    while ($r = mysqli_fetch_assoc($res)) $rows[] = $r;
+    return $rows; // array vide si aucun occupant
+}
+
+function getOccupantsCountByLitName($litName) {
+    global $connexion;
+    $sql = "
+        SELECT COUNT(*) AS total
+        FROM codif_affectation a
+        INNER JOIN codif_lit l ON l.id = a.id_lit
+        WHERE l.lit = ?
+        /* AND (a.actif IS NULL OR a.actif = 1) */
+    ";
+    $stmt = mysqli_prepare($connexion, $sql);
+    if (!$stmt) return 0;
+    mysqli_stmt_bind_param($stmt, "s", $litName);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($res);
+    return isset($row['total']) ? (int)$row['total'] : 0;
+}
+
+function getFirstOccupantByLitName($litName) {
+    $list = getOccupantsByLitName($litName);
+    return count($list) ? $list[0] : null;
+}
+function getOccupantsByLit($lit) {
+    global $connexion;
+
+    $sql = "
+        SELECT 
+            a.id_aff,
+            a.id_etu,
+            e.num_etu,
+            e.prenoms,
+            e.nom,
+            e.sexe,
+            e.telephone,
+            e.etablissement AS faculte,
+            e.departement
+        FROM codif_affectation a
+        JOIN codif_lit l ON l.id_lit = a.id_lit
+        LEFT JOIN codif_etudiant e ON e.id_etu = a.id_etu
+        WHERE l.lit = ?
+        ORDER BY a.id_aff ASC
+    ";
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("s", $lit);  // ici mysqli utilise bind_param
+    $stmt->execute();
+
+    $result = $stmt->get_result();  // récupérer le résultat
+
+    if (!$result) {
+        return [];
+    }
+
+    return $result->fetch_all(MYSQLI_ASSOC); // récupérer toutes les lignes en tableau associatif
+}
+
+function isAffecteDansUnAutreLit($idEtu, $lit)
+{
+    global $connexion;
+
+    $sql = "
+        SELECT 1 
+        FROM codif_affectation a
+        JOIN codif_lit l ON l.id_lit = a.id_lit
+        WHERE a.id_etu = ?
+          AND l.lit != ?
+        LIMIT 1
+    ";
+
+    $stmt = mysqli_prepare($connexion, $sql);
+    if (!$stmt) return false;
+
+    mysqli_stmt_bind_param($stmt, "is", $idEtu, $lit);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_store_result($stmt);
+
+    return mysqli_stmt_num_rows($stmt) > 0;
+}
+function getAffectationById($id_aff) {
+    global $connexion;
+    $sql = "SELECT * FROM codif_affectation WHERE id_aff=?";
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("i", $id_aff);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc();
+}
+
+function deleteAffectation2($id_aff) {
+    global $connexion;
+    $sql = "DELETE FROM codif_affectation WHERE id_aff=?";
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("i", $id_aff);
+    $stmt->execute();
+}
+
+function resetEtudiantNiveauFormation($idEtu) {
+    global $connexion;
+    // remettre à vide ou NULL
+    $sql = "UPDATE codif_etudiant SET niveauFormation=NULL WHERE id_etu=?";
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("i", $idEtu);
+    $stmt->execute();
+}
+function updatequota($connexion, $id_lit, $niveauFormation)
+{
+    $sql = "UPDATE codif_quota SET niveauFormation=? WHERE id_lit_q=?";
+    $stmt = mysqli_prepare($connexion, $sql);
+    mysqli_stmt_bind_param($stmt, "si", $niveauFormation, $id_lit);
+    mysqli_stmt_execute($stmt);
+}
+
+function isAffectationValidee($id_aff)
+{
+    global $connexion;
+
+    $sql = "SELECT COUNT(*) AS total FROM codif_validation WHERE id_aff = ?";
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("i", $id_aff);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+    if (!$result) {
+        return false;
+    }
+
+    $row = $result->fetch_assoc();
+    return ($row['total'] > 0);
+}
+
+// RECUPERER LES LITS ET TITULAIRES AYANT VALIDER DONT LEURS SUPPLEANTS N'ONT PAS VALIDER
+function getLitValAndNotSuppByFac($fac) {
+    global $connexion;
+
+    $sql = "SELECT lit.lit, lit.indiv, etu.*
+            FROM codif_lit lit
+            JOIN codif_affectation aff ON aff.id_lit = lit.id_lit
+            JOIN codif_etudiant etu ON etu.id_etu = aff.id_etu
+            JOIN codif_validation val ON val.id_aff = aff.id_aff
+            WHERE etu.etablissement = ? AND lit.pavillon != 'N' AND lit.pavillon != 'X'
+            GROUP BY lit.id_lit
+            HAVING COUNT(aff.id_lit) = 1
+               AND lit.indiv = 0";   // lit NON individuel (modifiable selon ton besoin)
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("s", $fac);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+
+function getLitNonVal($fac) {
+    global $connexion;
+
+    $sql = "SELECT 
+    e.etablissement,
+    l.id_lit,
+    e.nom,
+    e.prenoms,
+    e.num_etu,
+    l.lit,
+    l.sexe,
+    l.chambre
+FROM codif_lit l
+JOIN codif_quota q ON q.id_lit_q = l.id_lit
+JOIN codif_affectation a ON a.id_lit = l.id_lit
+JOIN codif_etudiant e ON e.id_etu = a.id_etu
+WHERE l.id_lit NOT IN (
+    SELECT cl.id_lit
+    FROM codif_lit cl
+    JOIN codif_affectation ca ON ca.id_lit = cl.id_lit
+    INNER JOIN codif_validation cv ON cv.id_aff = ca.id_aff
+    INNER JOIN codif_paiement cp ON cp.id_val = cv.id_val
+)
+AND e.etablissement=?
+GROUP BY l.id_lit
+ORDER BY e.etablissement;";   // lit NON individuel (modifiable selon ton besoin)
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("s", $fac);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+function getTitulaireAndSuppleantByFac($fac)
+{
+    // 1. récupérer les titulaires avec leurs lits
+    $titulaireRows = getLitValAndNotSuppByFac($fac);
+
+    $result = [];
+
+    foreach ($titulaireRows as $row) {
+
+        $num_etu = $row['num_etu'];
+        $classe = $row['niveauFormation'];
+        $sexe   = $row['sexe'];
+
+        // 2. récupérer le quota pour cette classe/sexe
+        $quotaRow = getQuotaClasse($classe, $sexe);
+        $quota = intval($quotaRow['COUNT(*)']);
+
+        // 3. récupérer le statut + rang du titulaire
+        $dataStatut = getOnestudentStatus($quota, $classe, $sexe, $num_etu);
+
+        if (!$dataStatut) {
+            // étudiant introuvable dans le classement
+            continue;
+        }
+
+        $rangTitulaire = intval($dataStatut['rang']);
+
+        // 4. trouver le suppléant correspondant
+        $suppleant = getOneSuppleantByTitulaire($quota, $classe, $sexe, $rangTitulaire);
+
+        // 5. construire la ligne finale
+        $result[] = [
+            "lit"         => $row['lit'],
+            "indiv"       => $row['indiv'],
+
+            // titulaire
+            "titulaire"   => [
+                "num_etu" => $row['num_etu'],
+                "nom"     => $row['nom'],
+                "prenom"  => $row['prenoms'],
+                "classe"  => $classe,
+                "sexe"    => $sexe,
+                "rang"    => $rangTitulaire,
+            ],
+
+            // suppléant trouvé
+            "suppleant"   => $suppleant ? [
+                "num_etu" => $suppleant['num_etu'],
+                "nom"     => $suppleant['nom'],
+                "prenom"  => $suppleant['prenoms'],
+                "classe"  => $classe,
+                "sexe"    => $sexe,
+                "rang"    => $suppleant['rang']
+            ] : null
+        ];
+    }
+
+    return $result;
+}
+
+
 
 ?>
