@@ -6193,14 +6193,12 @@ function getLitNonVal($fac) {
     global $connexion;
 
     $sql = "SELECT 
-    e.etablissement,
     l.id_lit,
-    e.nom,
-    e.prenoms,
-    e.num_etu,
+    e.*,
     l.lit,
     l.sexe,
-    l.chambre
+    l.chambre,
+    l.pavillon
 FROM codif_lit l
 JOIN codif_quota q ON q.id_lit_q = l.id_lit
 JOIN codif_affectation a ON a.id_lit = l.id_lit
@@ -6210,9 +6208,8 @@ WHERE l.id_lit NOT IN (
     FROM codif_lit cl
     JOIN codif_affectation ca ON ca.id_lit = cl.id_lit
     INNER JOIN codif_validation cv ON cv.id_aff = ca.id_aff
-    INNER JOIN codif_paiement cp ON cp.id_val = cv.id_val
 )
-AND e.etablissement=?
+AND e.etablissement=? AND l.pavillon != 'N' AND l.pavillon != 'X'
 GROUP BY l.id_lit
 ORDER BY e.etablissement;";   // lit NON individuel (modifiable selon ton besoin)
 
@@ -6222,6 +6219,72 @@ ORDER BY e.etablissement;";   // lit NON individuel (modifiable selon ton besoin
 
     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
+
+function getLitNonAffByFac($fac) {
+    global $connexion;
+
+    $sql = "SELECT
+        lit.chambre,
+        lit.lit,
+        q.niveauFormation AS niveauQuota,
+        NULL AS num_etu,
+        NULL AS nom,
+        NULL AS prenoms,
+
+        -- Établissement filtré ici
+        (
+            SELECT etu.etablissement
+            FROM codif_etudiant etu
+            WHERE etu.niveauFormation = q.niveauFormation
+              AND etu.etablissement = ?   -- FILTRE ÉTABLISSEMENT
+            LIMIT 1
+        ) AS etablissement
+        
+    FROM codif_lit lit
+    JOIN codif_quota q 
+        ON q.id_lit_q = lit.id_lit
+    WHERE lit.id_lit NOT IN (SELECT id_lit FROM codif_affectation)
+      AND EXISTS (
+            SELECT 1
+            FROM codif_etudiant etu
+            WHERE etu.niveauFormation = q.niveauFormation
+              AND etu.etablissement = ?   -- GARANTIR MÊME FILTRE
+        );";   // lit NON individuel (modifiable selon ton besoin)
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("ss", $fac,$fac);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function getEtuNonAffByFac($fac) {
+    global $connexion;
+
+    $sql = "SELECT DISTINCT
+        NULL AS chambre,
+        NULL AS lit,
+        q.niveauFormation AS niveauQuota,
+        e.num_etu,
+        e.nom,
+        e.id_etu,
+        e.sexe,
+        e.prenoms,
+        e.etablissement
+    FROM codif_etudiant e
+    JOIN codif_quota q 
+        ON q.niveauFormation = e.niveauFormation
+    WHERE e.id_etu NOT IN (SELECT id_etu FROM codif_affectation)
+      AND q.id_lit_q NOT IN (SELECT id_lit FROM codif_affectation)
+      AND e.etablissement = ? ;"; 
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("s",$fac);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
 function getTitulaireAndSuppleantByFac($fac)
 {
     // 1. récupérer les titulaires avec leurs lits
@@ -6278,6 +6341,136 @@ function getTitulaireAndSuppleantByFac($fac)
             ] : null
         ];
     }
+
+     usort($result, function($a, $b) {
+        return $a['titulaire']['rang'] <=> $b['titulaire']['rang'];
+    });
+
+    return $result;
+}
+function getTitulaireAndSuppleantByFac2($fac)
+{
+    // 1. récupérer les titulaires avec leurs lits
+    $titulaireRows = getLitNonVal($fac);
+
+    $result = [];
+
+    foreach ($titulaireRows as $row) {
+
+        $num_etu = $row['num_etu'];
+        $classe = $row['niveauFormation'];
+        $sexe   = $row['sexe'];
+
+        // 2. récupérer le quota pour cette classe/sexe
+        $quotaRow = getQuotaClasse($classe, $sexe);
+        $quota = intval($quotaRow['COUNT(*)']);
+
+        // 3. récupérer le statut + rang du titulaire
+        $dataStatut = getOnestudentStatus($quota, $classe, $sexe, $num_etu);
+
+        if (!$dataStatut) {
+            // étudiant introuvable dans le classement
+            continue;
+        }
+
+        $rangTitulaire = intval($dataStatut['rang']);
+
+        // 4. trouver le suppléant correspondant
+        $suppleant = getOneSuppleantByTitulaire($quota, $classe, $sexe, $rangTitulaire);
+
+        // 5. construire la ligne finale
+        $result[] = [
+            "lit"         => $row['lit'],
+
+            // titulaire
+            "titulaire"   => [
+                "num_etu" => $row['num_etu'],
+                "nom"     => $row['nom'],
+                "prenom"  => $row['prenoms'],
+                "classe"  => $classe,
+                "sexe"    => $sexe,
+                "rang"    => $rangTitulaire,
+            ],
+
+            // suppléant trouvé
+            "suppleant"   => $suppleant ? [
+                "num_etu" => $suppleant['num_etu'],
+                "nom"     => $suppleant['nom'],
+                "prenom"  => $suppleant['prenoms'],
+                "classe"  => $classe,
+                "sexe"    => $sexe,
+                "rang"    => $suppleant['rang']
+            ] : null
+        ];
+    }
+     usort($result, function($a, $b) {
+        return $a['titulaire']['rang'] <=> $b['titulaire']['rang'];
+    });
+
+    return $result;
+}
+
+function getAttributaireAndSuppleantByFac($fac)
+{
+    global $connexion;
+
+    $result = [];
+
+    $etuRows = getEtuNonAffByFac($fac);
+
+    foreach ($etuRows as $etu) {
+
+        $id_etu  = $etu['id_etu'];
+        $num_etu = $etu['num_etu'];
+        $classe  = $etu['niveauQuota'];
+        $sexe    = $etu['sexe'];
+
+        // 3. récupérer quota classe + sexe
+        $quotaRow = getQuotaClasse($classe, $sexe);
+        $quota = intval($quotaRow['COUNT(*)']);
+
+        // 4. statut + rang
+        $dataStatut = getOnestudentStatus($quota, $classe, $sexe, $num_etu);
+        if (!$dataStatut) continue;
+
+        if ($dataStatut['statut'] !== "Attributaire") {
+            continue;
+        }
+
+        $rangTitulaire = intval($dataStatut['rang']);
+
+        // 5. trouver suppléant
+        $suppleant = getOneSuppleantByTitulaire($quota, $classe, $sexe, $rangTitulaire);
+
+        // 6. push dans tableau
+        $result[] = [
+            "lit"   => null,
+            "indiv" => null,
+
+            "titulaire" => [
+                "num_etu" => $etu['num_etu'],
+                "nom"     => $etu['nom'],
+                "prenom"  => $etu['prenoms'],
+                "classe"  => $classe,
+                "sexe"    => $sexe,
+                "rang"    => $rangTitulaire
+            ],
+
+            "suppleant" => $suppleant ? [
+                "num_etu" => $suppleant['num_etu'],
+                "nom"     => $suppleant['nom'],
+                "prenom"  => $suppleant['prenoms'],
+                "classe"  => $classe,
+                "sexe"    => $sexe,
+                "rang"    => $suppleant['rang']
+            ] : null
+        ];
+    }
+
+    // ⭐⭐⭐ TRIER PAR RANG DU TITULAIRE ⭐⭐⭐
+    usort($result, function($a, $b) {
+        return $a['titulaire']['rang'] <=> $b['titulaire']['rang'];
+    });
 
     return $result;
 }

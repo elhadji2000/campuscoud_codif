@@ -78,9 +78,9 @@ if (!empty($_POST['username_user']) && !empty($_POST['password_user'])) {
             header('Location: ../profils/cs_recettes/index');
             exit();
         }
-        else if ($row['profil_user'] == 'lit') {
-		 $_SESSION['lit'] = $row['profil_user'];
-            header('Location: ../profils/lit/index');
+        else if ($row['profil_user'] == 'retour') {
+		 $_SESSION['retour'] = $row['profil_user'];
+            header('Location: ../profils/retour/index');
             exit();
         }
          else if ($row['profil_user'] == 'audit') {

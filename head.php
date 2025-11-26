@@ -232,7 +232,17 @@ include('activite.php');
             <a class="nav-link" href="index" title="Changer de niveau de formation ">Changer_de_Formation</a>
           </li>
         <?php } ?>
-		
+		 <?php if (($_SESSION['profil'] == 'retour')) { ?> 
+          <li class="nav-item active">
+            <a class="nav-link" href="index" title="Revenir à la page d'accueil">Titu_NoValid <span></span></a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="suppleant" title="supl_NoValid">supl_NoValid</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="nonAffect" title="NonAffect">NonAffect</a>
+          </li>
+        <?php } ?>
 		
 		 <?php if (($_SESSION['profil'] == 'chef_residence')) { ?>
           <li class="nav-item active">
@@ -338,7 +348,7 @@ if ($_SESSION['profil'] != 'user' ){ ?>
   <!-- end s-header -->
 </body>
 <section id="homedesigne" class="s-homedesigne">
-  <?php   if (($_SESSION['profil'] == 'quota') || ($_SESSION['profil'] == 'paiement') || ($_SESSION['profil'] == 'validation') || ($_SESSION['profil'] == 'chef_residence') || ($_SESSION['profil'] == 'forclusion') || ($_SESSION['profil'] == 'delai') || ($_SESSION['profil'] == 'cs_acp') || ($_SESSION['profil'] == 'dba') || ($_SESSION['profil'] == 'chef_campus') || ($_SESSION['profil'] == 'sag') || ($_SESSION['profil'] == 'chef_departement')  || ($_SESSION['profil'] == 'chef_recette') || ($_SESSION['profil'] == 'audit') || ($_SESSION['profil'] == 'message') || ($_SESSION['profil'] == 'pcs') || ($_SESSION['profil'] == 'lit')) { ?>
+  <?php   if (($_SESSION['profil'] == 'quota') || ($_SESSION['profil'] == 'paiement') || ($_SESSION['profil'] == 'validation') || ($_SESSION['profil'] == 'chef_residence') || ($_SESSION['profil'] == 'forclusion') || ($_SESSION['profil'] == 'delai') || ($_SESSION['profil'] == 'cs_acp') || ($_SESSION['profil'] == 'dba') || ($_SESSION['profil'] == 'chef_campus') || ($_SESSION['profil'] == 'sag') || ($_SESSION['profil'] == 'chef_departement')  || ($_SESSION['profil'] == 'chef_recette') || ($_SESSION['profil'] == 'audit') || ($_SESSION['profil'] == 'message') || ($_SESSION['profil'] == 'pcs') || ($_SESSION['profil'] == 'retour')) { ?>
   
     <p class="lead">Espace Administration: Bienvenue! <br> <br> <span>
         (<?= $_SESSION['prenom'] . "  " . $_SESSION['nom'] ?>)

@@ -41,6 +41,9 @@ $destinataire = $pavillonDonne;
         padding: 5px;
         border-radius: 5px;
     }
+    table td{
+        
+    }
 
     #floatingBtn {
         position: fixed;
