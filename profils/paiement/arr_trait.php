@@ -13,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $num_etu = htmlspecialchars($_POST['num_etu']);
     $montant_total = (float) $_POST['montant_total'];
     $montant_encaisse = (float) $_POST['montant_encaisse'];
+    $id_val = (float) $_POST['valide'];
 
     // Vérification de base
     if ($montant_encaisse <= 0 || $montant_encaisse > $montant_total) {
@@ -24,15 +25,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Démarrer une transaction (MySQLi)
         $connexion->begin_transaction();
 
-        // 1️⃣ Enregistrer le paiement dans la table `arrierer`
+        // 1️ Enregistrer le paiement dans la table `arrierer`
         $sql_insert = "INSERT INTO arrierer (num_etu, montant_paye)
                        VALUES (?, ?)";
         $stmt = $connexion->prepare($sql_insert);
         $stmt->bind_param("sd", $num_etu, $montant_encaisse);
         $stmt->execute();
 
-        // 2️⃣ Calcul du nouveau montant restant
-        $nouveau_montant = $montant_total - $montant_encaisse;
+        $user=$_SESSION['username'];
+        $chaine_libelle="arrierer";
+        $datesys0=date("Y-m-d");
+        $datesys = strtotime($datesys0);
+        $an0 = date('Y', $datesys);
+        $accronyme=accronyme($user); 		//echo $user;
+        $link = connexionBD();
+        $ins00 = "select max(num_ordre_user) as numauto from codif_paiement where an='$an0' and username_user='$user'"; //echo $ins00;
+        $exx00 = mysqli_query($link, $ins00); 
+        $n_rows0 = mysqli_fetch_assoc($exx00); 	
+        $ordre=$n_rows0['numauto']+1;  
+        $quittance=$an."-".$accronyme."-".$ordre;	
+        $requete = setPaiement($id_val, $user,$montant_encaisse, $chaine_libelle,$quittance,$an0,$ordre);
+            if ($requete == 1) {
+
+                $telephone=getTelephoneEtudiant($num_etu);
+                //Envoi
+                sms_paiement_etudiant($montant_encaisse,$num_etu,$quittance) ;
+                //Stockage				
+                enreg_sms($num_etu, $telephone, 'paiement_chambre');
+                // 2️ Calcul du nouveau montant restant
+                $nouveau_montant = $montant_total - $montant_encaisse;
+            }
 
         if ($nouveau_montant > 0) {
             // Mettre à jour le montant restant dans la blacklist

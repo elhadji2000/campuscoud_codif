@@ -51,15 +51,15 @@
         color: white !important;
         font-weight: 500 !important;
         vertical-align: middle !important;
-        text-align: center !important;
+        text-align: left !important;
     }
 
     .table tbody td {
-        text-align: center !important;
+        text-align: left !important;
     }
 
     .table tbody th {
-        text-align: center !important;
+        text-align: left !important;
     }
 
     .table tbody tr:hover {
@@ -137,12 +137,13 @@
 
     .amount-cell {
         font-weight: 500;
-        text-align: right !important;
+        text-align: left !important;
     }
 
     .student-name {
         font-weight: 500 !important;
         color: var(--secondary-color);
+        text-align: left;
     }
 
     @media (max-width: 768px) {

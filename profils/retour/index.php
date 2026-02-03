@@ -1,6 +1,9 @@
 <?php 
 session_start();
 include('../../traitement/fonction.php');
+if(! isset( $_SESSION['retour'] ) ){
+    header("location: ../..");
+}	
 
 verif_type_mdp_2($_SESSION['username']); 
 
@@ -85,10 +88,12 @@ $lits = getTitulaireAndSuppleantByFac2($fac);
                 <tr>
                     <th>#</th>
                     <th>Lit</th>
+                    <th>Sexe</th>
                     <th>Titulaire</th>
                     <th>Num_Titul</th>
                     <th>Suppléant</th>
                     <th>Num_suppl</th>
+                    <th>Niveau_Formation</th>
                 </tr>
             </thead>
             <tbody>
@@ -101,13 +106,14 @@ $lits = getTitulaireAndSuppleantByFac2($fac);
                 <tr>
                     <th><?= $counter++ ?></th>
                     <td><?= $row['lit'] ?></td>
-
+                    <td><?= $t['sexe'] ?></td>
                     <td><?= $t['prenom'] . " " . $t['nom'] . " (" . $t['rang'].")" ?></td>
                     <td><?= $t['num_etu'] ?></td>
 
                     <?php if ($s): ?>
                     <td><?= $s['prenom'] . " " . $s['nom'] ?></td>
                     <td><?= $s['num_etu'] ?></td>
+                    <td><?= $t['classe'] ?></td>
                     <?php else: ?>
                     <td colspan="2" style="color:red;text-align:center;">Aucun suppléant trouvé</td>
                     <?php endif; ?>

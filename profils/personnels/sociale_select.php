@@ -4,7 +4,8 @@ if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
     exit();
 } 
 if (isset($_GET['classe'])) {
-    $_SESSION['classe'] = $_GET['classe']."/SOCIALE"; // Enregistre la classe dans la session
+    $_SESSION['classe'] = $_GET['classe']."/SOCIALE";
+    $_SESSION['fac2'] = $_GET['classe'];  // Enregistre la classe dans la session
     header("Location: listeLits"); // Redirige vers la page cible
     exit();
 }

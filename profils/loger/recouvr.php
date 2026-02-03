@@ -241,6 +241,13 @@ function confirmRappel(form) {
                                             } else {
                                                 $canRemind = true;  // Si aucun rappel n'a été envoyé
                                             }
+                                           if ($litRow['rappel_envoye'] === null 
+                                                || $litRow['rappel_envoye'] === "NULL"
+                                                || $litRow['rappel_envoye'] === "" 
+                                                || $litRow['rappel_envoye'] == "0000-00-00") {
+                                            $canRemind = true;
+                                            }
+
                                         }
                                         ?>
                         <?php if ($i > 0): ?>
@@ -334,7 +341,8 @@ function confirmRappel(form) {
             </table>
         </center>
     </div>
-
+    <?php 
+     if ($_SESSION["var"] !== "RCR") {?>
     <!-- Bouton flottant -->
     <div id="floatingBtn" data-bs-toggle="modal" data-bs-target="#infoModal">
         <i class="fas fa-comments">
@@ -369,6 +377,7 @@ function confirmRappel(form) {
             </div>
         </div>
     </div>
+    <?php }?>
     <?php //include('footer.php'); ?>
     <script src="../../assets/js/script.js"></script>
     <script src="../../assets/js/jquery-3.2.1.min.js"></script>
@@ -499,7 +508,7 @@ function confirmRappel(form) {
             startBackgroundPolling(); // reprend le badge seulement
         });
 
-        // ✅ Démarrer la mise à jour du badge dès le chargement
+        //  Démarrer la mise à jour du badge dès le chargement
         startBackgroundPolling();
     });
     </script>

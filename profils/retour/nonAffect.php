@@ -1,12 +1,17 @@
 <?php 
 session_start();
 include('../../traitement/fonction.php');
-
 verif_type_mdp_2($_SESSION['username']); 
-
+include('fonction2.php');
 $fac = isset($_GET["fac"]) ? htmlspecialchars($_GET["fac"]) : "E.S.P";
 $result = getLitNonAffByFac($fac);
-$result2 = getAttributaireAndSuppleantByFac($fac);
+$result2 = getAttributaireAndSuppleantByFac_2($fac);
+// Exemple d'utilisation
+//$quotaF = countAffected_2('F.A.S.E.G L1', 'F'); // quota restant filles
+//$quotaG = countAffected_2('F.A.S.E.G L1', 'G'); // quota restant garçons
+//var_dump($quotaF, $quotaG);
+
+
 ?>
 
 <!DOCTYPE html>
@@ -87,6 +92,7 @@ $result2 = getAttributaireAndSuppleantByFac($fac);
                     <th>#</th>
                     <th>Chambre</th>
                     <th>Lit</th>
+                    <th>Sexe</th>
                     <th>Num_Titul</th>
                     <th>Titulaire</th>
                     <th>Num_Suppl</th>
@@ -101,6 +107,7 @@ $result2 = getAttributaireAndSuppleantByFac($fac);
                     <th><?= $counter++ ?></th>
                     <td><?= htmlspecialchars($litRow['chambre']) ?></td>
                     <td><?= htmlspecialchars($litRow['lit']) ?></td>
+                    <td><?= htmlspecialchars($litRow['sexe']) ?></td>
                     <td><?= htmlspecialchars($litRow['num_etu']??"NULL") ?></td>
                     <td>
                         <?php if (empty($litRow['num_etu'])): ?>
@@ -130,12 +137,12 @@ $result2 = getAttributaireAndSuppleantByFac($fac);
                     <!-- chambre et lit (toujours null ici car pas de lit affecté) -->
                     <td><?= htmlspecialchars($litRow['lit']??"NULL") ?></td>
                     <td><?= htmlspecialchars($litRow['lit']??"NULL") ?></td>
-
+                    <td><?= htmlspecialchars($litRow['titulaire']['sexe']) ?></td>
                     <!-- Titulaire -->
                     <td><?= htmlspecialchars($litRow['titulaire']['num_etu'] ?? "NULL") ?></td>
                     <td>
                         <?php if (!empty($litRow['titulaire'])): ?>
-                        <?= htmlspecialchars($litRow['titulaire']['prenom']) ?>
+                        <?= htmlspecialchars($litRow['titulaire']['prenoms']) ?>
                         <?= htmlspecialchars($litRow['titulaire']['nom']) ?>
                         (<?= htmlspecialchars($litRow['titulaire']['rang']) ?>)
                         <?php else: ?>
@@ -147,7 +154,7 @@ $result2 = getAttributaireAndSuppleantByFac($fac);
                     <td><?= htmlspecialchars($litRow['suppleant']['num_etu'] ?? "NULL") ?></td>
                     <td>
                         <?php if (!empty($litRow['suppleant'])): ?>
-                        <?= htmlspecialchars($litRow['suppleant']['prenom']) ?>
+                        <?= htmlspecialchars($litRow['suppleant']['prenoms']) ?>
                         <?= htmlspecialchars($litRow['suppleant']['nom']) ?>
                         (<?= htmlspecialchars($litRow['suppleant']['rang']) ?>)
                         <?php else: ?>
@@ -156,7 +163,7 @@ $result2 = getAttributaireAndSuppleantByFac($fac);
                     </td>
 
                     <!-- Niveau / classe -->
-                    <td><?= htmlspecialchars($litRow['titulaire']['classe'] ?? "") ?></td>
+                    <td><?= htmlspecialchars($litRow['titulaire']['classe'] ?? "NaN") ?></td>
                 </tr>
                 <?php endforeach; ?>
 

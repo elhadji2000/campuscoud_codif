@@ -9,7 +9,7 @@ if (empty($_SESSION['classe'])) {
 }
 include('../../traitement/fonction.php');
 connexionBD();
-include('../../traitement/requete.php');
+include('../../traitement/requete.php'); 
 
 $faculte=getFaculteByNiveauFormation($_SESSION['classe']);
 

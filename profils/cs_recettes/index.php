@@ -1,4 +1,6 @@
-<?php session_start(); 
+<?php 
+
+session_start(); 
 include('../../traitement/fonction.php');
 verif_type_mdp_2($_SESSION['username']);
 $pavillons = getAllPavillons($connexion);
@@ -39,7 +41,7 @@ $totalLoyer = 0;
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./index.css">
+    <link rel="stylesheet" href="./style.css">
 
     <style>
     
@@ -154,7 +156,7 @@ $totalLoyer = 0;
                                 <?php endif; ?>
                                 <td><?= htmlspecialchars($litRow['lit']) ?></td>
                                 <td><?= htmlspecialchars($litRow['num_etu']?? "--") ?></td>
-                                <td class="student-name">
+                                <td class="student-name" style="text-align:left;">
                                     <?= htmlspecialchars($litRow['etudiant_prenoms'] . "--" . $litRow['etudiant_nom']) ?>
                                 </td>
                                 <td class="amount-cell">

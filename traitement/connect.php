@@ -1,8 +1,13 @@
 <?php 
+session_start();
+    $_SESSION['annee'] = $_POST['annee'];
 include('fonction.php');
 $error = "";
 
 if (!empty($_POST['username_user']) && !empty($_POST['password_user'])) {
+
+   // <-- ON STOCKE L'ANNEE
+
     $username = $_POST['username_user'];
     $password = $_POST['password_user'];
 	
@@ -24,6 +29,7 @@ if (!empty($_POST['username_user']) && !empty($_POST['password_user'])) {
         $_SESSION['profil'] = $row['profil_user'];
         $_SESSION['prenom'] = $row['prenom_user'];
         $_SESSION['nom'] = $row['nom_user'];
+        $_SESSION['var'] = $row['var'];
         if ($row['profil_user'] == 'quota') {
             header('Location: ../profils/personnels/index');
             exit();
@@ -60,6 +66,11 @@ if (!empty($_POST['username_user']) && !empty($_POST['password_user'])) {
         else if ($row['profil_user'] == 'dba') {
 		 $_SESSION['dba'] = $row['profil_user'];
             header('Location: ../profils/dba/etudiant');
+            exit();
+        }
+        else if ($row['profil_user'] == 'dba_2') {
+		 $_SESSION['dba_2'] = $row['profil_user'];
+            header('Location: ../profils/dba_2/etudiant');
             exit();
         }
         else if ($row['profil_user'] == 'chef_campus') {

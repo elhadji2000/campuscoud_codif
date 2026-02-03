@@ -2,9 +2,10 @@
 session_start();
 include('../../traitement/fonction.php');
 global $connexion;
-
+$_SESSION["annee"] = str_replace('-', '_', $_SESSION["annee"]);
 /* -------------------------------------------------------
    MESSAGE + REDIRECTION
+   $dataStatutStudentSearch = getOnestudentStatus($quotaClasseStudentConnecte, $classeStudentSearch, $sexeStudentSearch, $num_etu);
 ------------------------------------------------------- */
 function redirectWithMessage($msg, $type = "danger", $lit = null) {
     $_SESSION['message'] = $msg;
@@ -85,6 +86,16 @@ function getOrCreateStudentId($connexion, $num_etu, $niveauFormation, $moyenneFi
     $id = getIdByNumCarte($num_etu);
 
     if ($id) {
+        $ee = studentConnect($num_etu);
+        $quotaRow = getQuotaClasse($ee['niveauFormation'], $ee['sexe']);
+        $quota = intval($quotaRow['COUNT(*)']);
+        $dataStatutStudent = getOnestudentStatus($quota, $ee['niveauFormation'], $ee['sexe'], $num_etu);
+        if($dataStatutStudent["statut"] == "Attributaire"){
+            error("L’étudiant ($num_etu) est déjà Attributaire.");
+        }
+        if($dataStatutStudent["statut"] == "Suppleant(e)"){
+            error("L’étudiant ($num_etu) est déjà Suppleant(e).");
+        }
 
         // Si étudiant affecté dans un autre lit → erreur
         if (isAffecteDansAutreLit($id, $litActuel)) {
@@ -96,9 +107,18 @@ function getOrCreateStudentId($connexion, $num_etu, $niveauFormation, $moyenneFi
     }
 
     // NON EXISTANT → récupération API
-    $etu = getDonneesEtudiant($num_etu);
+    $etu = getDonneesEtudiant_2($num_etu);
     if (!$etu) {
         error("Impossible de récupérer les données de l’étudiant ($num_etu).");
+    }
+    elseif ($etu["etat_inscription"] != "Inscrit(e)") {
+        error("l’étudiant ($num_etu) n’est pas Inscrit(e).");
+    }
+    elseif ( $etu["payant"] != "Régime Non Payant") {
+        error("l’étudiant ($num_etu) est Régime payant.");
+    }
+    elseif ( $etu["annee"] != $_SESSION["annee"]) {
+        error("l’étudiant ($num_etu) n’est pas Inscrit(e) a l'annee academique ". $_SESSION['annee']);
     }
 
     return enregistrerEtudiant2(
@@ -136,6 +156,7 @@ if ($nb == 0) {
 
     addAffectation($idLit, $idTitulaire);
     updatequota($connexion, $idLit, $niveauFormation);
+    $nb++;
 
 // Cas 2: lit non vide et titulaire différent → erreur
 } elseif ($occupants[0]['id_etu'] != $idTitulaire) {

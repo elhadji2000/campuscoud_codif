@@ -14,9 +14,23 @@ $chambres = [];
 foreach ($result as $row) {
     $chambres[$row['chambre']][] = $row;
 }
-
 // Exemple de destinataire dynamique (à ajuster selon ton contexte)
 $destinataire = $pavillonDonne; 
+
+$pavillon_2 = $pavillonDonne;
+
+$sql = "SELECT nom_user, prenom_user FROM codif_user WHERE pavillon = '$pavillon_2' AND var='RCR'";
+$result = mysqli_query($connexion, $sql);
+
+$listeChefs = [];
+
+while ($row = mysqli_fetch_assoc($result)) {
+    $listeChefs[] = $row['prenom_user']. " " .$row['nom_user'];
+}
+
+// Convertir en une seule chaîne séparée par virgule
+$nomsChefs = implode(", ", $listeChefs);
+
 ?>
 
 <!DOCTYPE html>
@@ -41,9 +55,8 @@ $destinataire = $pavillonDonne;
         padding: 5px;
         border-radius: 5px;
     }
-    table td{
-        
-    }
+
+    table td {}
 
     #floatingBtn {
         position: fixed;
@@ -236,7 +249,11 @@ $destinataire = $pavillonDonne;
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="infoModalLabel">💬 Instructions au chef de residence</h5>
+                    <h5 class="modal-title" id="infoModalLabel">
+                        💬 Instructions au chef de résidence
+                        <b>( <?= htmlspecialchars($nomsChefs) ?> )</b>
+                    </h5>
+
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                         aria-label="Fermer"></button>
                 </div>

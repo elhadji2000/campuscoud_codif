@@ -7,7 +7,8 @@ if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
 
 $fac = $_SESSION['fac']; 
 $lit = $_GET['lit']??"null";
-
+//$_SESSION["annee"] = str_replace('-', '_', $_SESSION["annee"]);
+$annee = $_SESSION["annee"];
 include('../../traitement/fonction.php');
 verif_type_mdp_2($_SESSION['username']);
 
@@ -193,7 +194,10 @@ $nbOccupants = count($occupants);
 
             <?php if (($individuel && $nbOccupants == 0) || (!$individuel && $nbOccupants < 2)): ?>
             <div class="text-center mt-4">
-                <button class="btn btn-success btn-lg">Enregistrer l’attribution</button>
+                <button id="btnAttribuer" class="btn btn-success btn-lg" disabled>
+                    Enregistrer l’attribution
+                </button>
+
             </div>
             <?php endif; ?>
 
@@ -203,19 +207,28 @@ $nbOccupants = count($occupants);
     <script>
     const sexeLit = "<?= addslashes(getSexeLit($lit)) ?>";
     </script>
+
     <script>
-    // SCRIPT AJAX – recherche étudiant via getDonneesEtudiant()
+    let titulaireValide = false;
+    let suppleantValide = false;
 
     function rechercher(type) {
         let numero = document.getElementById("num_" + type).value;
+
+        // Vérifier s'il y a déjà un titulaire enregistré
+        let titulaireDejaPresent = <?= $nbOccupants >= 1 ? 'true' : 'false' ?>;
 
         if (numero.trim() === "") {
             alert("Veuillez saisir un numéro étudiant !");
             return;
         }
+
         // zone d'affichage (titulaire ou suppléant)
         const zoneInfo = document.getElementById("info_" + type);
         zoneInfo.innerHTML = "<em>Recherche en cours...</em>";
+
+        // Désactiver le bouton pendant la recherche
+        document.getElementById("btnAttribuer").disabled = true;
 
         fetch("rechercher_etudiant.php?num=" + numero)
             .then(response => response.json())
@@ -225,30 +238,100 @@ $nbOccupants = count($occupants);
                 if (!data.success) {
                     zone.innerHTML =
                         "<span class='text-danger'>Étudiant introuvable dans la base UCAD.</span>";
+
+                    if (type === "titulaire") {
+                        titulaireValide = false;
+                    } else if (type === "suppleant") {
+                        suppleantValide = false;
+                    }
+                    updateBoutonAttribution();
                     return;
                 }
 
                 // Vérifier si déjà affecté
-                if (data.estAffecte === true) {
+                if (data.estAffecte == true) {
                     zone.innerHTML = `
-                        <div class='alert alert-danger'>
-                            Cet étudiant est déjà affecté à un lit !<br>
-                            Impossible de l'attribuer à nouveau.
-                        </div>
-                    `;
+                    <div class='alert alert-danger'>
+                        l'etudiant ${data.prenom} ${data.nom}  est déjà affecté à un lit !<br>
+                        Impossible de l'attribuer à nouveau.
+                    </div>
+                `;
+
+                    if (type === "titulaire") {
+                        titulaireValide = false;
+                    } else if (type === "suppleant") {
+                        suppleantValide = false;
+                    }
+                    updateBoutonAttribution();
                     return;
                 }
 
+                // Vérifier si admissible
+                if (data.etat_inscription !== "Inscrit(e)") {
+                    zone.innerHTML = `
+                    <div class='alert alert-danger'>
+                        l'etudiant ${data.prenom} ${data.nom}  est non Inscrit(e) !<br>.
+                    </div>
+                `;
 
-                //  Vérifier si sexe lit == sexe étudiant
-                /* if (data.sexe && data.sexe !== sexeLit) {
+                    if (type === "titulaire") {
+                        titulaireValide = false;
+                    } else if (type === "suppleant") {
+                        suppleantValide = false;
+                    }
+                    updateBoutonAttribution();
+                    return;
+                }
+
+                if (data.payant != "Régime Non Payant") {
+                    zone.innerHTML = `
+                    <div class='alert alert-danger'>
+                        l'etudiant ${data.prenom} ${data.nom}  est regime payant !<br>.
+                    </div>
+                `;
+
+                    if (type === "titulaire") {
+                        titulaireValide = false;
+                    } else if (type === "suppleant") {
+                        suppleantValide = false;
+                    }
+                    updateBoutonAttribution();
+                    return;
+                }
+
+                const anneeSession = "<?= $annee ?>";
+                if (data.annee !== anneeSession) {
+                    zone.innerHTML = `
+                    <div class='alert alert-danger'>
+                        l'etudiant ${data.prenom} ${data.nom} n'est pas Inscrit(e) a l'annee ${anneeSession}!<br>.
+                    </div>
+                `;
+
+                    if (type === "titulaire") {
+                        titulaireValide = false;
+                    } else if (type === "suppleant") {
+                        suppleantValide = false;
+                    }
+                    updateBoutonAttribution();
+                    return;
+                }
+
+                // Vérifier si sexe lit == sexe étudiant
+                if (data.sexe && data.sexe !== sexeLit) {
                     zoneInfo.innerHTML =
                         "<div class='alert alert-danger'>" +
                         "Erreur : Ce lit est réservé au sexe <b>" + sexeLit +
-                        "</b>, mais l’étudiant recherché est <b>" + data.sexe + "</b>." +
+                        "</b>, mais l'étudiant recherché est de sexe <b>" + data.sexe + "</b>." +
                         "</div>";
+
+                    if (type === "titulaire") {
+                        titulaireValide = false;
+                    } else if (type === "suppleant") {
+                        suppleantValide = false;
+                    }
+                    updateBoutonAttribution();
                     return;
-                } */
+                }
 
                 // Affichage automatique
                 zone.innerHTML = `
@@ -259,11 +342,59 @@ $nbOccupants = count($occupants);
                 <h3> Sexe : ${data.sexe} </h3><br>
                 <h3> Téléphone : ${data.telephone} </h3><br>
             `;
+
+                // Marquer comme valide selon le type
+                if (type === "titulaire") {
+                    titulaireValide = true;
+                } else if (type === "suppleant") {
+                    suppleantValide = true;
+                }
+
+                // Mettre à jour l'état du bouton
+                updateBoutonAttribution();
             })
             .catch(() => {
                 alert("Erreur lors de la communication avec le serveur.");
+                document.getElementById("btnAttribuer").disabled = true;
             });
     }
+
+    function updateBoutonAttribution() {
+        const isIndividuel = <?= $individuel ? 'true' : 'false' ?>;
+        const nbOccupants = <?= $nbOccupants ?>;
+
+        let btn = document.getElementById("btnAttribuer");
+
+        if (isIndividuel) {
+            // Pour un lit individuel : besoin seulement du titulaire
+            btn.disabled = !titulaireValide;
+        } else {
+            // Pour un lit partagé : besoin d'au moins un étudiant valide
+            if (nbOccupants === 0) {
+                // Lit vide : besoin du titulaire
+                btn.disabled = !titulaireValide;
+            } else if (nbOccupants === 1) {
+                // Déjà un titulaire : le suppléant doit être valide
+                btn.disabled = !suppleantValide;
+            } else {
+                // Déjà deux occupants : bouton devrait être caché
+                btn.disabled = true;
+            }
+        }
+
+        // Si le lit a déjà des occupants, initialiser les validations
+        if (nbOccupants >= 1) {
+            titulaireValide = true; // Le titulaire est déjà présent
+        }
+        if (nbOccupants === 2) {
+            suppleantValide = true; // Le suppléant est déjà présent
+        }
+    }
+
+    // Initialiser l'état du bouton au chargement
+    document.addEventListener('DOMContentLoaded', function() {
+        updateBoutonAttribution();
+    });
     </script>
     <script>
     function supprimer(id_aff, type) {

@@ -1,26 +1,56 @@
-<?php session_start();
+<?php
+session_start();
 
 if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
     header('Location: /campuscoud.com/');
     exit();
 }
 
-include('../../traitement/fonction.php');
+include ('../../traitement/fonction.php');
 
-$datesys0=date("Y-m-d");
+$datesys0 = date('Y-m-d');
 $datesys = strtotime($datesys0);
 $an0 = date('Y', $datesys);
-$an = substr($an0,2,2);
+$an = substr($an0, 2, 2);
 
 // Si on a reçu des données GET, on les transforme en POST
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_GET)) {
     foreach ($_GET as $key => $value) {
         $_POST[$key] = $value;
     }
-    $_SERVER['REQUEST_METHOD'] = 'POST'; // Simule une requête POST
+    $_SERVER['REQUEST_METHOD'] = 'POST';  // Simule une requête POST
+}
+// connexion autre base
+
+if (!empty($_POST['numEtudiant'])) {
+
+    $anneeConnectee = $_SESSION['annee'];  // ex: 24_25
+    $anneeRecente = $_SESSION['anneeRecente']; ;  // année la plus récente
+
+    $numEtudiant = strtoupper(trim($_POST['numEtudiant']));
+
+    /**
+     *  SI on n'est PAS sur l'année la plus récente
+     * alors on vérifie dans la base récente
+     */
+    if ($anneeConnectee !== $anneeRecente) {
+        $sql = "SELECT id_etu FROM codif_etudiant 
+            WHERE num_etu = '$numEtudiant'";
+
+        $result = mysqli_query($connexion_etudiant, $sql);
+
+        if (mysqli_num_rows($result) > 0) {
+            $_SESSION['compte'] =
+                " Cet étudiant existe déjà pour l’année scolaire $anneeRecente.
+        Veuillez vous connecter avec le compte étudiant approprié.";
+
+            header('Location: paiement');
+            exit();
+        }
+    }
 }
 
-if (isset($_POST['numEtudiant'])) { 
+if (isset($_POST['numEtudiant'])) {
     $num_etu = $_POST['numEtudiant'];
     $_SESSION['num_etu'] = $_POST['numEtudiant'];
     if (getIsForclu($num_etu)) {
@@ -39,19 +69,19 @@ if (isset($_POST['numEtudiant'])) {
                         $array = $row;
                     }
 
-                    $dernier_mois_paye = explode(" ", trim($array['libelle']));
+                    $dernier_mois_paye = explode(' ', trim($array['libelle']));
                     $dernier_mois_paye = $dernier_mois_paye[count($dernier_mois_paye) - 1];
                     $dernier_mois_paye = getMois($dernier_mois_paye);
-                    $date_sys = dateFromat(date("Y-m-d"));
-                   // if (date("Y-m", strtotime($dernier_mois_paye)) == date("Y-m", strtotime($date_sys))) {
-                       // $queryString = http_build_query(['data' => $array]);
-                        //header('Location: paiement.php?erreurValider=ETUDIANT DEJA PAYER !!!&' . $queryString);
-                       // exit();
-                   // } else {
-                        $queryString = http_build_query(['data' => $array]);
-                        header("location: paiement.php?" . $queryString);
-                        exit();
-                   // }
+                    $date_sys = dateFromat(date('Y-m-d'));
+                    // if (date("Y-m", strtotime($dernier_mois_paye)) == date("Y-m", strtotime($date_sys))) {
+                    // $queryString = http_build_query(['data' => $array]);
+                    // header('Location: paiement.php?erreurValider=ETUDIANT DEJA PAYER !!!&' . $queryString);
+                    // exit();
+                    // } else {
+                    $queryString = http_build_query(['data' => $array]);
+                    header('location: paiement.php?' . $queryString);
+                    exit();
+                    // }
                 } else {
                     header("location: paiement.php?erreurNonTrouver=VOUS N'AVEZ PAS ENCORE VALIDER VOTRE LIT !!!");
                 }
@@ -62,33 +92,32 @@ if (isset($_POST['numEtudiant'])) {
                 header("location: paiement.php?erreurNonTrouver=VOUS N'ETES PAS ATTRIBUTAIRE DE LIT !!!");
             }
         } else {
-            header("location: paiement.php?erreurNonTrouver=ETUDIANT INTROUVABLE: Veuillez vous approcher du Departement informatique du COUD");
+            header('location: paiement.php?erreurNonTrouver=ETUDIANT INTROUVABLE: Veuillez vous approcher du Departement informatique du COUD');
         }
     }
 }
 
 if (isset($_POST['valide'])) {
     $i = 0;
-    $libelle = "";
+    $libelle = '';
     try {
-        //$id_etu = $_POST['id_etu'];
+        // $id_etu = $_POST['id_etu'];
         $id_val = $_POST['valide'];
         $user = $_SESSION['username'];
         $montant_recu = $_POST['montant_recu'];
-        $montantDu = $_POST['montantDu'];  
-        
-        
-       // var_dump(verifPremierPaiement($_SESSION['num_etu']));die;
-        
-       // if(($montantDu>$montant_recu) and (!verifPremierPaiement($_SESSION['num_etu'])))
-     //   {
-             
-      //         header("location: paiement.php?montantMinAvantLoger=MONTANT INSUFFISANT !!!");
-      //       exit();
-      //  }
-        
-       // echo "STOP"; exit();
-        
+        $montantDu = $_POST['montantDu'];
+
+        // var_dump(verifPremierPaiement($_SESSION['num_etu']));die;
+
+        // if(($montantDu>$montant_recu) and (!verifPremierPaiement($_SESSION['num_etu'])))
+        //   {
+
+        //         header("location: paiement.php?montantMinAvantLoger=MONTANT INSUFFISANT !!!");
+        //       exit();
+        //  }
+
+        // echo "STOP"; exit();
+
         $libelle = [];
         foreach ($_POST['libelle'] as $mois_caution => $value) {
             try {
@@ -111,43 +140,42 @@ if (isset($_POST['valide'])) {
                     if (strpos($situation['libelle'], $mot) !== false) {
                         $compt++;
                         $queryString = http_build_query(['data' => $situation]);
-                        header('Location: paiement.php?erreurMois=' . $mot.'&'.$queryString);
+                        header('Location: paiement.php?erreurMois=' . $mot . '&' . $queryString);
                         exit();
                     }
                 }
             }
         }
         if ($compt == 0) {
-$user=$_SESSION['username'];
-$accronyme=accronyme($user); 		//echo $user;
-$link = connexionBD();
+            $user = $_SESSION['username'];
+            $accronyme = accronyme($user);  // echo $user;
+            $link = connexionBD();
 
-
-
-$ins00 = "select max(num_ordre_user) as numauto from codif_paiement where an='$an0' and username_user='$user'"; //echo $ins00;
-$exx00 = mysqli_query($link, $ins00); $n_rows0 = mysqli_fetch_assoc($exx00); 	
-$ordre=$n_rows0['numauto']+1;  $quittance=$an."-".$accronyme."-".$ordre;		
-			//echo $chaine_libelle." ".$quittance;die;
-            $requete = setPaiement($id_val, $user,$montant_recu, $chaine_libelle,$quittance,$an0,$ordre);
+            $ins00 = "select max(num_ordre_user) as numauto from codif_paiement where an='$an0' and username_user='$user'";  // echo $ins00;
+            $exx00 = mysqli_query($link, $ins00);
+            $n_rows0 = mysqli_fetch_assoc($exx00);
+            $ordre = $n_rows0['numauto'] + 1;
+            $quittance = $an . '-' . $accronyme . '-' . $ordre;
+            // echo $chaine_libelle." ".$quittance;die;
+            $requete = setPaiement($id_val, $user, $montant_recu, $chaine_libelle, $quittance, $an0, $ordre);
             if ($requete == 1) {
-				
-/*$ins0 = "select max(id_paie) as numauto from codif_paiement where id_val='$id_val'";var_dump($ins0); 
-$exx0 = mysqli_query($link, $ins0); $n_rows = mysqli_fetch_assoc($exx0); */
-//$num_recu=$n_rows['numauto']; 
+                /*$ins0 = "select max(id_paie) as numauto from codif_paiement where id_val='$id_val'";var_dump($ins0);
+                $exx0 = mysqli_query($link, $ins0); $n_rows = mysqli_fetch_assoc($exx0); */
+                // $num_recu=$n_rows['numauto'];
 
-$telephone=getTelephoneEtudiant($_SESSION['num_etu']);
+                $telephone = getTelephoneEtudiant($_SESSION['num_etu']);
 
-//Envoi
-sms_paiement_etudiant($montant_recu,$_SESSION['num_etu'],$quittance) ;
+                // Envoi
+                sms_paiement_etudiant($montant_recu, $_SESSION['num_etu'], $quittance);
 
-//Stockage				
-enreg_sms($_SESSION['num_etu'], $telephone, 'paiement_chambre');
+                // Stockage
+                enreg_sms($_SESSION['num_etu'], $telephone, 'paiement_chambre');
 
-
-                header('Location: paiement.php?successValider=PAIEMENT REUSSI: SMS ENVOYE au '.$telephone.' !');
+                header('Location: paiement.php?successValider=PAIEMENT REUSSI: SMS ENVOYE au ' . $telephone . ' !');
             }
         }
     } catch (Exception $e) {
-        header('Location: paiement.php?erreurValider=ERREUR !'); echo $e;
+        header('Location: paiement.php?erreurValider=ERREUR !');
+        echo $e;
     }
 }

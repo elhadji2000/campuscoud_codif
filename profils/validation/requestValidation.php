@@ -1,4 +1,5 @@
-<?php session_start();
+<?php
+session_start();
 // Verifier la session si elle est actif, sinon on redirige vers la racine
 
 if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
@@ -6,7 +7,7 @@ if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
     exit();
 }
 
-include('../../traitement/fonction.php');
+include ('../../traitement/fonction.php');
 
 if (isset($_POST['numEtudiant'])) {
     $num_etu = $_POST['numEtudiant'];
@@ -18,7 +19,7 @@ if (isset($_POST['numEtudiant'])) {
         $dataStudentConnect = studentConnect($num_etu);
         if ($dataStudentConnect) {
             $moyenneStudentSearch = studentConnect($num_etu)['moyenne'];
-            $sexeStudentSearch =  studentConnect($num_etu)['sexe'];
+            $sexeStudentSearch = studentConnect($num_etu)['sexe'];
             $classeStudentSearch = studentConnect($num_etu)['niveauFormation'];
             $idEtuStudentSearch = studentConnect($num_etu)['id_etu'];
             $quotaClasseStudentConnecte = getQuotaClasse($classeStudentSearch, $sexeStudentSearch)['COUNT(*)'];
@@ -34,7 +35,7 @@ if (isset($_POST['numEtudiant'])) {
                     }
                     if ($array['migration_status'] == 'Non migré') {
                         $queryString = http_build_query(['data' => $array]);
-                        header("location: validation.php?" . $queryString);
+                        header('location: validation.php?' . $queryString);
                         exit();
                     } else {
                         $queryString = http_build_query(['data' => $array]);
@@ -72,7 +73,7 @@ if (isset($_POST['numEtudiant'])) {
                             }
                             if ($arraySuppleant['migration_status'] == 'Non migré') {
                                 $queryString = http_build_query(['data' => $arraySuppleant]);
-                                header("location: validation.php?erreurValider=Lit Suppleant(e) non encore validé !!!&" . $queryString);
+                                header('location: validation.php?erreurValider=Lit Suppleant(e) non encore validé !!!&' . $queryString);
                                 exit();
                             } else {
                                 $queryString = http_build_query(['data' => $arraySuppleant]);
@@ -86,7 +87,7 @@ if (isset($_POST['numEtudiant'])) {
                                 // Affecter le lit du titulaire à son Suppleant(e)
                                 // $resulotatAffectationSuppleant = addAffectationOnSuppleant($idLitTitulaireOnSuppleant, $idEtuStudentSearch);
                                 $queryString = http_build_query(['data' => $dataStudentConnect]);
-                                header("location: validation.php?statut=Suppleant(e)&idLit=" . $idLitTitulaireOnSuppleant . '&' . $queryString);
+                                header('location: validation.php?statut=Suppleant(e)&idLit=' . $idLitTitulaireOnSuppleant . '&' . $queryString);
                                 exit();
                             }
                         }
@@ -100,10 +101,10 @@ if (isset($_POST['numEtudiant'])) {
                 // Libérer la mémoire du résultat
                 mysqli_free_result($data);
             } else {
-                header("location: validation.php?erreurNonTrouver=Etudiant Non Attributaire !");
+                header('location: validation.php?erreurNonTrouver=Etudiant Non Attributaire !');
             }
         } else {
-            header("location: validation.php?erreurNonTrouver=Etudiant non trouvé dans la base de données !");
+            header('location: validation.php?erreurNonTrouver=Etudiant non trouvé dans la base de données !');
         }
     }
 }
@@ -126,7 +127,17 @@ if (isset($_POST['valide'])) {
     $idEtudiantSuppleant = $_POST['id_etu'];
     $numEtudiantSuppleant = $_SESSION['numEtudiantSuppleant'];
     // Affecter le lit du titulaire à son Suppleant(e)
-    $resulotatAffectationSuppleant = addAffectationOnSuppleant($idLit, $idEtudiantSuppleant);
+    $estAffecte = isAffecte($idEtudiantSuppleant);
+
+    if ($estAffecte === true) {
+        // Déjà affecté → on considère l'opération comme réussie
+        $resultatAffectationSuppleant = true;
+    } else {
+        // Pas encore affecté → on fait l'affectation
+        $resultatAffectationSuppleant = addAffectationOnSuppleant($idLit, $idEtudiantSuppleant);
+    }
+
+    // $resulotatAffectationSuppleant = addAffectationOnSuppleant($idLit, $idEtudiantSuppleant);
     if ($resulotatAffectationSuppleant == 1) {
         $dataSuppleantAffectation = getOneByAffectation($numEtudiantSuppleant);
         $user = $_SESSION['username'];

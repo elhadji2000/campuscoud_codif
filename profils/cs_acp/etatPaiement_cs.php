@@ -6,6 +6,15 @@ connexionBD();
 // Sélectionnez les options à partir de la base de données avec une pagination
 //include( '../../traitement/requete.php' );
 session_start();
+
+if (isset($_GET['suppr'])) {
+    $id_paie = $_GET['suppr'];
+    $user = $_SESSION['username'];
+
+    $message = supprimerPaiement($connexion, $id_paie, $user);
+    echo "<script>alert('$message'); window.location.href='etatPaiement_cs.php';</script>";
+}
+
 if ( isset( $_SESSION[ 'data' ] ) ) {
     $data = $_SESSION[ 'data' ];
     unset( $_SESSION[ 'data' ] );
@@ -22,9 +31,9 @@ if ( isset( $_SESSION[ 'data' ] ) ) {
     unset( $_SESSION[ 'libelle' ] );
 }
 // Stocker les données retournées dans des variables séparées
-$tabPaiment = $data[ 'data' ];
+$tabPaiment = $data[ 'data' ]??[];
 // Tableau des paiements
-$totalMontant = $data[ 'totalMontant' ];
+$totalMontant = $data[ 'totalMontant' ]??0;
 
 // Calculer le montant total
 $Total = calculateMontantTotal();
@@ -260,11 +269,12 @@ $regisseurs = getAllRegisseurs($connexion);
                     <th>Montant</th>
                     <th>Regisseur</th>
                     <th>Modifier</th>
+                    <th>Supprimer</th>
                 </tr>
                 <?php 
         if (!empty($tabPaiment)) : ?>
                 <?php foreach ($tabPaiment as $index => $row) :?>
-             <tr style="font-size: 14px;">
+                <tr style="font-size: 14px;">
                     <td class="text-center"><?php echo htmlspecialchars($row['quittance']); ?></td>
                     <td class="text-center"><?php echo htmlspecialchars($row['dateTime_paie']); ?></td>
                     <td class="text-center">
@@ -314,6 +324,15 @@ $regisseurs = getAllRegisseurs($connexion);
                             <i class="fas fa-edit"></i> Modifier
                         </button>
                     </td>
+                    <td>
+                        <a href="?suppr=<?php echo $row['id_paie']; ?>"
+                            class="text-danger text-decoration-underline small"
+                            onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce paiement ?');">
+                            Suppr
+                        </a>
+                    </td>
+
+
                 </tr>
 
                 <!-- Modal de modification -->
