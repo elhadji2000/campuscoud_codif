@@ -127,12 +127,6 @@ verif_type_mdp_2($_SESSION['username']);
                 /* ========= RÈGLES TITULAIRE ========= */
                 if (type === "titulaire") {
 
-                   /*  if (!data.estAffecte) {
-                        erreur(zone, "Le titulaire doit obligatoirement être logé");
-                        setValide("titulaire", false);
-                        return;
-                    } */
-
                     sexeTitulaire = data.sexe;
                 }
 
@@ -214,5 +208,4 @@ verif_type_mdp_2($_SESSION['username']);
     <script src="../../assets/js/main.js"></script>
 
 </body>
-
 </html>

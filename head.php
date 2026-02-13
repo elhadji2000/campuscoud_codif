@@ -93,7 +93,7 @@ include('activite.php');
                 <?php } ?>
                 <?php if (($_SESSION['profil'] == 'dba_2')) { ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="etudinat" title="etudiant">permute</a>
+                    <a class="nav-link" href="etudinat" title="etudiant">remplacer</a>
                 </li>
                 <?php } ?>
 
@@ -246,6 +246,9 @@ include('activite.php');
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="nonAffect" title="NonAffect">NonAffect</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="remplacer" title="NonAffect">remplacer</a>
                 </li>
                 <?php } ?>
 

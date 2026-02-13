@@ -45,13 +45,13 @@ if ($type === 'titulaire') {
         $etudiant_2['sexe'],
         $numero
     );
-   if (stripos($etudiant_2['etablissement'], 'social') === false) {
+    if (stripos($etudiant_2['etablissement'], 'social') === false) {
     echo json_encode([
         'success' => false,
         'message' => 'Étudiant quota non social'
     ]);
     exit;
-}
+} 
 
     // VERIFIER SI L'etudiant est attributaire ou suppleant
     $statut = $dataStatutStudent['statut'] ?? null;
@@ -65,7 +65,7 @@ if ($type === 'titulaire') {
     if ($statut !== 'Attributaire' && $statut !== 'Suppleant(e)') {
         echo json_encode([
             'success' => false,
-            'message' => 'Le titulaire doit obligatoirement être Attributaire ou Suppleant(e)'
+            'message' => 'Le sortant doit obligatoirement être Attributaire ou Suppleant(e)'
         ]);
         exit;
     }
@@ -78,7 +78,7 @@ if ($type === 'suppleant') {
     if ($idLocal !== null && isAffecte($idLocal)) {
         echo json_encode([
             'success' => false,
-            'message' => 'Le suppléant ne doit pas être affecté à un lit'
+            'message' => 'L\'entrant ne doit pas être affecté à un lit'
         ]);
         exit;
     }
@@ -137,15 +137,16 @@ if ($etudiant['payant'] !== 'Régime Non Payant') {
 
 $anneeEtudiant = $etudiant['annee']; // ex: 2024_2025
 $anneeFin = intval(substr($anneeEtudiant, -4)); // 2025
-$anneeCourante = intval(date('Y'));
+$annee = isset($_SESSION['annee']) ? $_SESSION['annee'] : date('Y');
+$anneeCourante = intval(substr($annee, -4)); 
 
-if (($anneeCourante - $anneeFin) >= 3) {
+if (($anneeCourante - $anneeFin) >= 2) {
     echo json_encode([
         'success' => false,
         'message' => 'Année académique invalide (ancien étudiant)'
     ]);
     exit;
-}
+} 
 
 
 /* ========= RÉPONSE ========= */

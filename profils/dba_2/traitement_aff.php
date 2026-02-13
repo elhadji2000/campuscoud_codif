@@ -15,7 +15,7 @@ mysqli_begin_transaction($connexion);
 
 try {
     /* ===============================
-       1. TITULAIRE (obligatoire)
+       1. sortant (obligatoire)
        =============================== */
 
     $stmt = mysqli_prepare($connexion,
@@ -32,7 +32,7 @@ try {
     $ancienTitulaire = $titulaire;
 
     /* ===============================
-       2. SUPPLÉANT
+       2. entrant
        =============================== */
 
     $stmt = mysqli_prepare($connexion,
@@ -42,7 +42,7 @@ try {
     $suppleantDB = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
     if ($suppleantDB) {
-        // ➜ suppression du suppléant existant
+        // ➜ suppression du entrant existant
         $stmt = mysqli_prepare($connexion,
             'DELETE FROM codif_etudiant WHERE id_etu = ?');
         mysqli_stmt_bind_param($stmt, 'i', $suppleantDB['id_etu']);
@@ -76,7 +76,7 @@ try {
     /* ===============================
     3. PERMUTATION (UPDATE COMPLET)
     =============================== */
-    // ==== NORMALISATION DES DONNÉES SUPPLÉANT ==== //
+    // ==== NORMALISATION DES DONNÉES ENTRANT ==== //
     $numEtu = $suppleant['num_etu'];
     $nom = $suppleant['nom'];
     $prenoms = $suppleant['prenoms'];
@@ -92,8 +92,8 @@ try {
     $departement = $titulaire['departement'];
     $etablissement = $titulaire['etablissement'];
     $niveauFormation = $titulaire['niveauFormation'];
+    $var = $_SESSION['username'] ." a fait un remplacement le " . date('d/m/Y à H:i');
     $typeEtudiant = $titulaire['typeEtudiant'];
-    $var = $_SESSION['username'] . " a fait l'objet d'un remplacement le " . date('d/m/Y à H:i');
 
     $stmt = mysqli_prepare($connexion,
         'UPDATE codif_etudiant SET
@@ -111,13 +111,13 @@ try {
         departement = ?,
         etablissement = ?,
         niveauFormation = ?,
-        typeEtudiant = ?
+        typeEtudiant = ?,
         var = ?
      WHERE id_etu = ?');
 
     mysqli_stmt_bind_param(
         $stmt,
-        'ssssssssisssssssi',
+        'ssssssssssssssssi',
         $numEtu,
         $nom,
         $prenoms,
@@ -140,7 +140,7 @@ try {
     mysqli_stmt_execute($stmt);
 
     /* ===============================
-       4. RÉINSERTION ANCIEN TITULAIRE
+       4. RÉINSERTION ANCIEN SORTANT
        =============================== */
 
     $stmt = mysqli_prepare($connexion, '

@@ -3332,6 +3332,11 @@ function getStatutStudentByQuota($quota, $classe, $sexe)
     ce.dateNaissance, 
     ce.sessionId, 
     ce.moyenne, 
+    ce.lieuNaissance, 
+    ce.nationalite, 
+    ce.email_perso, 
+    ce.email_ucad, 
+    ce.numIdentite, 
     ce.niveauFormation,
     ce.etablissement,
     ranks.rang, 
@@ -5786,6 +5791,74 @@ function getLitParChambre($link, $chambre)
     }
     return $data;
 }
+function getLitEtudiant($link, $lit)
+{
+    $sql = '
+        SELECT 
+            l.id_lit,
+            l.lit,
+            af.niveauFormation,
+            e.id_etu,
+            e.nom,
+            e.sexe,
+            e.telephone,
+            e.prenoms,
+            e.num_etu,
+            cc.statut,
+            cc.id_aff
+        FROM codif_lit l
+        JOIN codif_affectation cc 
+            ON cc.id_lit = l.id_lit
+        JOIN codif_etudiant e 
+            ON e.id_etu = cc.id_etu
+        LEFT JOIN codif_quota af 
+            ON af.id_lit_q = l.id_lit
+        WHERE l.lit = ?
+          AND NOT EXISTS (
+              SELECT 1
+              FROM codif_validation v
+              WHERE v.id_aff = cc.id_aff
+          )
+    ';
+
+    $stmt = $link->prepare($sql);
+    $stmt->bind_param('s', $lit);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+
+    if (!empty($data)) {
+        $etudiant = $data[0];
+
+        $quotaRow = getQuotaClasse($etudiant['niveauFormation'], $etudiant['sexe']);
+        $quota = (int) ($quotaRow['COUNT(*)'] ?? 0);
+
+        $statut = getOnestudentStatus(
+            $quota,
+            $etudiant['niveauFormation'],
+            $etudiant['sexe'],
+            $etudiant['num_etu']
+        );
+
+        $rang = (int) ($statut['rang'] ?? 0);
+
+        $data[0]['suppleant'] = ($rang > 0)
+            ? getOneSuppleantByTitulaire(
+                $quota,
+                $etudiant['niveauFormation'],
+                $etudiant['sexe'],
+                $rang
+            )
+            : null;
+    }
+
+    return $data;
+}
+
 
 // ********POUR OBTENIR LE NOMBRE EXACTES DES QUOTA DEJA ATTRIBUER A UNE FORMATION PAR SEXE*****
 function quota_saisie($connexion, $niveauFormation, $sexe)
