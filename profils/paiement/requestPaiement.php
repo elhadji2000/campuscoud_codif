@@ -33,7 +33,7 @@ if (!empty($_POST['numEtudiant'])) {
      *  SI on n'est PAS sur l'année la plus récente
      * alors on vérifie dans la base récente
      */
-    if ($anneeConnectee !== $anneeRecente) {
+    /* if ($anneeConnectee !== $anneeRecente) {
         $sql = "SELECT id_etu FROM codif_etudiant 
             WHERE num_etu = '$numEtudiant'";
 
@@ -47,7 +47,7 @@ if (!empty($_POST['numEtudiant'])) {
             header('Location: paiement');
             exit();
         }
-    }
+    } */
 }
 
 if (isset($_POST['numEtudiant'])) {
@@ -132,7 +132,7 @@ if (isset($_POST['valide'])) {
         $chaine_libelle = str_replace(['[', ']', '"'], ' ', $chaine_libelle);
         $tableau_situation_paye = getAllSituation($_SESSION['num_etu']);
         $compt = 0;
-        while ($situation = mysqli_fetch_array($tableau_situation_paye)) {
+         while ($situation = mysqli_fetch_array($tableau_situation_paye)) {
             $motsA = explode(' ', $chaine_libelle);
             $motsA = str_replace(' ', '', $motsA);
             foreach ($motsA as $mot) {
@@ -145,7 +145,7 @@ if (isset($_POST['valide'])) {
                     }
                 }
             }
-        }
+        } 
         if ($compt == 0) {
             $user = $_SESSION['username'];
             $accronyme = accronyme($user);  // echo $user;

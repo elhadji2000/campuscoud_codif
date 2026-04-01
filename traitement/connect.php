@@ -94,6 +94,11 @@ if (!empty($_POST['username_user']) && !empty($_POST['password_user'])) {
             header('Location: ../profils/retour/index');
             exit();
         }
+        else if ($row['profil_user'] == 'chef_securite') {
+		 $_SESSION['chef_securite'] = $row['profil_user'];
+            header('Location: ../profils/cs_securite/recherche');
+            exit();
+        }
          else if ($row['profil_user'] == 'audit') {
 		 $_SESSION['audit'] = $row['profil_user'];
             header('Location: ../profils/cs_campus/niveau2');

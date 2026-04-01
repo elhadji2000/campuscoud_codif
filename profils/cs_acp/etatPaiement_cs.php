@@ -1,10 +1,10 @@
 <?php
 
-//connexion à la base de données
-include( '../../traitement/fonction.php' );
+// connexion à la base de données
+include ('../../traitement/fonction.php');
 connexionBD();
 // Sélectionnez les options à partir de la base de données avec une pagination
-//include( '../../traitement/requete.php' );
+// include( '../../traitement/requete.php' );
 session_start();
 
 if (isset($_GET['suppr'])) {
@@ -15,33 +15,60 @@ if (isset($_GET['suppr'])) {
     echo "<script>alert('$message'); window.location.href='etatPaiement_cs.php';</script>";
 }
 
-if ( isset( $_SESSION[ 'data' ] ) ) {
-    $data = $_SESSION[ 'data' ];
-    unset( $_SESSION[ 'data' ] );
-    // Nettoyer après utilisation
-} else {
-    $date_debut = '';
-    $date_fin = '';
-    $username = '';
-    $libelle = '';
-    $data =[];// getPaiementWithDateInterval_2( $date_debut, $date_fin, $username, $libelle );
-    unset( $_SESSION[ 'debut' ] );
-    unset( $_SESSION[ 'fin' ] );
-    unset( $_SESSION[ 'regisseur' ] );
-    unset( $_SESSION[ 'libelle' ] );
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+$limit = 200;  // Nombre de lignes par page
+
+// Valeurs par défaut
+$date_debut = '';
+$date_fin = '';
+$username = '';
+$libelle = '';
+
+// Si formulaire POST soumis
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rechercher'])) {
+    $date_debut = $_POST['date_debut'] ?? '';
+    $date_fin = $_POST['date_fin'] ?? '';
+    $username = $_POST['regisseur'] ?? '';
+    $libelle = $_POST['libelle'] ?? '';
 }
-// Stocker les données retournées dans des variables séparées
-$tabPaiment = $data[ 'data' ]??[];
+
+// Si changement de page via GET, récupérer les filtres depuis l'URL
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $date_debut = $_GET['date_debut'] ?? $date_debut;
+    $date_fin = $_GET['date_fin'] ?? $date_fin;
+    $username = $_GET['regisseur'] ?? $username;
+    $libelle = $_GET['libelle'] ?? $libelle;
+}
+
+// Récupérer les paiements avec pagination
+$data = getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libelle, $page, $limit);
+
 // Tableau des paiements
-$totalMontant = $data[ 'totalMontant' ]??0;
+$tabPaiment = $data['data'] ?? [];
+$totalMontant = $data['totalMontant'] ?? 0;
+$totalPages = $data['totalPages'] ?? 1;
+$totalRows = $data['totalRows'] ?? 1;
+
+// Récupérer tous les régisseurs pour le select
+$regisseurs = getAllRegisseurs($connexion);
+$totalMontant = $data['totalMontant'] ?? 0;
 
 // Calculer le montant total
 $Total = calculateMontantTotal();
 // Calculer la somme totale pour le libellé 'Caution'
 $cautionSum = calculateCautionSum();
-$mens = ( $Total - $cautionSum );
+$mens = ($Total - $cautionSum);
 // Somme totale des montants
 $regisseurs = getAllRegisseurs($connexion);
+// var_dump($_SESSION[ 'annee' ]);
+
+?>
+<?php
+// Préparer une chaîne GET avec les filtres
+$filterParams = '&date_debut=' . urlencode($date_debut)
+    . '&date_fin=' . urlencode($date_fin)
+    . '&regisseur=' . urlencode($username)
+    . '&libelle=' . urlencode($libelle);
 ?>
 <!DOCTYPE html>
 <html lang='fr'>
@@ -107,12 +134,10 @@ $regisseurs = getAllRegisseurs($connexion);
         /* Augmente la taille du texte dans les modals */
     }
     </style>
-    <?php include('../../head.php'); ?>
+    <?php include ('../../head.php'); ?>
 </head>
 
 <body>
-
-
     <div class="container-fluid">
         <div class="row ">
             <center>
@@ -121,46 +146,44 @@ $regisseurs = getAllRegisseurs($connexion);
                 </div>
             </center>
         </div>
-        <br>
         <!-- Interval date -->
         <div class="container">
-            <br><br>
-            <form action="requestEtatPaiement_cs.php" method="POST" onsubmit="return validateForm()">
+            <form action="etatPaiement_cs.php" method="POST" onsubmit="return validateForm()">
 
                 <div class="row g-3 align-items-center justify-content-center">
                     <!-- Colonne pour la date de début -->
                     <div class="col-md-3">
                         <label for="date_debut" class="form-label">Date début :</label>
-                        <input type="date" id="date_debut" name="date_debut" class="form-control custom-height" />
+                        <input type="date" id="date_debut" name="date_debut" class="form-control custom-height"
+                            value="<?= htmlspecialchars($date_debut) ?>" />
                     </div>
                     <!-- Colonne pour la date de fin -->
                     <div class="col-md-3">
                         <label for="date_fin" class="form-label">Date fin :</label>
-                        <input type="date" id="date_fin" name="date_fin" class="form-control custom-height" />
+                        <input type="date" id="date_fin" name="date_fin" class="form-control custom-height"
+                            value="<?= htmlspecialchars($date_fin) ?>" />
                     </div>
                     <!-- Colonne pour le sélecteur -->
                     <div class="col-md-3">
                         <label for="regisseur" class="form-label">Regisseur :</label>
                         <select class="form-select custom-height" name="regisseur" id="regisseur">
                             <option value="">Sélectionnez un regisseur</option>
-                            <?php
-            // Boucle pour ajouter les options
-            foreach ($regisseurs as $regisseur) {
-                echo "<option value='" . htmlspecialchars($regisseur) . "'>" . htmlspecialchars($regisseur) . "</option>";
-            }
-            ?>
+                            <?php foreach ($regisseurs as $reg): ?>
+                            <option value="<?= htmlspecialchars($reg) ?>" <?= ($reg == $username) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($reg) ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label for="libelle" class="form-label">Paiement :</label>
                         <select class="form-select custom-height" name="libelle" id="libelle">
                             <option value="">Sélectionnez un libelle</option>
-                            <option value="CAUTION">CAUTION</option>
-                            <option value="LOYER">LOYER</option>
+                            <option value="CAUTION" <?= ($libelle == 'CAUTION') ? 'selected' : '' ?>>CAUTION</option>
+                            <option value="LOYER" <?= ($libelle == 'LOYER') ? 'selected' : '' ?>>LOYER</option>
                         </select>
                     </div>
                 </div>
-                <div class="row g-3 mt-3 justify-content-center">
+                <div class="row g-3 mt-2 justify-content-center">
                     <!-- Boutons -->
                     <div class="col-3">
                         <button id="submitBtn" name="rechercher" type="submit" class="btn btn-primary w-100">
@@ -168,7 +191,9 @@ $regisseurs = getAllRegisseurs($connexion);
                         </button>
                     </div>
                     <div class="col-md-2">
-                        <a href="convention/paiementPdf.php">Imprimer</a>
+                        <a class="btn btn-warning w-500" target="_blank"
+                            href="convention/paiementPdf.php?page=<?= $page - 1 . $filterParams; ?>"><strong> <i
+                                    class="fas fa-print"></i>Imprimer</strong></a>
                     </div>
                 </div>
             </form>
@@ -215,7 +240,7 @@ $regisseurs = getAllRegisseurs($connexion);
                 return true; // Le formulaire est valide
             }
             </script>
-            <br><br>
+            <br>
             <div class="row g-3 align-items-center justify-content-center">
                 <!-- Boutons -->
                 <div class="col-md-3">
@@ -251,73 +276,73 @@ $regisseurs = getAllRegisseurs($connexion);
             </div>
 
         </div>
-
-
-        <br><br>
-
-        <!-- table -->
-        <br><br>
         <div class="container-fluid">
+            <p class="text-muted">
+                Affichage de <?php echo count($tabPaiment); ?> enregistrements sur <?php echo $totalRows; ?> au total
+            </p>
             <table class="table table-hover">
                 <tr class="table-secondary" style="font-size: 16px; font-weight: 400;">
-                    <th>Num_Quittance</th>
-                    <th>Date_paye</th>
-                    <th>Libelle</th>
-                    <th>Num_Carte</th>
-                    <th>Prénom</th>
-                    <th>NOM</th>
-                    <th>Montant</th>
-                    <th>Regisseur</th>
+                    <th class="text-left">Num_Quittance</th>
+                    <th class="text-left">Date_paye</th>
+                    <th class="text-left">Libelle</th>
+                    <th class="text-left">Num_Carte</th>
+                    <th class="text-left">Prénom</th>
+                    <th class="text-left">NOM</th>
+                    <th class="text-left">Montant</th>
+                    <th class="text-left">Regisseur</th>
                     <th>Modifier</th>
                     <th>Supprimer</th>
                 </tr>
-                <?php 
-        if (!empty($tabPaiment)) : ?>
-                <?php foreach ($tabPaiment as $index => $row) :?>
+                <?php
+                if (!empty($tabPaiment)):
+                    ?>
+                <?php foreach ($tabPaiment as $index => $row): ?>
                 <tr style="font-size: 14px;">
-                    <td class="text-center"><?php echo htmlspecialchars($row['quittance']); ?></td>
-                    <td class="text-center"><?php echo htmlspecialchars($row['dateTime_paie']); ?></td>
-                    <td class="text-center">
+                    <td class="text-left"><?php echo htmlspecialchars($row['quittance']); ?></td>
+                    <td class="text-left">
+                        <?php echo date('d/m/Y', strtotime($row['dateTime_paie'])); ?>
+                    </td>
+                    <td class="text-left">
                         <?php
-                            if (isset($_SESSION['libelle']) && strtoupper(trim($_SESSION['libelle'])) === 'CAUTION') {
-                                echo 'CAUTION';
-                            } else {
-                                // Cas où session est LOYER (ou autre), on traite row['libelle']
-                                $libelleParts = explode(',', $row['libelle']);
+                        if (isset($_SESSION['libelle']) && strtoupper(trim($_SESSION['libelle'])) === 'CAUTION') {
+                            echo 'CAUTION';
+                        } else {
+                            // Cas où session est LOYER (ou autre), on traite row['libelle']
+                            $libelleParts = explode(',', $row['libelle']);
 
-                                // On enlève "CAUTION" s'il est dans row['libelle']
-                                $filtered = array_filter($libelleParts, function($part) {
+                            // On enlève "CAUTION" s'il est dans row['libelle']
+                            $filtered = array_filter($libelleParts, function ($part) {
                                 return strtoupper(trim($part)) !== 'CAUTION';
                             });
 
                             // Réafficher les valeurs restantes
                             echo htmlspecialchars(implode(', ', $filtered));
-                             }
+                        }
                         ?>
                     </td>
 
-                    <td class="text-center"><?php echo htmlspecialchars($row['num_etu']); ?></td>
-                    <td class="text-center"><?php echo htmlspecialchars($row['prenoms']); ?></td>
-                    <td class="text-center"><?php echo htmlspecialchars($row['nom']); ?></td>
+                    <td class="text-left"><?php echo htmlspecialchars($row['num_etu']); ?></td>
+                    <td class="text-left"><?php echo htmlspecialchars($row['prenoms']); ?></td>
+                    <td class="text-left"><?php echo htmlspecialchars($row['nom']); ?></td>
                     <?php
                     $montant = $row['montant'];
 
-                        if (isset($_SESSION['libelle'])) {
-                            $sessionLibelle = strtoupper(trim($_SESSION['libelle']));
+                    if (isset($_SESSION['libelle'])) {
+                        $sessionLibelle = strtoupper(trim($_SESSION['libelle']));
 
-                            if ($sessionLibelle === 'CAUTION') {
-                                $montant = 5000;
-                            } elseif ($sessionLibelle === 'LOYER') {
+                        if ($sessionLibelle === 'CAUTION') {
+                            $montant = 5000;
+                        } elseif ($sessionLibelle === 'LOYER') {
                             if (stripos($row['libelle'], 'CAUTION') !== false) {
                                 $montant -= 5000;
                             }
-                            }
                         }
+                    }
 
-                     echo '<td class="text-center">' . htmlspecialchars($montant) . '</td>';
+                    echo '<td class="text-left">' . htmlspecialchars($montant) . '</td>';
                     ?>
 
-                    <td class="text-center"><?php echo htmlspecialchars($row['username_user']); ?></td>
+                    <td class="text-left"><?php echo htmlspecialchars($row['username_user']); ?></td>
                     <td>
                         <button class="btn btn-warning btn-sm" data-bs-toggle="modal"
                             data-bs-target="#editModal<?php echo $row['id_paie']; ?>">
@@ -440,28 +465,72 @@ $regisseurs = getAllRegisseurs($connexion);
                     </div>
                 </div>
                 <?php endforeach; ?>
-                <?php else : ?>
+                <?php else: ?>
                 <tr>
                     <td colspan="8">Aucun résultat trouvé</td>
                 </tr>
                 <?php endif; ?>
             </table>
+            <!-- Pagination -->
+            <?php
+            $visiblePages = 5;  // Nombre de pages visibles dans la pagination
+            $startPage = max(1, $page - floor($visiblePages / 2));
+            $endPage = min($totalPages, $startPage + $visiblePages - 1);
+
+            // Ajuster startPage si endPage arrive au max
+            $startPage = max(1, $endPage - $visiblePages + 1);
+            ?>
+
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+
+                    <!-- Bouton Précédent -->
+                    <?php
+                    // Préparer une chaîne GET avec les filtres
+                    $filterParams = '&date_debut=' . urlencode($date_debut)
+                        . '&date_fin=' . urlencode($date_fin)
+                        . '&regisseur=' . urlencode($username)
+                        . '&libelle=' . urlencode($libelle);
+                    ?>
+
+                    <!-- Exemple pour le bouton Précédent -->
+                    <?php if ($page > 1): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="?page=<?= $page - 1 . $filterParams; ?>">&laquo; Précédent</a>
+                    </li>
+                    <?php endif; ?>
+
+                    <!-- Pour chaque numéro de page -->
+                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                    <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+                        <a class="page-link" href="?page=<?= $i . $filterParams; ?>"><?= $i; ?></a>
+                    </li>
+                    <?php endfor; ?>
+
+                    <!-- Bouton Suivant -->
+                    <?php if ($page < $totalPages): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="?page=<?= $page + 1 . $filterParams; ?>">Suivant &raquo;</a>
+                    </li>
+                    <?php endif; ?>
+
+                </ul>
+            </nav>
         </div>
 
         <?php
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_paie'])) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_paie'])) {
+            $id_paie = intval($_POST['id_paie']);
+            $new_montant = $_POST['montant'];
+            $new_libelle = $_POST['libelle'];
+            $modified_by = $_SESSION['username'];
 
-    $id_paie = intval($_POST['id_paie']);
-    $new_montant = $_POST['montant'];
-    $new_libelle = $_POST['libelle'];
-    $modified_by = $_SESSION['username'];
+            $message = modifierPaiement($connexion, $id_paie, $new_montant, $new_libelle, $modified_by);
 
-    $message = modifierPaiement($connexion, $id_paie, $new_montant, $new_libelle, $modified_by);
+            echo "<script>alert('$message'); window.location.href='etatPaiement_cs.php';</script>";
+        }
 
-    echo "<script>alert('$message'); window.location.href='etatPaiement_cs.php';</script>";
-}
-
-?>
+        ?>
 
 
     </div>
@@ -499,7 +568,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_paie'])) {
     </footer> <!-- end footer -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <?php //include('footer.php'); ?>
+    <?php // include('footer.php'); ?>
     <script src="../../assets/js/script.js"></script>
     <script src="../../assets/js/jquery-3.2.1.min.js"></script>
     <script src="../../assets/js/plugins.js"></script>

@@ -192,12 +192,12 @@ if (isset($_GET['data'])) {
             </div>
             <?php } ?>
             <?php
-            if (isset($_SESSION['compte'])) {
+             if (isset($_SESSION['compte'])) {
                 echo '<div class="alert alert-warning text-center">'
                     . $_SESSION['compte']
                     . '</div>';
                 unset($_SESSION['compte']);
-            }
+            } 
             ?>
 
             <form action="requestPaiement" method="POST" style="display: flex;justify-content: center">
@@ -389,7 +389,11 @@ if (isset($_GET['data'])) {
                                 <td>Agent ACP</td>
                             </tr>
                             <?php
+                            $count = 1;
+                            $total = 0;
                             while ($row = mysqli_fetch_array($tableau_data_etudiant)) {
+                                $count++;
+                                $total += $row['montant'];
                                 ?>
                             <tr class="table" style="font-size: 14px; background-color: rgba(50, 115, 220, 0.1) ;">
                                 <td><?= $row['quittance'] ?></td>
@@ -400,7 +404,12 @@ if (isset($_GET['data'])) {
                                                 <td><?php // $row['restant'] ?></td-->
                                 <td><?= $row[2] ?></td>
                             </tr>
+                            
                             <?php } ?>
+                            <tr class="table" style="font-size: 14px; background-color:#3777b0;">
+                                <td colspan="3" style="text-align: center; " >Total</td>
+                                <td colspan="2" style="text-align: left; "><?= $total ?></td>
+                            </tr>
                         </table>
                     </div>
                     <?php
@@ -443,18 +452,9 @@ if (isset($_GET['data'])) {
                             <select id="libelle" name="libelle[]" multiple class="selectpicker form-control"
                                 data-live-search="true" placeholder="SELECTIONNER ICI ..." required>
                                 <option value="CAUTION">CAUTION</option>
-                                <option value="OCTOBRE">OCTOBRE</option>
-                                <option value="NOVEMBRE">NOVEMBRE</option>
-                                <option value="DECEMBRE">DECEMBRE</option>
-                                <option value="JANVIER">JANVIER</option>
-                                <option value="FEVRIER">FEVRIER</option>
-                                <option value="MARS">MARS</option>
-                                <option value="AVRIL">AVRIL</option>
-                                <option value="MAI">MAI</option>
-                                <option value="JUIN">JUIN</option>
-                                <option value="JUILLET">JUILLET</option>
-                                <option value="AOUT">AOUT</option>
-                                <option value="SEPTEMBRE">SEPTEMBRE</option>
+                                <option value="JANVIER_<?= date('Y'); ?>">JANVIER</option>
+                                <option value="fevrier">fevrier</option>
+                                <option value="Paiement(s)_<?= $count ?>">Paiement(s)_<?= $count ?></option>
 
                             </select>
                         </div>

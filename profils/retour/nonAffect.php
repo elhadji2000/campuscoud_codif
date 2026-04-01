@@ -1,16 +1,15 @@
-<?php 
+<?php
 session_start();
-include('../../traitement/fonction.php');
-verif_type_mdp_2($_SESSION['username']); 
-include('fonction2.php');
-$fac = isset($_GET["fac"]) ? htmlspecialchars($_GET["fac"]) : "E.S.P";
+include ('../../traitement/fonction.php');
+verif_type_mdp_2($_SESSION['username']);
+include ('fonction2.php');
+$fac = isset($_GET['fac']) ? htmlspecialchars($_GET['fac']) : 'E.S.P';
 $result = getLitNonAffByFac($fac);
-$result2 = getAttributaireAndSuppleantByFac_2($fac);
+$result2 = getEtuNonAffByFac_3($fac);
 // Exemple d'utilisation
-//$quotaF = countAffected_2('F.A.S.E.G L1', 'F'); // quota restant filles
-//$quotaG = countAffected_2('F.A.S.E.G L1', 'G'); // quota restant garçons
-//var_dump($quotaF, $quotaG);
-
+// $quotaF = countAffected_2('F.A.S.E.G L1', 'F'); // quota restant filles
+// $quotaG = countAffected_2('F.A.S.E.G L1', 'G'); // quota restant garçons
+// var_dump($quotaF, $quotaG);
 
 ?>
 
@@ -37,7 +36,9 @@ $result2 = getAttributaireAndSuppleantByFac_2($fac);
         border-radius: 5px;
     }
 
-    table td {}
+    table td {
+        font-size:11px;
+    }
 
     #floatingBtn:hover {
         background-color: #0056b3;
@@ -51,7 +52,7 @@ $result2 = getAttributaireAndSuppleantByFac_2($fac);
     }
     </style>
 </head>
-<?php include('../../head.php'); ?>
+<?php include ('../../head.php'); ?>
 
 <body>
     <div class="container-fluid" style="font-size:16px;">
@@ -78,10 +79,24 @@ $result2 = getAttributaireAndSuppleantByFac_2($fac);
                     </div>
                 </form>
             </div>
+            <?php
+
+            if (isset($_SESSION['message'])) {
+                $type = $_SESSION['message_type'];
+                echo "<div class='alert alert-$type text-center'>"
+                    . $_SESSION['message']
+                    . '</div>';
+
+                unset($_SESSION['message']);
+                unset($_SESSION['message_type']);
+            }
+            ?>
 
             <br>
             <h1>Les Lits libres</h1>
-            <h2>Faculter : <?= htmlspecialchars($fac) ?></h2>
+            <h2>Faculter : <?= htmlspecialchars($fac) ?> | <a href="trait_choix?fac=<?= htmlspecialchars($fac) ?>"
+                    class="text-danger text-decoration-underline"
+                    onclick="return confirm('Êtes-vous sûr de vouloir continuer ?')">Codifier les Suppleants</a></h2>
         </center>
 
         <br><br>
@@ -102,13 +117,14 @@ $result2 = getAttributaireAndSuppleantByFac_2($fac);
             </thead>
             <tbody>
                 <?php if (!empty($result)): ?>
-                <?php $counter = 1; foreach ($result as $resl => $litRow): ?>
+                <?php $counter = 1;
+                foreach ($result as $resl => $litRow): ?>
                 <tr>
                     <th><?= $counter++ ?></th>
                     <td><?= htmlspecialchars($litRow['chambre']) ?></td>
                     <td><?= htmlspecialchars($litRow['lit']) ?></td>
                     <td><?= htmlspecialchars($litRow['sexe']) ?></td>
-                    <td><?= htmlspecialchars($litRow['num_etu']??"NULL") ?></td>
+                    <td><?= htmlspecialchars($litRow['num_etu'] ?? 'NULL') ?></td>
                     <td>
                         <?php if (empty($litRow['num_etu'])): ?>
                         NULL
@@ -117,7 +133,7 @@ $result2 = getAttributaireAndSuppleantByFac_2($fac);
                         <?= htmlspecialchars($litRow['nom']) ?>
                         <?php endif; ?>
                     </td>
-                    <td><?= htmlspecialchars($litRow['num_etu']??"NULL") ?></td>
+                    <td><?= htmlspecialchars($litRow['num_etu'] ?? 'NULL') ?></td>
                     <td>
                         <?php if (empty($litRow['num_etu'])): ?>
                         NULL
@@ -127,43 +143,42 @@ $result2 = getAttributaireAndSuppleantByFac_2($fac);
                         <?php endif; ?>
                     </td>
 
-                    <td><?= htmlspecialchars($litRow['niveauQuota'] ?? "") ?></td>
+                    <td><?= htmlspecialchars($litRow['niveauQuota'] ?? '') ?></td>
                 </tr>
                 <?php endforeach; ?>
-                <?php $counter = 1; foreach ($result2 as $litRow): ?>
+                <tr>
+                    <td colspan="9" style="text-align:center;"> les etudiants</td>
+                </tr>
+                <?php $counter = 1;?>
+                <?php foreach ($result2 as $litRow): ?>
                 <tr>
                     <th><?= $counter++ ?></th>
 
-                    <!-- chambre et lit (toujours null ici car pas de lit affecté) -->
-                    <td><?= htmlspecialchars($litRow['lit']??"NULL") ?></td>
-                    <td><?= htmlspecialchars($litRow['lit']??"NULL") ?></td>
-                    <td><?= htmlspecialchars($litRow['titulaire']['sexe']) ?></td>
-                    <!-- Titulaire -->
-                    <td><?= htmlspecialchars($litRow['titulaire']['num_etu'] ?? "NULL") ?></td>
+                    <!-- Chambre / Lit -->
+                    <td><?= htmlspecialchars($litRow['chambre'] ?? 'NULL') ?></td>
+                    <td><?= htmlspecialchars($litRow['lit'] ?? 'NULL') ?></td>
+
+                    <!-- Sexe -->
+                    <td><?= htmlspecialchars($litRow['sexe'] ?? 'NULL') ?></td>
+
+                    <!-- ===== ATTRIBUTAIRE ===== -->
+                    <td><?= htmlspecialchars($litRow['num_etu'] ?? 'NULL') ?></td>
                     <td>
-                        <?php if (!empty($litRow['titulaire'])): ?>
-                        <?= htmlspecialchars($litRow['titulaire']['prenoms']) ?>
-                        <?= htmlspecialchars($litRow['titulaire']['nom']) ?>
-                        (<?= htmlspecialchars($litRow['titulaire']['rang']) ?>)
+                        <?= htmlspecialchars(($litRow['prenoms'] ?? '') . ' ' . ($litRow['nom'] ?? '')) ?>
+                    </td>
+
+                    <!-- ===== SUPPLEANT ===== -->
+                    <td><?= htmlspecialchars($litRow['num_suppleant'] ?? 'NULL') ?></td>
+                    <td>
+                        <?php if (!empty($litRow['id_suppleant'])): ?>
+                        <?= htmlspecialchars(($litRow['prenom_suppleant'] ?? '') . ' ' . ($litRow['nom_suppleant'] ?? '')) ?>
                         <?php else: ?>
                         NULL
                         <?php endif; ?>
                     </td>
 
-                    <!-- Suppléant -->
-                    <td><?= htmlspecialchars($litRow['suppleant']['num_etu'] ?? "NULL") ?></td>
-                    <td>
-                        <?php if (!empty($litRow['suppleant'])): ?>
-                        <?= htmlspecialchars($litRow['suppleant']['prenoms']) ?>
-                        <?= htmlspecialchars($litRow['suppleant']['nom']) ?>
-                        (<?= htmlspecialchars($litRow['suppleant']['rang']) ?>)
-                        <?php else: ?>
-                        NULL
-                        <?php endif; ?>
-                    </td>
-
-                    <!-- Niveau / classe -->
-                    <td><?= htmlspecialchars($litRow['titulaire']['classe'] ?? "NaN") ?></td>
+                    <!-- Niveau -->
+                    <td><?= htmlspecialchars($litRow['niveauQuota'] ?? 'NaN') ?></td>
                 </tr>
                 <?php endforeach; ?>
 

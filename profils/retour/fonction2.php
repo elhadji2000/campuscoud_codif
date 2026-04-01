@@ -238,6 +238,7 @@ foreach (['F', 'G'] as $sexe) {
             "lit" => null,
             "indiv" => null,
             "titulaire" => [
+                "id_etu" => $etuData['id_etu'],
                 "num_etu" => $etuData['num_etu'],
                 "nom"     => $etuData['nom'],
                 "prenoms" => $etuData['prenoms'],
@@ -246,6 +247,7 @@ foreach (['F', 'G'] as $sexe) {
                 "rang"    => $rangTitulaire
             ],
             "suppleant" => $suppleant ? [
+                "id_etu" => $suppleant['id_etu'],
                 "num_etu" => $suppleant['num_etu'],
                 "nom"     => $suppleant['nom'],
                 "prenoms" => $suppleant['prenoms'],

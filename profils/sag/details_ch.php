@@ -24,7 +24,11 @@ if (isset($_GET['ch'])) {
 
 $lits = getLitParChambre($link, $numch);
 ?>
-
+<style>
+    table tr td,tr{
+        font-size:11px;
+    }
+</style>
 <body>
     <section id="homedesigne" class="s-homedesigne">
         <p class="lead">Espace S.A.G: Bienvenue!</p>
@@ -34,7 +38,7 @@ $lits = getLitParChambre($link, $numch);
         <center>
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <label for="search" style="font-weight: bold; font-size: 16px; color: #333;">
-                    🔍 Rechercher une chambre :
+                     Rechercher une chambre :
                 </label>
             </div>
 
@@ -49,7 +53,7 @@ $lits = getLitParChambre($link, $numch);
                 </div>
             </form>
 
-            <div class="table-responsive container" style="margin-top:20px; width:70%;text-align:center;">
+            <div class="table-responsive container" style="margin-top:20px;font-size:11px; width:100%;text-align:center;">
                 <table border="1" class="table table-bordered">
                     <thead>
                         <tr style="background-color:#f2f2f2;">
@@ -57,7 +61,10 @@ $lits = getLitParChambre($link, $numch);
                             <th>ID</th>
                             <th>Lit</th>
                             <th>NiveauFormation</th>
-                            <th>Etudiant</th>
+                            <th>Choix</th>
+                            <th>Valider</th>
+                            <th>Payer</th>
+                            <th>Loger</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -80,13 +87,28 @@ $lits = getLitParChambre($link, $numch);
                             <td style="color:<?= !empty($lit['prenom']) ? 'black' : 'gray'; ?>">
                                 <?= !empty($lit['prenoms']) ? $lit['prenoms'].' '.$lit['nom'].' ( '.$lit['num_etu'].' )' : 'vide'; ?>
                             </td>
+                            <td>
+                                <?= htmlspecialchars(!empty($lit['dateTime_val']) 
+                                    ? date('d/m/Y', strtotime($lit['dateTime_val'])) 
+                                    : 'NoN'); ?>
+                            </td>
+                            <td>
+                                <?= htmlspecialchars(!empty($lit['dateTime_paie']) 
+                                    ? date('d/m/Y', strtotime($lit['dateTime_paie'])) 
+                                    : 'NoN'); ?>
+                            </td>
+                            <td>
+                                <?= htmlspecialchars(!empty($lit['dateTime_loger']) 
+                                    ? date('d/m/Y', strtotime($lit['dateTime_loger'])) 
+                                    : 'NoN'); ?>
+                            </td>
 
                         </tr>
                         <?php endforeach; ?>
                         <?php else : ?>
                         <tr>
                             <td colspan="4" style="text-align:center;">
-                                ❌ Aucun lit trouvé pour la chambre <?= htmlspecialchars($numch); ?>.
+                                 Aucun lit trouvé pour la chambre <?= htmlspecialchars($numch); ?>.
                             </td>
                         </tr>
                         <?php endif; ?>

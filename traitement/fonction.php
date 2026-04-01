@@ -26,7 +26,7 @@ function connexionBD()
     // nom dynamique de la base
     $dbName = 'campuscoud_' . $annee;
 
-    $connexion = mysqli_connect('localhost', 'root', '', 'campuscoud') or
+    $connexion = mysqli_connect('localhost', 'root', '', 'campuscoud_test') or
         die('Serveur inaccessible. Merci de reessayer plus tard.');
 
     return $connexion;
@@ -315,6 +315,128 @@ function getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libel
     return [
         'data' => $data,
         'totalMontant' => $totalMontant
+    ];
+}
+
+function getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libelle = '', $page = 1, $limit = 20)
+{
+    global $connexion;
+
+    // Sécuriser les entrées
+    $date_debut = !empty($date_debut) ? mysqli_real_escape_string($connexion, $date_debut) : '2025-01-01';
+    $date_fin = !empty($date_fin) ? mysqli_real_escape_string($connexion, $date_fin) : date('Y-m-d');
+    $username = !empty($username) ? mysqli_real_escape_string($connexion, $username) : '';
+    $libelleFilter = $libelle;
+    $libelle = !empty($libelle) ? '%' . mysqli_real_escape_string($connexion, $libelle) . '%' : '';
+
+    // Calcul de l'offset
+    $page = max(1, (int) $page);
+    $limit = max(1, (int) $limit);
+    $offset = ($page - 1) * $limit;
+
+    // Construire la requête SQL principale
+    $sql = "SELECT ce.num_etu, ce.nom, ce.prenoms, pc.id_paie, pc.dateTime_paie, pc.montant, pc.an, 
+                   pc.id_val, pc.quittance, pc.username_user, pc.libelle 
+            FROM codif_etudiant ce 
+            JOIN codif_affectation a ON ce.id_etu = a.id_etu 
+            JOIN codif_validation vl ON a.id_aff = vl.id_aff 
+            JOIN codif_paiement pc ON pc.id_val = vl.id_val 
+            WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+
+    if (!empty($username)) {
+        $sql .= " AND pc.username_user = '$username'";
+    }
+
+    if (!empty($libelle)) {
+        if ($libelleFilter === 'LOYER') {
+            $sql .= " AND pc.libelle != 'CAUTION'";
+        } else {
+            $sql .= " AND pc.libelle LIKE '$libelle'";
+        }
+    }
+
+    $sql .= ' ORDER BY pc.dateTime_paie DESC, pc.quittance DESC, ce.nom ASC';
+    $sql .= " LIMIT $limit OFFSET $offset";
+
+    $result = $connexion->query($sql);
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+
+    // Calcul du montant total
+    $totalMontant = 0;
+
+    if (empty($libelleFilter)) {
+        $sqlTotal = "SELECT SUM(pc.montant) AS montantTotal 
+                     FROM codif_paiement pc
+                     JOIN codif_validation vl ON pc.id_val = vl.id_val
+                     WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+        if (!empty($username)) {
+            $sqlTotal .= " AND pc.username_user = '$username'";
+        }
+    } elseif ($libelleFilter === 'CAUTION') {
+        $sqlTotal = "SELECT COUNT(pc.montant) AS countPayments 
+                     FROM codif_paiement pc
+                     JOIN codif_validation vl ON pc.id_val = vl.id_val
+                     WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+        if (!empty($username)) {
+            $sqlTotal .= " AND pc.username_user = '$username'";
+        }
+        $sqlTotal .= " AND pc.libelle LIKE '%CAUTION%'";
+    } elseif ($libelleFilter === 'LOYER') {
+        $sqlTotal = "SELECT SUM(
+                        CASE 
+                        WHEN pc.libelle LIKE '%CAUTION%' 
+                        THEN pc.montant - 5000 
+                        ELSE pc.montant 
+                        END
+                     ) AS montantTotal
+                     FROM codif_paiement pc
+                     JOIN codif_validation vl ON pc.id_val = vl.id_val
+                     WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+        if (!empty($username)) {
+            $sqlTotal .= " AND pc.username_user = '$username'";
+        }
+        $sqlTotal .= " AND pc.libelle NOT LIKE 'CAUTION'";
+    }
+
+    $resultTotal = $connexion->query($sqlTotal);
+    if ($rowTotal = $resultTotal->fetch_assoc()) {
+        $totalMontant = isset($rowTotal['montantTotal'])
+            ? $rowTotal['montantTotal']
+            : (isset($rowTotal['countPayments']) ? $rowTotal['countPayments'] * 5000 : 0);
+    }
+
+    // Calcul du nombre total de lignes pour pagination
+    $sqlCount = "SELECT COUNT(*) AS totalRows 
+                 FROM codif_paiement pc
+                 JOIN codif_validation vl ON pc.id_val = vl.id_val
+                 WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+
+    if (!empty($username)) {
+        $sqlCount .= " AND pc.username_user = '$username'";
+    }
+
+    if (!empty($libelle)) {
+        if ($libelleFilter === 'LOYER') {
+            $sqlCount .= " AND pc.libelle != 'CAUTION'";
+        } else {
+            $sqlCount .= " AND pc.libelle LIKE '$libelle'";
+        }
+    }
+
+    $resultCount = $connexion->query($sqlCount);
+    $totalRows = $resultCount->fetch_assoc()['totalRows'];
+    $totalPages = ceil($totalRows / $limit);
+
+    return [
+        'data' => $data,
+        'totalMontant' => $totalMontant,
+        'page' => $page,
+        'limit' => $limit,
+        'totalRows' => $totalRows,
+        'totalPages' => $totalPages
     ];
 }
 
@@ -3009,15 +3131,34 @@ function getValidatePaiementLitByStudent($numEtudiant)
  * Ajouter dans la table codif_affectation lorsque l'etudiant choisi une lit
  * ********************************************************************************
  */
+
+/*
+ * function addAffectation($lastValue, $idEtu)
+ * {
+ *     try {
+ *         global $connexion;
+ *         $requeteInsertAff = "INSERT INTO `codif_affectation` (`id_lit`, `id_etu`, `dateTime_aff`, `statut`) VALUES ($lastValue, $idEtu, NOW(), 'Attributaire')";
+ *         $requeteEtu = $connexion->prepare($requeteInsertAff);
+ *         return $requeteEtu->execute();
+ *     } catch (Exception $e) {
+ *     }
+ * }
+ */
 function addAffectation($lastValue, $idEtu)
 {
-    try {
-        global $connexion;
-        $requeteInsertAff = "INSERT INTO `codif_affectation` (`id_lit`, `id_etu`, `dateTime_aff`, `statut`) VALUES ($lastValue, $idEtu, NOW(), 'Attributaire')";
-        $requeteEtu = $connexion->prepare($requeteInsertAff);
-        return $requeteEtu->execute();
-    } catch (Exception $e) {
-    }
+    global $connexion;
+
+    $stmt = $connexion->prepare("
+        INSERT INTO codif_affectation 
+        (id_lit, id_etu, dateTime_aff, statut) 
+        VALUES (?, ?, NOW(), 'Attributaire')
+    ");
+
+    $stmt->bind_param('ii', $lastValue, $idEtu);
+    $stmt->execute();
+    $stmt->close();
+
+    return true;
 }
 
 /*
@@ -5765,32 +5906,57 @@ function getBlackListInfo($num_etu, $connexion)
 
 function getLitParChambre($link, $chambre)
 {
-    // Requête SQL avec jointure gauche (LEFT JOIN)
     $sql = 'SELECT 
                 l.id_lit, 
                 l.lit, 
                 af.niveauFormation,
                 e.nom,
                 e.prenoms,
-                e.num_etu
+                e.num_etu,
+
+                MIN(v.dateTime_val) AS dateTime_val,
+                MIN(lg.dateTime_loger) AS dateTime_loger,
+                MIN(paie.dateTime_paie) AS dateTime_paie
+
             FROM codif_lit l
-            LEFT JOIN codif_quota af ON l.id_lit = af.id_lit_q
-            LEFT JOIN codif_affectation cc ON  cc.id_lit = l.id_lit 
-            LEFT JOIN codif_etudiant e ON  cc.id_etu = e.id_etu
-            WHERE l.chambre = ?';
+
+            LEFT JOIN codif_quota af 
+                ON l.id_lit = af.id_lit_q
+
+            LEFT JOIN codif_affectation cc 
+                ON cc.id_lit = l.id_lit 
+
+            LEFT JOIN codif_etudiant e 
+                ON cc.id_etu = e.id_etu
+
+            LEFT JOIN codif_validation v 
+                ON v.id_aff = cc.id_aff
+
+            LEFT JOIN codif_paiement paie 
+                ON paie.id_val = v.id_val
+
+            LEFT JOIN codif_loger lg 
+                ON lg.id_val = v.id_val OR lg.id_paie = paie.id_paie
+            
+            WHERE l.chambre = ?
+
+            GROUP BY 
+                e.num_etu
+            ';
 
     $stmt = $link->prepare($sql);
     $stmt->bind_param('s', $chambre);
     $stmt->execute();
     $result = $stmt->get_result();
 
-    // Tableau des résultats
     $data = [];
     while ($row = $result->fetch_assoc()) {
         $data[] = $row;
     }
+
     return $data;
 }
+
 function getLitEtudiant($link, $lit)
 {
     $sql = '
@@ -5859,6 +6025,58 @@ function getLitEtudiant($link, $lit)
     return $data;
 }
 
+function rechercherEtudiants($connexion, $search)
+{
+    $sql = 'SELECT 
+                e.id_etu,
+                e.nom,
+                e.prenoms,
+                e.num_etu,
+                e.telephone,
+                e.dateNaissance,
+                e.sexe,
+                l.chambre,
+                l.pavillon,
+                l.lit,
+                a.statut
+            FROM codif_affectation a
+            LEFT JOIN codif_etudiant e ON a.id_etu = e.id_etu
+            LEFT JOIN codif_lit l ON a.id_lit = l.id_lit
+            WHERE 
+                e.nom LIKE ?
+                OR e.prenoms LIKE ?
+                OR e.num_etu LIKE ?
+                OR e.telephone LIKE ?
+            ORDER BY e.nom ASC';
+
+    $stmt = mysqli_prepare($connexion, $sql);
+
+    if (!$stmt) {
+        die('Erreur préparation : ' . mysqli_error($connexion));
+    }
+
+    $searchParam = '%' . $search . '%';
+
+    mysqli_stmt_bind_param($stmt, 'ssss',
+        $searchParam,
+        $searchParam,
+        $searchParam,
+        $searchParam);
+
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    $etudiants = [];
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        $etudiants[] = $row;
+    }
+
+    mysqli_stmt_close($stmt);
+
+    return $etudiants;
+}
 
 // ********POUR OBTENIR LE NOMBRE EXACTES DES QUOTA DEJA ATTRIBUER A UNE FORMATION PAR SEXE*****
 function quota_saisie($connexion, $niveauFormation, $sexe)
@@ -6266,6 +6484,7 @@ function getLitNonAffByFac($fac)
 
     $sql = 'SELECT
         lit.chambre,
+        lit.id_lit,
         lit.lit,
         lit.sexe,
         q.niveauFormation AS niveauQuota,
@@ -6313,13 +6532,206 @@ function getEtuNonAffByFac($fac)
         e.id_etu,
         e.sexe,
         e.prenoms,
-        e.etablissement
+        e.etablissement,
+        rq.nombre
     FROM codif_etudiant e
     JOIN codif_quota q 
         ON q.niveauFormation = e.niveauFormation
+    JOIN codif_ref_quota rq 
+        ON rq.niveauFormation = e.niveauFormation COLLATE utf8mb4_unicode_ci
+    AND rq.sexe = e.sexe COLLATE utf8mb4_unicode_ci
     WHERE e.id_etu NOT IN (SELECT id_etu FROM codif_affectation)
       AND q.id_lit_q NOT IN (SELECT id_lit FROM codif_affectation)
       AND e.etablissement = ? ;';
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param('s', $fac);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function getEtuNonAffByFac_2($fac)
+{
+    global $connexion;
+
+    $sql = 'SELECT DISTINCT
+        NULL AS chambre,
+        NULL AS lit,
+        q.niveauFormation AS niveauQuota,
+        e.num_etu,
+        e.nom,
+        e.id_etu,
+        e.sexe,
+        e.prenoms,
+        e.etablissement,
+        rq.nombre,
+        ranks.rang,
+
+        CASE 
+            WHEN rq.nombre = 0 THEN "Non Defini"
+            WHEN cf.id_etu IS NOT NULL THEN "Forclos(e)"
+            WHEN ranks.rang <= rq.nombre THEN "Attributaire"
+            WHEN ranks.rang <= rq.nombre * 2 THEN "Suppleant(e)"
+            ELSE "Non Attributaire"
+        END AS statut
+
+    FROM codif_etudiant e
+
+    JOIN codif_quota q 
+        ON q.niveauFormation = e.niveauFormation
+
+    JOIN codif_ref_quota rq 
+        ON rq.niveauFormation = e.niveauFormation COLLATE utf8mb4_unicode_ci
+        AND rq.sexe = e.sexe COLLATE utf8mb4_unicode_ci
+
+    LEFT JOIN (
+        SELECT 
+            id_etu,
+            niveauFormation,
+            sexe,
+            ROW_NUMBER() OVER (
+                PARTITION BY niveauFormation, sexe
+                ORDER BY sessionId ASC, moyenne DESC, id_etu ASC, dateNaissance ASC
+            ) AS rang
+        FROM codif_etudiant
+        WHERE id_etu NOT IN (SELECT id_etu FROM codif_forclusion)
+    ) ranks 
+        ON e.id_etu = ranks.id_etu
+
+    LEFT JOIN codif_forclusion cf 
+        ON e.id_etu = cf.id_etu
+
+    WHERE e.id_etu NOT IN (SELECT id_etu FROM codif_affectation)
+      AND q.id_lit_q NOT IN (SELECT id_lit FROM codif_affectation)
+      AND e.etablissement = ?
+
+      /* FILTRE ATTRIBUTAIRE */
+      AND rq.nombre > 0
+      AND cf.id_etu IS NULL
+      AND ranks.rang <= rq.nombre
+
+    ORDER BY ranks.rang ASC;';
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param('s', $fac);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function getEtuNonAffByFac_3($fac)
+{
+    global $connexion;
+
+    $sql = '
+    SELECT 
+        NULL AS chambre,
+        NULL AS lit,
+
+        e.niveauFormation AS niveauQuota,
+        e.num_etu,
+        e.nom,
+        e.id_etu,
+        e.sexe,
+        e.prenoms,
+        e.etablissement,
+
+        rq.nombre,
+        r.rang,
+
+        /* ===== STATUT ===== */
+        CASE 
+            WHEN rq.nombre IS NULL OR rq.nombre = 0 THEN "Non Defini"
+            WHEN cf.id_etu IS NOT NULL THEN "Forclos(e)"
+            WHEN r.rang <= rq.nombre THEN "Attributaire"
+            WHEN r.rang <= rq.nombre * 2 THEN "Suppleant(e)"
+            ELSE "Non Attributaire"
+        END AS statut,
+
+        /* ===== SUPPLEANT ===== */
+        s.id_etu AS id_suppleant,
+        s.nom AS nom_suppleant,
+        s.num_etu AS num_suppleant,
+        s.prenoms AS prenom_suppleant,
+        s.niveauFormation AS niveau_suppleant,
+        r2.rang AS rang_suppleant
+
+    FROM codif_etudiant e
+
+    /* ===== QUOTA PAR NIVEAU + SEXE ===== */
+    LEFT JOIN (
+        SELECT 
+            q.niveauFormation,
+            l.sexe,
+            COUNT(*) AS nombre
+        FROM codif_quota q
+        JOIN codif_lit l ON l.id_lit = q.id_lit_q
+        GROUP BY q.niveauFormation, l.sexe
+    ) rq 
+        ON rq.niveauFormation = e.niveauFormation
+        AND rq.sexe = e.sexe
+
+    /* ===== CLASSEMENT UNIQUE ===== */
+    LEFT JOIN (
+        SELECT 
+            id_etu,
+            niveauFormation,
+            sexe,
+            ROW_NUMBER() OVER (
+                PARTITION BY niveauFormation, sexe
+                ORDER BY sessionId ASC, moyenne DESC, id_etu ASC, dateNaissance ASC
+            ) AS rang
+        FROM codif_etudiant
+        WHERE NOT EXISTS (
+            SELECT 1 
+            FROM codif_forclusion f 
+            WHERE f.id_etu = codif_etudiant.id_etu
+        )
+    ) r 
+        ON e.id_etu = r.id_etu
+
+    /* ===== SUPPLEANT = MEME GROUPE + DECALAGE QUOTA ===== */
+    LEFT JOIN (
+        SELECT 
+            id_etu,
+            niveauFormation,
+            sexe,
+            ROW_NUMBER() OVER (
+                PARTITION BY niveauFormation, sexe
+                ORDER BY sessionId ASC, moyenne DESC, id_etu ASC, dateNaissance ASC
+            ) AS rang
+        FROM codif_etudiant
+        WHERE NOT EXISTS (
+            SELECT 1 
+            FROM codif_forclusion f 
+            WHERE f.id_etu = codif_etudiant.id_etu
+        )
+    ) r2 
+        ON r2.niveauFormation = r.niveauFormation
+        AND r2.sexe = r.sexe
+        AND r2.rang = r.rang + rq.nombre
+
+    /* ===== INFOS SUPPLEANT ===== */
+    LEFT JOIN codif_etudiant s 
+        ON s.id_etu = r2.id_etu
+
+    /* ===== FORCLUSION ===== */
+    LEFT JOIN codif_forclusion cf 
+        ON e.id_etu = cf.id_etu
+
+    /* ===== FILTRES ===== */
+    WHERE NOT EXISTS (
+        SELECT 1 
+        FROM codif_affectation a 
+        WHERE a.id_etu = e.id_etu
+    )
+    AND e.etablissement = ?
+    AND cf.id_etu IS NULL
+    AND r.rang <= rq.nombre
+
+    ORDER BY r.rang ASC;
+    ';
 
     $stmt = $connexion->prepare($sql);
     $stmt->bind_param('s', $fac);
@@ -6461,10 +6873,7 @@ function getAttributaireAndSuppleantByFac($fac)
         $num_etu = $etu['num_etu'];
         $classe = $etu['niveauQuota'];
         $sexe = $etu['sexe'];
-
-        // 3. récupérer quota classe + sexe
-        $quotaRow = getQuotaClasse($classe, $sexe);
-        $quota = intval($quotaRow['COUNT(*)']);
+        $quota = intval($etu['nombre']);
 
         // 4. statut + rang
         $dataStatut = getOnestudentStatus($quota, $classe, $sexe, $num_etu);
@@ -6486,6 +6895,7 @@ function getAttributaireAndSuppleantByFac($fac)
             'indiv' => null,
             'titulaire' => [
                 'num_etu' => $etu['num_etu'],
+                'id_etu' => $etu['id_etu'],
                 'nom' => $etu['nom'],
                 'prenoms' => $etu['prenoms'],
                 'classe' => $classe,
@@ -6494,6 +6904,7 @@ function getAttributaireAndSuppleantByFac($fac)
             ],
             'suppleant' => $suppleant ? [
                 'num_etu' => $suppleant['num_etu'],
+                'id_etu' => $suppleant['id_etu'],
                 'nom' => $suppleant['nom'],
                 'prenoms' => $suppleant['prenoms'],
                 'classe' => $classe,
@@ -6511,4 +6922,198 @@ function getAttributaireAndSuppleantByFac($fac)
     return $result;
 }
 
+function getStatsByFacAndNiveau($fac, $sexe)
+{
+    global $connexion;
+
+    $sql = '
+    SELECT 
+        e.niveauFormation,
+        e.sexe,
+        /* Total étudiants */
+        COUNT(DISTINCT e.id_etu) AS total_etudiants,
+        /* Quota */
+        COALESCE(q.quota,0) AS quota,
+        /* Affectés */
+        COALESCE(a.nb_affecte,0) AS nb_affecte,
+        /* Validés */
+        COALESCE(v.nb_valide,0) AS nb_valide,
+        /* Payés */
+        COALESCE(p.nb_paye,0) AS nb_paye,
+        /* Logés attributaires */
+        COALESCE(la.nb_loge_attr,0) AS nb_loge_attributaire,
+        /* Logés suppléants */
+        COALESCE(ls.nb_loge_supp,0) AS nb_loge_suppleant,
+        /* Total logés */
+        COALESCE(la.nb_loge_attr,0) + COALESCE(ls.nb_loge_supp,0) AS total_loge,
+        /* Taux logés */
+        ROUND(
+            (COALESCE(la.nb_loge_attr,0) + COALESCE(ls.nb_loge_supp,0)) / NULLIF(COUNT(DISTINCT e.id_etu),0) * 100,
+            2
+        ) AS taux_loge
+    FROM codif_etudiant e
+
+    /* Quota */
+    LEFT JOIN (
+        SELECT 
+            q.niveauFormation,
+            l.sexe,
+            COUNT(*) AS quota
+        FROM codif_quota q
+        JOIN codif_lit l ON l.id_lit = q.id_lit_q
+        GROUP BY q.niveauFormation, l.sexe
+    ) q ON q.niveauFormation = e.niveauFormation AND q.sexe = e.sexe
+
+    /* Affectés */
+    LEFT JOIN (
+        SELECT e.niveauFormation, e.sexe, COUNT(DISTINCT a.id_aff) AS nb_affecte
+        FROM codif_affectation a
+        JOIN codif_etudiant e ON e.id_etu = a.id_etu
+        GROUP BY e.niveauFormation, e.sexe
+    ) a ON a.niveauFormation = e.niveauFormation AND a.sexe = e.sexe
+
+    /* Validés */
+    LEFT JOIN (
+        SELECT e.niveauFormation, e.sexe, COUNT(DISTINCT v.id_val) AS nb_valide
+        FROM codif_validation v
+        JOIN codif_affectation a ON a.id_aff = v.id_aff
+        JOIN codif_etudiant e ON e.id_etu = a.id_etu
+        GROUP BY e.niveauFormation, e.sexe
+    ) v ON v.niveauFormation = e.niveauFormation AND v.sexe = e.sexe
+
+    /* Payés */
+    LEFT JOIN (
+        SELECT e.niveauFormation, e.sexe, COUNT(DISTINCT p.id_paie) AS nb_paye
+        FROM codif_paiement p
+        JOIN codif_validation v ON v.id_val = p.id_val
+        JOIN codif_affectation a ON a.id_aff = v.id_aff
+        JOIN codif_etudiant e ON e.id_etu = a.id_etu
+        GROUP BY e.niveauFormation, e.sexe
+    ) p ON p.niveauFormation = e.niveauFormation AND p.sexe = e.sexe
+
+    /* Logés attributaires */
+    LEFT JOIN (
+        SELECT e.niveauFormation, e.sexe, COUNT(DISTINCT l.id_log) AS nb_loge_attr
+        FROM codif_loger l
+        JOIN codif_paiement p ON l.id_paie = p.id_paie
+        JOIN codif_validation v ON v.id_val = p.id_val
+        JOIN codif_affectation a ON a.id_aff = v.id_aff
+        JOIN codif_etudiant e ON e.id_etu = a.id_etu
+        GROUP BY e.niveauFormation, e.sexe
+    ) la ON la.niveauFormation = e.niveauFormation AND la.sexe = e.sexe
+
+    /* Logés suppléants */
+    LEFT JOIN (
+        SELECT e.niveauFormation, e.sexe, COUNT(DISTINCT l.id_log) AS nb_loge_supp
+        FROM codif_loger l
+        JOIN codif_validation v ON l.id_val = v.id_val
+        JOIN codif_affectation a ON a.id_aff = v.id_aff
+        JOIN codif_etudiant e ON e.id_etu = a.id_etu
+        GROUP BY e.niveauFormation, e.sexe
+    ) ls ON ls.niveauFormation = e.niveauFormation AND ls.sexe = e.sexe
+
+    WHERE e.etablissement = ? AND e.sexe = ?
+    GROUP BY e.niveauFormation, e.sexe
+    ORDER BY e.niveauFormation ASC
+    ';
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param('ss', $fac, $sexe);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function getEtudiantsModal($fac, $niveau, $sexe)
+{
+    global $connexion;
+
+    $sql = "
+    SELECT 
+        e.id_etu,
+        e.num_etu,
+        e.nom,
+        e.prenoms,
+        e.niveauFormation,
+        e.sexe,
+        e.etablissement,
+        lit.lit,
+        MAX(a.id_aff) AS id_aff,
+        MAX(v.id_val) AS id_val,
+        MAX(p.id_paie) AS id_paie,
+        MAX(l.id_log) AS id_log,
+
+        /* ===== QUOTA ===== */
+        rq.nombre AS quota,
+
+        /* ===== RANG ===== */
+        r.rang,
+
+        /* ===== STATUT ===== */
+        CASE 
+            WHEN cf.id_etu IS NOT NULL THEN 'Forclos(e)'
+            WHEN rq.nombre IS NULL OR rq.nombre = 0 THEN 'Non Defini'
+            WHEN r.rang <= rq.nombre THEN 'Attributaire'
+            WHEN r.rang <= rq.nombre * 2 THEN 'Suppleant(e)'
+            ELSE 'Non Attributaire'
+        END AS statut
+
+    FROM codif_etudiant e
+
+    /* ===== QUOTA ===== */
+    LEFT JOIN (
+        SELECT 
+            q.niveauFormation,
+            l.sexe,
+            COUNT(*) AS nombre
+        FROM codif_quota q
+        JOIN codif_lit l ON l.id_lit = q.id_lit_q
+        GROUP BY q.niveauFormation, l.sexe
+    ) rq ON rq.niveauFormation = e.niveauFormation AND rq.sexe = e.sexe
+
+    /* ===== RANG UNIQUE (hors forclusion) ===== */
+    LEFT JOIN (
+        SELECT 
+            id_etu,
+            niveauFormation,
+            sexe,
+            ROW_NUMBER() OVER (
+                PARTITION BY niveauFormation, sexe
+                ORDER BY sessionId ASC, moyenne DESC, id_etu ASC, dateNaissance ASC
+            ) AS rang
+        FROM codif_etudiant
+        WHERE NOT EXISTS (
+            SELECT 1 FROM codif_forclusion f WHERE f.id_etu = codif_etudiant.id_etu
+        )
+    ) r ON e.id_etu = r.id_etu
+
+    /* ===== FORCLUSION ===== */
+    LEFT JOIN codif_forclusion cf ON cf.id_etu = e.id_etu
+
+    /* ===== AFFECTATION, VALIDATION, PAIEMENT, LOGEMENT ===== */
+    LEFT JOIN codif_affectation a ON a.id_etu = e.id_etu
+    LEFT JOIN codif_lit lit ON lit.id_lit = a.id_lit
+    LEFT JOIN codif_validation v ON v.id_aff = a.id_aff
+    LEFT JOIN codif_paiement p ON p.id_val = v.id_val
+    LEFT JOIN codif_loger l ON l.id_val = v.id_val OR l.id_paie = p.id_paie
+
+    /* ===== FILTRES ===== */
+    WHERE e.etablissement = ?
+      AND e.niveauFormation = ?
+      AND e.sexe = ?
+
+    GROUP BY e.id_etu, e.num_etu, e.nom, e.prenoms, e.niveauFormation, e.sexe, e.etablissement, rq.nombre, r.rang, cf.id_etu
+
+    /* ===== TRI : forclo puis rang ===== */
+    ORDER BY
+        CASE WHEN cf.id_etu IS NOT NULL THEN 0 ELSE 1 END,
+        r.rang ASC
+    ";
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param('sss', $fac, $niveau, $sexe);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
 ?>

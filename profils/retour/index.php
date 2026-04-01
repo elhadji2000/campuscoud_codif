@@ -121,7 +121,7 @@ $lits = getTitulaireAndSuppleantByFac2($fac);
                 <?php endforeach; ?>
                 <?php else: ?>
                 <tr>
-                    <td colspan="6" style="color:red;text-align:center;">Aucun étudiant trouvé pour ce Faculter.</td>
+                    <td colspan="8" style="color:red;text-align:center;">Aucun étudiant trouvé pour ce Faculter.</td>
                 </tr>
                 <?php endif; ?>
             </tbody>

@@ -1,165 +1,169 @@
-<?php 
+<?php
 session_start();
 
-
 require_once __DIR__ . '/vendor/autoload.php';
-require( '../../../traitement/fonction.php' );
+require('../../../traitement/fonction.php');
+ini_set('memory_limit', '512M');
+ini_set('max_execution_time', '300');
+ini_set("pcre.backtrack_limit", "5000000");
 
-$mpdf = new \Mpdf\Mpdf();
-/* $data = $_SESSION['pdf'];
-$tabPaiment = $data[ 'data' ];
-// Tableau des paiements
-$totalMontant = $data[ 'totalMontant' ]; */
-//##################
+$mpdf = new \Mpdf\Mpdf([
+    'tempDir' => __DIR__ . '/tmp'
+]);
 
-// Vérifier si les valeurs existent en session
-if (isset($_SESSION['debut'], $_SESSION['fin'], $_SESSION['username'], $_SESSION['libelle'])) {
-    $date_debut = $_SESSION['debut'];
-    $date_fin = $_SESSION['fin'];
-    $username = $_SESSION['regisseur'];
-    $libelle = $_SESSION['libelle'];
-} else {
-    // Valeurs par défaut si aucune session n'est trouvée
-    $date_debut = ''; // Exemple de date par défaut
-    $date_fin = ''; // Date du jour
-    $username = '';
-    $libelle = ''; // Libellé par défaut
-}
+// paramètres
+$date_debut = $_POST['date_debut'] ?? $_GET['date_debut'] ?? '';
+$date_fin   = $_POST['date_fin'] ?? $_GET['date_fin'] ?? '';
+$username   = $_POST['regisseur'] ?? $_GET['regisseur'] ?? '';
+$libelle    = $_POST['libelle'] ?? $_GET['libelle'] ?? '';
 
-// Appel de la fonction avec les valeurs récupérées
-$data = getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libelle);
-$tabPaiment = $data[ 'data' ];
-// Tableau des paiements
-$totalMontant = $data[ 'totalMontant' ];
+$timeD = $date_debut ? strtotime($date_debut) : strtotime('2026-01-01');
+$timeF = $date_fin ? strtotime($date_fin) : strtotime(date('Y-m-d'));
 
+$dateD = date('d/m/Y', $timeD);
+$dateF = date('d/m/Y', $timeF);
 
-//######################
+$usernameDisplay = $username ?: 'Tous';
 
-$timeD = isset($_SESSION['debut']) && !empty($_SESSION['debut']) ? strtotime($_SESSION['debut']) : strtotime('2025-01-01'); // Date par défaut
-$timeF = isset($_SESSION['fin']) && !empty($_SESSION['fin']) ? strtotime($_SESSION['fin']) : strtotime(date('Y-m-d')); // Date par défaut
-$dateD = date('d-m-Y',$timeD);
-$dateF = date('d-m-Y',$timeF);
-$username = isset($_SESSION['regisseur']) && !empty($_SESSION['regisseur']) ? $_SESSION['regisseur'] : 'Tous';
+// récupération données
+$page = 1;
+$limit = 1000;
 
-unset($_SESSION['data']);
+$data = getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libelle, $page, $limit);
+
+$tabPaiment   = $data['data'] ?? [];
+$totalMontant = $data['totalMontant'] ?? 0;
 
 $html = '
-<!DOCTYPE html>
-<html lang="en">
+<style>
+table {width:100%;border-collapse:collapse;font-size:12px;}
+th,td {border:1px solid #ddd;padding:6px;}
+th {background:#f2f2f2;}
+</style>
 
-    <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="style.css">
-        <title>Document</title>
-    </head>
-    <body>
+<p>
+Republique du Sénégal<br>
+Ministére de l\'Enseignement supérieur<br>
+de la Recherche et de l\'Innovation<br>
+________________________<br>
+<b>Centre des Œuvres universitaires de Dakar</b><br>
+________________________<br>
+<b>Agence Comptable</b>
+</p>
 
-    <div class="container">
-    <div class="row">
-           <header>
-                <div class="row">
-                    <div class="col-md-4">
-                        
-						<p> Republique du Sénégal<br/>
-						    Ministére de l\'Enseignement<br>supérieur, de la Recherche et de l\'Innovation<br/>
-                            <u>________________________</u><br/>
-                            <b> Centre des Œuvres universitaires de Dakar</b><br/>
-							 <u>________________________</u><br/>
-                            <b>Agence Comptable</b>
-                        </p>
-						
-                    </div>
-					
-					    
-						
-                    <div class="col-md-8">
-                        <div class="data-room">
-                            <h4>DU <b>' .  $dateD . '<br> AU ' . $dateF . '<br>  Regisseur: ' .  $username . ' </b></h4>   
-                        </div>
-                    </div> <br><br><br>
+<h3 style="text-align:center">ETAT DES ENCAISSEMENTS</h3>
 
-                </div> 
-                   <div class="row">
-                <div class="col-md-12 text-center">
-                    <b> ETAT DES ENCAISSEMENTS</b>
-                </div><br/>
-               
-              
-                
-               </div><br/>               
-            </header>
-        <table style="width:100%; border-collapse:collapse;">
-            <thead>
-                <tr>
-				<th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Quittance</th>
-				<th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Date</th>
-                    <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Libelle</th>
-                    <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Num Étudiant</th>
-                    <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Prenom et NOM</th>
-                    <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Montant</th>
-                    
-                </tr>
-            </thead>
-            <tbody>
-            ';
-//$total = 0;
-foreach ( $tabPaiment as $row ) {
-     // Traitement du libellé pour chaque ligne
-     if (isset($_SESSION['libelle']) && strtoupper(trim($_SESSION['libelle'])) === 'CAUTION') {
+<p>
+DU <b>'.$dateD.'</b> AU <b>'.$dateF.'</b><br>
+Regisseur : <b>'.$usernameDisplay.'</b>
+</p>
+
+<table>
+
+<thead>
+<tr>
+<th>Quittance</th>
+<th>Date</th>
+<th>Libelle</th>
+<th>Num Étudiant</th>
+<th>Prenom et NOM</th>
+<th>Montant</th>
+</tr>
+</thead>
+
+<tbody>
+';
+
+$mpdf->WriteHTML($html);
+
+
+// ---------- CHUNK METHOD ----------
+
+$chunkSize = 50;
+$chunkHtml = '';
+$count = 0;
+
+foreach ($tabPaiment as $row) {
+
+    $datePaiement = date('d/m/Y', strtotime($row['dateTime_paie']));
+
+    if (isset($_SESSION['libelle']) && strtoupper(trim($_SESSION['libelle'])) === 'CAUTION') {
         $libelleValue = 'CAUTION';
     } else {
-        $libelleParts = explode(',', $row['libelle']);
 
-        $filtered = array_filter($libelleParts, function ($part) {
-            return strtoupper(trim($part)) !== 'CAUTION';
+        $parts = explode(',', $row['libelle']);
+
+        $filtered = array_filter($parts, function ($p) {
+            return strtoupper(trim($p)) !== 'CAUTION';
         });
 
         $libelleValue = htmlspecialchars(implode(', ', $filtered));
     }
-     // Traitement du montant
-     $montant = $row['montant'];
-     if (isset($_SESSION['libelle'])) {
-         $sessionLibelle = strtoupper(trim($_SESSION['libelle']));
- 
-         if ($sessionLibelle === 'CAUTION') {
-             $montant = 5000;
-         } elseif ($sessionLibelle === 'LOYER') {
-             if (stripos($row['libelle'], 'CAUTION') !== false) {
-                 $montant -= 5000;
-             }
-         }
-     }
-    $html .= '
-               <tr>
-                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars( $row[ 'quittance' ] ) . '</td>
-					<td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars( $row[ 'dateTime_paie' ] ) . '</td>
-					<td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . $libelleValue . '</td>
-                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars( $row[ 'num_etu' ] ) . '</td>
-                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars( $row[ 'prenoms' ].' '.$row[ 'nom' ] ) . '</td>
-                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars($montant) . '</td>
-               </tr>';
-    //$total += $row[ 'montant' ];
+
+    $montant = $row['montant'];
+
+    if (isset($_SESSION['libelle'])) {
+
+        $sessionLibelle = strtoupper(trim($_SESSION['libelle']));
+
+        if ($sessionLibelle === 'CAUTION') {
+            $montant = 5000;
+        }
+
+        elseif ($sessionLibelle === 'LOYER') {
+
+            if (stripos($row['libelle'], 'CAUTION') !== false) {
+                $montant -= 5000;
+            }
+
+        }
+    }
+
+    $chunkHtml .= '
+    <tr>
+        <td>'.htmlspecialchars($row['quittance']).'</td>
+        <td>'.$datePaiement.'</td>
+        <td>'.$libelleValue.'</td>
+        <td>'.htmlspecialchars($row['num_etu']).'</td>
+        <td>'.htmlspecialchars($row['prenoms'].' '.$row['nom']).'</td>
+        <td>'.number_format($montant,0,","," ").'</td>
+    </tr>
+    ';
+
+    $count++;
+
+    if ($count % $chunkSize == 0) {
+
+        $mpdf->WriteHTML($chunkHtml);
+        $chunkHtml = '';
+
+    }
 }
-$html .= '<tr>
-                    <td colspan="5" align="center" style="border: 1px solid #dddddd; text-align: left; padding: 8px;">TOTAL DE LA PERIODE</td>                    
-                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars( $totalMontant ) . '</td>
-               </tr>';
 
-$html .= '
-            </tbody>
-        </table>
-        </div>
-    </div>    
-</body>';
+// dernier chunk
+if ($chunkHtml != '') {
+    $mpdf->WriteHTML($chunkHtml);
+}
 
-// Charger le contenu HTML dans mPDF
-$mpdf->WriteHTML( $html );
+// footer
 
-// Générer le PDF et le sortir
-$mpdf->Output( 'etat encaissement', \Mpdf\Output\Destination::INLINE );
+$footer = '
 
+</tbody>
 
+<tfoot>
 
-?>
+<tr>
+<td colspan="5" align="right"><b>TOTAL DE LA PERIODE</b></td>
+<td><b>'.number_format($totalMontant,0,","," ").'</b></td>
+</tr>
+
+</tfoot>
+
+</table>
+
+';
+
+$mpdf->WriteHTML($footer);
+
+$mpdf->Output('etat_encaissement.pdf','I');
