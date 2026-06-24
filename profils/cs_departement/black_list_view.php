@@ -32,6 +32,7 @@ $result = getBlack_list($connexion);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <?php include('../../head.php'); ?>
     <style>
     select.departement {
@@ -50,6 +51,9 @@ $result = getBlack_list($connexion);
 
     .col-5 {
         flex: none;
+    }
+     #tableEtudiants th, #tableEtudiants td{
+        font-size:12px;
     }
     </style>
 </head>
@@ -88,15 +92,16 @@ $result = getBlack_list($connexion);
 
         <br><br>
         <center>
-            <table class="table table-bordered table-striped">
+            <table id="tableEtudiants" class="table table-bordered table-striped">
                 <thead class="thead-dark">
                     <tr>
                         <th>#</th>
                         <th>Lit</th>
-                        <th>Numéro Étudiant</th>
+                        <th>Numéro</th>
                         <th>Nom & Prénom</th>
                         <th>Telephone</th>
                         <th>Departement</th>
+                        <th>Faculté</th>
                         <th>Reste à Payer</th>
                         <th>Annèe</th>
                     </tr>
@@ -112,14 +117,11 @@ $result = getBlack_list($connexion);
                         <td><?= htmlspecialchars($etu['prenom'] . " " . $etu['nom']) ?></td>
                         <td><?= htmlspecialchars($etu['telephone']) ?></td>
                         <td><?= htmlspecialchars($etu['departement']) ?></td>
+                        <td><?= htmlspecialchars($etu['faculte']) ?></td>
                         <td class="text-danger"><?= number_format($etu['reste_a_payer'], 0, ',', ' ') ?> f cfa</td>
                         <td><?= htmlspecialchars($etu['annee']) ?></td>
                     </tr>
                     <?php endforeach; ?>
-                    <?php else : ?>
-                    <tr>
-                        <td colspan="9">Aucun étudiant trouvé pour ce département.</td>
-                    </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -149,8 +151,37 @@ $result = getBlack_list($connexion);
         </div>
     </footer>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="../../assets/js/main.js"></script>
+
+     <script>
+    $(document).ready(function() {
+        $('#tableEtudiants').DataTable({
+            "pageLength": 100,
+            "lengthMenu": [
+            [50, 100, 200, 300, 500, 1000],
+            [50, 100, 200, 300, 500, 1000]
+        ],
+            "language": {
+                "lengthMenu": "Afficher _MENU_ étudiants",
+                "zeroRecords": "Aucun résultat trouvé",
+                "info": "Page _PAGE_ sur _PAGES_",
+                "infoEmpty": "Aucun étudiant disponible",
+                "infoFiltered": "(filtré sur _MAX_ étudiants)",
+                "search": "Rechercher :",
+                "paginate": {
+                    "first": "Premier",
+                    "last": "Dernier",
+                    "next": "Suivant",
+                    "previous": "Précédent"
+                }
+            }
+        });
+    });
+    </script>
 </body>
 
 </html>

@@ -1,5 +1,5 @@
 <html>
-<?php 
+<?php $_SESSION['annee'] = $_POST['annee'];
 
 if (!isset($_POST['num_etu'])) {
     echo '<meta http-equiv="refresh" content="0;URL=index">';
@@ -39,7 +39,7 @@ if ($isEtudiant) {
 // ============================
 else {
     $requetePersonnel = "SELECT * FROM codif_user WHERE username_user='$numeroetudiant' AND username_user NOT IN (SELECT num_etu FROM codif_etudiant)";
-    $resultPersonnel = mysqli_query($link, $requetePersonnel) or die('Erreur SQL: '.mysqli_error($link));
+    $resultPersonnel = mysqli_query($connexion_user, $requetePersonnel) or die('Erreur SQL: '.mysqli_error($link));
     $isPersonnel = mysqli_num_rows($resultPersonnel);
 
     if (!$isPersonnel) {
@@ -68,7 +68,7 @@ else {
 // Vérification du compte utilisateur
 // ============================
 $reqUser = "SELECT * FROM codif_user WHERE username_user='$numeroCompte' AND type_mdp='updated'";
-$resUser = mysqli_query($link, $reqUser) or die('Erreur SQL: '.mysqli_error($link));
+$resUser = mysqli_query($connexion_user, $reqUser) or die('Erreur SQL: '.mysqli_error($link));
 $hasAccount = mysqli_num_rows($resUser);
 
 if (!$hasAccount) {
@@ -93,7 +93,7 @@ $update = "
     SET password_user='$default_mdp_encrypt', type_mdp='default', datesys='$datesys' 
     WHERE username_user='$numeroCompte'
 ";
-$exec = mysqli_query($link, $update);
+$exec = mysqli_query($connexion_user, $update);
 
 if ($exec) {
     // Envoi SMS (même logique pour étudiant ou personnel)

@@ -60,7 +60,7 @@ if (isset($_POST['mdp'])){
 					echo "window.alert('Mot de passe modifie avec succes! !!!')";
 					echo "</script>";
 					$_SESSION['type_mdp']='updated';
-					 echo '<meta http-equiv="refresh" content="0;URL=resultat">';
+					 echo '<meta http-equiv="refresh" content="0;URL=accueil">';
 					 
 					}
 				 }

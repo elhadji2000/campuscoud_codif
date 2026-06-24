@@ -6,7 +6,7 @@ if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
 }
 // Verifier si la session stock toujours la valeur du niveau de la classe, sinon on l'initialise
 if (isset($_SESSION['classe'])) {
-    $classe = $_SESSION['classe']; 
+    $classe = $_SESSION['classe'];
 } else {
     $classe = "";
 }

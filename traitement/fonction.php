@@ -1,22 +1,11 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 /*
  * Connectez-vous à votre base de données MySQL
  */
-
-/*
- * function connexionBD()
- * getPaiementWithDateInterval_1$connexion = connexionBD();
- */
-
-/*
- * function connexionBD(){
- *     $connexion = mysqli_connect('localhost','root','', 'bdcodif') or die ('Serveur inaccessible. Merci de reessayer plus tard.');
- *     return $connexion;
- * }
- * $connexion = connexionBD();
- */
-$anneeRecente = $_SESSION['anneeRecente'] = '2024';
 
 function connexionBD()
 {
@@ -24,9 +13,15 @@ function connexionBD()
     $annee = isset($_SESSION['annee']) ? $_SESSION['annee'] : date('Y');
 
     // nom dynamique de la base
-    $dbName = 'campuscoud_' . $annee;
+    // $dbName = "u893234126_BdCc_" . $annee;
+    // $user = "u893234126_" . $annee;
+    // $pw = "MDP_" . $annee;
 
-    $connexion = mysqli_connect('localhost', 'root', '', 'campuscoud_test') or
+    $dbName = 'campuscoud';
+    $user = 'root';
+    $pw = '';
+
+    $connexion = mysqli_connect('localhost', $user, $pw, $dbName) or
         die('Serveur inaccessible. Merci de reessayer plus tard.');
 
     return $connexion;
@@ -34,16 +29,90 @@ function connexionBD()
 
 $connexion = connexionBD();
 
-$connexion_etudiant = mysqli_connect(
-    'localhost',
-    'root',
-    '',
-    'campuscoud_' . $anneeRecente  //  nom de l'AUTRE base
-);
 
-if (!$connexion_etudiant) {
-    die('Erreur connexion base étudiant : ' . mysqli_connect_error());
+function connexionDb_suivante()
+{
+    mysqli_report(MYSQLI_REPORT_OFF);
+
+    $serveur = 'localhost';
+    $user    = 'root';
+    $pw      = '';
+    $base    = 'campuscoud';
+
+    try {
+
+        $check = mysqli_connect($serveur, $user, $pw);
+
+        if (!$check) {
+            return false;
+        }
+
+        $result = mysqli_query(
+            $check,
+            "SHOW DATABASES LIKE '$base'"
+        );
+
+        if (!$result || mysqli_num_rows($result) == 0) {
+            mysqli_close($check);
+            return false;
+        }
+
+        mysqli_close($check);
+
+        $connexion = mysqli_connect(
+            $serveur,
+            $user,
+            $pw,
+            $base
+        );
+
+        return $connexion ?: false;
+
+    } catch (Exception $e) {
+        return false;
+    }
 }
+
+$connexion_suivante = connexionDb_suivante();
+
+
+// FONCTION POUR APLLI SECURITE COUD (https://campuscoud/securite/) ///////////////////////////////////////////////
+function connexionBD2()
+{
+    // si l'année n'existe pas encore on met une valeur par défaut
+    $annee = '2024_2025';
+
+    // nom dynamique de la base
+    $dbName = 'campuscoud';
+    $user = 'root';
+    $pw = '';
+
+    $connexion2 = mysqli_connect('localhost', $user, $pw, $dbName) or
+        die('Serveur inaccessible. Merci de reessayer plus tard.');
+
+    return $connexion2;
+}
+
+function connexion_user()
+{
+    // si l'année n'existe pas encore on met une valeur par défaut
+    $annee = '2024_2025';
+
+    // nom dynamique de la base
+    $dbName = 'campuscoud';
+    $user = 'root';
+    $pw = '';
+
+    $connexion2 = mysqli_connect('localhost', $user, $pw, $dbName) or
+        die('Serveur inaccessible. Merci de reessayer plus tard.');
+
+    return $connexion2;
+}
+
+$connexion_user = connexion_user();
+
+$connexion2 = connexionBD2();
+// /////////////////////////////////////////////////////////////////////////////////
 
 // ######## POUR DETERMINER LE MONTANT DE LA FACTURATION #########################
 function getMontant($type)
@@ -218,7 +287,7 @@ function getMontant($type)
  * }
  */
 
-function getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libelle = '')
+function getPaiementWithDateInterval_2_old($date_debut, $date_fin, $username, $libelle = '')
 {
     global $connexion;
 
@@ -318,125 +387,182 @@ function getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libel
     ];
 }
 
-function getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libelle = '', $page = 1, $limit = 20)
+function getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libelle = '')
 {
     global $connexion;
 
-    // Sécuriser les entrées
-    $date_debut = !empty($date_debut) ? mysqli_real_escape_string($connexion, $date_debut) : '2025-01-01';
-    $date_fin = !empty($date_fin) ? mysqli_real_escape_string($connexion, $date_fin) : date('Y-m-d');
-    $username = !empty($username) ? mysqli_real_escape_string($connexion, $username) : '';
+    $date_debut = !empty($date_debut)
+        ? mysqli_real_escape_string($connexion, $date_debut)
+        : '2025-01-01';
+
+    $date_fin = !empty($date_fin)
+        ? mysqli_real_escape_string($connexion, $date_fin)
+        : date('Y-m-d');
+
+    $username = !empty($username)
+        ? mysqli_real_escape_string($connexion, $username)
+        : '';
+
     $libelleFilter = $libelle;
-    $libelle = !empty($libelle) ? '%' . mysqli_real_escape_string($connexion, $libelle) . '%' : '';
 
-    // Calcul de l'offset
-    $page = max(1, (int) $page);
-    $limit = max(1, (int) $limit);
-    $offset = ($page - 1) * $limit;
+    $libelle = !empty($libelle)
+        ? '%' . mysqli_real_escape_string($connexion, $libelle) . '%'
+        : '';
 
-    // Construire la requête SQL principale
-    $sql = "SELECT ce.num_etu, ce.nom, ce.prenoms, pc.id_paie, pc.dateTime_paie, pc.montant, pc.an, 
-                   pc.id_val, pc.quittance, pc.username_user, pc.libelle 
-            FROM codif_etudiant ce 
-            JOIN codif_affectation a ON ce.id_etu = a.id_etu 
-            JOIN codif_validation vl ON a.id_aff = vl.id_aff 
-            JOIN codif_paiement pc ON pc.id_val = vl.id_val 
-            WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+    $baseQuery = "
+    (
+        SELECT
+            ce.num_etu,
+            ce.nom,
+            ce.prenoms,
+            pc.id_paie,
+            pc.dateTime_paie,
+            pc.montant,
+            pc.an,
+            pc.id_val,
+            pc.quittance,
+            pc.username_user,
+            pc.libelle
+        FROM codif_etudiant ce
+        INNER JOIN codif_affectation a
+            ON ce.id_etu = a.id_etu
+        INNER JOIN codif_validation vl
+            ON a.id_aff = vl.id_aff
+        INNER JOIN codif_paiement pc
+            ON pc.id_val = vl.id_val
+
+        UNION ALL
+
+        SELECT
+            ce.num_etu,
+            ce.nom,
+            ce.prenoms,
+            pc.id_paie,
+            pc.dateTime_paie,
+            pc.montant,
+            pc.an,
+            pc.id_val,
+            pc.quittance,
+            pc.username_user,
+            pc.libelle
+        FROM codif_etudiant ce
+        INNER JOIN codif_paiement pc
+            ON pc.id_etu = ce.id_etu
+        WHERE pc.id_val IS NULL
+           OR pc.id_val = 0
+    ) p
+    ";
+
+    // =====================
+    // LISTE DES PAIEMENTS
+    // =====================
+
+    $sql = "
+    SELECT *
+    FROM $baseQuery
+    WHERE dateTime_paie >= '$date_debut'
+      AND dateTime_paie <= '$date_fin'
+    ";
 
     if (!empty($username)) {
-        $sql .= " AND pc.username_user = '$username'";
+        $sql .= " AND username_user = '$username'";
     }
 
     if (!empty($libelle)) {
         if ($libelleFilter === 'LOYER') {
-            $sql .= " AND pc.libelle != 'CAUTION'";
+            $sql .= " AND libelle <> 'CAUTION'";
         } else {
-            $sql .= " AND pc.libelle LIKE '$libelle'";
+            $sql .= " AND libelle LIKE '$libelle'";
         }
     }
 
-    $sql .= ' ORDER BY pc.dateTime_paie DESC, pc.quittance DESC, ce.nom ASC';
-    $sql .= " LIMIT $limit OFFSET $offset";
+    $sql .= "
+    ORDER BY
+        dateTime_paie DESC,
+        quittance DESC,
+        nom ASC
+    ";
 
     $result = $connexion->query($sql);
+
     $data = [];
+
     while ($row = $result->fetch_assoc()) {
         $data[] = $row;
     }
 
-    // Calcul du montant total
+    // =====================
+    // TOTAL MONTANT
+    // =====================
+
     $totalMontant = 0;
 
     if (empty($libelleFilter)) {
-        $sqlTotal = "SELECT SUM(pc.montant) AS montantTotal 
-                     FROM codif_paiement pc
-                     JOIN codif_validation vl ON pc.id_val = vl.id_val
-                     WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+
+        $sqlTotal = "
+        SELECT SUM(montant) AS montantTotal
+        FROM $baseQuery
+        WHERE dateTime_paie >= '$date_debut'
+          AND dateTime_paie <= '$date_fin'
+        ";
+
         if (!empty($username)) {
-            $sqlTotal .= " AND pc.username_user = '$username'";
+            $sqlTotal .= " AND username_user = '$username'";
         }
+
     } elseif ($libelleFilter === 'CAUTION') {
-        $sqlTotal = "SELECT COUNT(pc.montant) AS countPayments 
-                     FROM codif_paiement pc
-                     JOIN codif_validation vl ON pc.id_val = vl.id_val
-                     WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+
+        $sqlTotal = "
+        SELECT COUNT(*) AS countPayments
+        FROM $baseQuery
+        WHERE dateTime_paie >= '$date_debut'
+          AND dateTime_paie <= '$date_fin'
+        ";
+
         if (!empty($username)) {
-            $sqlTotal .= " AND pc.username_user = '$username'";
+            $sqlTotal .= " AND username_user = '$username'";
         }
-        $sqlTotal .= " AND pc.libelle LIKE '%CAUTION%'";
+
+        $sqlTotal .= " AND libelle LIKE '%CAUTION%'";
+
     } elseif ($libelleFilter === 'LOYER') {
-        $sqlTotal = "SELECT SUM(
-                        CASE 
-                        WHEN pc.libelle LIKE '%CAUTION%' 
-                        THEN pc.montant - 5000 
-                        ELSE pc.montant 
-                        END
-                     ) AS montantTotal
-                     FROM codif_paiement pc
-                     JOIN codif_validation vl ON pc.id_val = vl.id_val
-                     WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+
+        $sqlTotal = "
+        SELECT
+            SUM(
+                CASE
+                    WHEN libelle LIKE '%CAUTION%'
+                    THEN montant - 5000
+                    ELSE montant
+                END
+            ) AS montantTotal
+        FROM $baseQuery
+        WHERE dateTime_paie >= '$date_debut'
+          AND dateTime_paie <= '$date_fin'
+        ";
+
         if (!empty($username)) {
-            $sqlTotal .= " AND pc.username_user = '$username'";
+            $sqlTotal .= " AND username_user = '$username'";
         }
-        $sqlTotal .= " AND pc.libelle NOT LIKE 'CAUTION'";
+
+        $sqlTotal .= " AND libelle <> 'CAUTION'";
     }
 
     $resultTotal = $connexion->query($sqlTotal);
+
     if ($rowTotal = $resultTotal->fetch_assoc()) {
         $totalMontant = isset($rowTotal['montantTotal'])
             ? $rowTotal['montantTotal']
-            : (isset($rowTotal['countPayments']) ? $rowTotal['countPayments'] * 5000 : 0);
+            : (
+                isset($rowTotal['countPayments'])
+                    ? $rowTotal['countPayments'] * 5000
+                    : 0
+            );
     }
-
-    // Calcul du nombre total de lignes pour pagination
-    $sqlCount = "SELECT COUNT(*) AS totalRows 
-                 FROM codif_paiement pc
-                 JOIN codif_validation vl ON pc.id_val = vl.id_val
-                 WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
-
-    if (!empty($username)) {
-        $sqlCount .= " AND pc.username_user = '$username'";
-    }
-
-    if (!empty($libelle)) {
-        if ($libelleFilter === 'LOYER') {
-            $sqlCount .= " AND pc.libelle != 'CAUTION'";
-        } else {
-            $sqlCount .= " AND pc.libelle LIKE '$libelle'";
-        }
-    }
-
-    $resultCount = $connexion->query($sqlCount);
-    $totalRows = $resultCount->fetch_assoc()['totalRows'];
-    $totalPages = ceil($totalRows / $limit);
 
     return [
         'data' => $data,
-        'totalMontant' => $totalMontant,
-        'page' => $page,
-        'limit' => $limit,
-        'totalRows' => $totalRows,
-        'totalPages' => $totalPages
+        'totalMontant' => $totalMontant
     ];
 }
 
@@ -493,7 +619,7 @@ function verifierDemarrage($niveauEtudiant, $sexe)
     if ($result['total'] == 0) {
 ?>
 <script langage='javascript'>
-alert('La codification n’est pas encore ouverte pour votre niveau de formation!')
+alert('La codification n’est pas encore ouverte pour votre formation!')
 window.history.back();
 </script>
 <?php
@@ -537,49 +663,6 @@ function modifierPaiement($connexion, $id_paie, $new_montant, $new_libelle, $mod
         return $resultUpdate ? 'Modification enregistrée avec succès.' : 'Erreur lors de la mise à jour.';
     } else {
         return 'Erreur : Paiement introuvable.';
-    }
-}
-
-function supprimerPaiement($connexion, $id_paie, $deleted_by)
-{
-    // Sécurisation
-    $id_paie = mysqli_real_escape_string($connexion, $id_paie);
-    $deleted_by = mysqli_real_escape_string($connexion, $deleted_by);
-
-    // 1️ Récupérer le paiement avant suppression
-    $sqlSelect = "SELECT * FROM codif_paiement WHERE id_paie = $id_paie";
-    $result = mysqli_query($connexion, $sqlSelect);
-
-    if ($row = mysqli_fetch_assoc($result)) {
-        // Échapper les données
-        $id_val = mysqli_real_escape_string($connexion, $row['id_val']);
-        $montant = mysqli_real_escape_string($connexion, $row['montant']);
-        $libelle = mysqli_real_escape_string($connexion, $row['libelle']);
-        $username_user = mysqli_real_escape_string($connexion, $row['username_user']);
-        $quittance = mysqli_real_escape_string($connexion, $row['quittance']);
-        $an = mysqli_real_escape_string($connexion, $row['an']);
-        $num_ordre_user = mysqli_real_escape_string($connexion, $row['num_ordre_user']);
-        $dateTime_paie = mysqli_real_escape_string($connexion, $row['dateTime_paie']);
-
-        // 2️ Archiver le paiement
-        $sqlArchive = "INSERT INTO codif_archiv_acp_suppr
-            (id_paie, id_val, montant, libelle, username_user, quittance, an, num_ordre_user, dateTime_paie, deleted_at, deleted_by)
-            VALUES 
-            ($id_paie, '$id_val', '$montant', '$libelle', '$username_user', '$quittance', '$an', '$num_ordre_user', '$dateTime_paie', NOW(), '$deleted_by')";
-
-        if (!mysqli_query($connexion, $sqlArchive)) {
-            return 'Erreur lors de l’archivage du paiement.';
-        }
-
-        // 3️ Supprimer le paiement
-        $sqlDelete = "DELETE FROM codif_paiement WHERE id_paie = $id_paie";
-        if (mysqli_query($connexion, $sqlDelete)) {
-            return 'Paiement supprimé avec succès.';
-        } else {
-            return 'Erreur lors de la suppression du paiement.';
-        }
-    } else {
-        return 'Paiement introuvable.';
     }
 }
 
@@ -673,7 +756,6 @@ function getTitulaireByPavillon_nonLoger($pavillon, $connexion)
             e.id_etu AS etudiant_id,
             e.num_etu AS num_etu,
 \t\t\te.telephone AS telephone,
-            e.niveauFormation,
             CONCAT(e.nom, ' ', e.prenoms) AS titulaire_nom
         FROM 
             codif_lit l
@@ -876,106 +958,6 @@ ORDER BY
             'date_log' => $row['date_log']
         ];
         // }
-    }
-
-    $stmt->close();
-    return $data;
-}
-
-function getPaymentDetailsByDepartement($departementDonne, $connexion)
-{
-    $sql = "
-        SELECT 
-            e.departement,
-            e.id_etu AS etudiant_id,
-            e.num_etu AS num_etu,
-            e.nom AS etudiant_nom,
-            e.prenoms AS etudiant_prenoms,
-            e.niveauFormation,
-            e.telephone,
-            l.indiv AS type_chambre,
-            l.chambre,
-            l.lit,
-            lg.id_log AS log_id,
-            lg.id_val AS validation_id,
-            lg.id_paie AS paiement_id,
-            lg.username_user AS utilisateur,
-            a.rappel_envoye,
-            lg.datetime_loger AS date_log,
-            COALESCE((
-                SELECT SUM(p.montant)
-                FROM codif_paiement p
-                WHERE p.id_val = v.id_val
-            ), 0) AS montant_paye_total
-        FROM 
-            codif_etudiant e
-        JOIN 
-            codif_affectation a ON a.id_etu = e.id_etu
-        JOIN 
-            codif_validation v ON a.id_aff = v.id_aff
-        JOIN 
-            codif_lit l ON a.id_lit = l.id_lit
-        LEFT JOIN 
-            codif_loger lg ON lg.id_etu = e.id_etu  
-        WHERE 
-            e.departement = ? 
-            AND (a.statut = 'Attributaire' OR a.id_aff IS NULL)
-        GROUP BY 
-            e.id_etu, l.chambre, l.lit, lg.id_log
-        ORDER BY 
-            e.nom, e.prenoms
-    ";
-
-    $stmt = $connexion->prepare($sql);
-    $stmt->bind_param('s', $departementDonne);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    $data = [];
-
-    while ($row = $result->fetch_assoc()) {
-        $etudiantId = $row['etudiant_id'];
-        $etudiant_num = $row['num_etu'];
-
-        // Obtenir le nombre de mois pour l’étudiant
-        $nombreMois = getNbreMois2($etudiant_num);
-
-        // Déterminer le prix du lit selon le type de chambre
-        $prixLit = getMontant($row['type_chambre']);
-
-        // Calcul du montant facturé (+5000 si caution)
-        if (verifCaution($etudiantId)) {
-            $montantFacture = ($nombreMois * $prixLit) + 5000;
-        } else {
-            $montantFacture = $nombreMois * $prixLit;
-        }
-
-        $montantPaye = $row['montant_paye_total'] ?? 0;
-        $resteAPayer = $montantFacture - $montantPaye;
-
-        //  On garde uniquement ceux qui doivent encore de l’argent
-        if ($resteAPayer > 0) {
-            $data[] = [
-                'departement' => $row['departement'],
-                'etudiant_id' => $row['etudiant_id'],
-                'num_etu' => $row['num_etu'],
-                'etudiant_nom' => $row['etudiant_nom'],
-                'niveauFormation' => $row['niveauFormation'],
-                'telephone' => $row['telephone'],
-                'etudiant_prenoms' => $row['etudiant_prenoms'],
-                'chambre' => $row['chambre'],
-                'lit' => $row['lit'],
-                'montant_facture' => $montantFacture,
-                'montant_paye' => $montantPaye,
-                'reste_a_payer' => $resteAPayer,
-                'log_id' => $row['log_id'],
-                'validation_id' => $row['validation_id'],
-                'paiement_id' => $row['paiement_id'],
-                'utilisateur' => $row['utilisateur'],
-                'rappel_envoye' => $row['rappel_envoye'],
-                'date_log' => $row['date_log']
-            ];
-        }
     }
 
     $stmt->close();
@@ -1308,18 +1290,66 @@ alert('Connexion reussie: veuillez a present changer votre mot de passe (par def
 // Fonction pour Envoi Msg aux etudiants ayant eu un compte dans le passé et n'etant pas dans la base actuelle
 function ancien_eligible($login)
 {
-    global $connexion;
+    global $connexion_user;
     $rr = "select username_user from codif_user where username_user='$login' and profil_user='user' and username_user not in (select num_etu from codif_etudiant)";
-    $ee = mysqli_query($connexion, $rr);
+    $ee = mysqli_query($connexion_user, $rr);
     $ss = mysqli_num_rows($ee);
 
     if ($ss) {
 ?>
 <script langage='javascript'>
-alert('Desole, vous netes plus eligible!');
+alert('Acces non autorisé pour lannee academique choisie!');
 </script>
 <?php
         echo '<meta http-equiv="refresh" content="0;URL=https://campuscoud.com/">';
+        exit();
+    }
+}
+
+function ancien_eligible_2($login)
+{
+    global $connexion_user;  // base codif_user
+    global $connexion;  // base codif_etudiant
+
+    /* ========================
+       1. Vérifier dans codif_user
+    ========================= */
+    $sqlUser = "SELECT username_user 
+                FROM codif_user 
+                WHERE username_user = ? 
+                AND profil_user = 'user'";
+
+    $stmtUser = mysqli_prepare($connexion_user, $sqlUser);
+    mysqli_stmt_bind_param($stmtUser, 's', $login);
+    mysqli_stmt_execute($stmtUser);
+    $resUser = mysqli_stmt_get_result($stmtUser);
+
+    if (!$resUser || mysqli_num_rows($resUser) == 0) {
+        return;  // rien à faire
+    }
+
+    /* ========================
+       2. Vérifier dans codif_etudiant
+    ========================= */
+    $sqlEtu = 'SELECT num_etu 
+               FROM codif_etudiant 
+               WHERE num_etu = ?';
+
+    $stmtEtu = mysqli_prepare($connexion, $sqlEtu);
+    mysqli_stmt_bind_param($stmtEtu, 's', $login);
+    mysqli_stmt_execute($stmtEtu);
+    $resEtu = mysqli_stmt_get_result($stmtEtu);
+
+    /* ========================
+       3. ÉQUIVALENT DE NOT IN
+    ========================= */
+    if (!$resEtu || mysqli_num_rows($resEtu) == 0) {
+?>
+<script>
+alert('Chèr(e) étudiant(e), vous n’avez pas codifié pour cette année choisie.');
+</script>
+<?php
+        echo '<meta http-equiv="refresh" content="0;URL=accueil">';
         exit();
     }
 }
@@ -1416,7 +1446,7 @@ function getAllRegisseurs($connexion)
     return $regisseurs;  // Retourne un tableau des regisseurs
 }
 
-function getPaiementWithDateInterval_cs($date_debut, $date_fin, $username)
+/* function getPaiementWithDateInterval_cs($date_debut, $date_fin, $username)
 {
     global $connexion;
 
@@ -1459,6 +1489,81 @@ function getPaiementWithDateInterval_cs($date_debut, $date_fin, $username)
 
     // Retourner les données
     return $data;
+} */
+
+function getPaiementWithDateInterval_cs($date_debut, $date_fin, $username)
+{
+    global $connexion;
+
+    $sql = "
+    SELECT *
+    FROM (
+        SELECT
+            ce.num_etu,
+            ce.nom,
+            ce.prenoms,
+            pc.dateTime_paie,
+            pc.montant,
+            pc.quittance,
+            pc.username_user,
+            pc.libelle,
+            pc.num_ordre_user,
+            pc.id_paie
+        FROM codif_etudiant ce
+        INNER JOIN codif_affectation a
+            ON ce.id_etu = a.id_etu
+        INNER JOIN codif_validation vl
+            ON a.id_aff = vl.id_aff
+        INNER JOIN codif_paiement pc
+            ON pc.id_val = vl.id_val
+
+        UNION ALL
+
+        SELECT
+            ce.num_etu,
+            ce.nom,
+            ce.prenoms,
+            pc.dateTime_paie,
+            pc.montant,
+            pc.quittance,
+            pc.username_user,
+            pc.libelle,
+            pc.num_ordre_user,
+            pc.id_paie
+        FROM codif_etudiant ce
+        INNER JOIN codif_paiement pc
+            ON pc.id_etu = ce.id_etu
+        WHERE pc.id_val IS NULL OR pc.id_val = 0
+    ) t
+    WHERE t.dateTime_paie >= ?
+      AND t.dateTime_paie <= ?
+    ";
+
+    $params = [$date_debut, $date_fin];
+    $types = 'ss';
+
+    if (!empty($username)) {
+        $sql .= " AND t.username_user = ?";
+        $params[] = $username;
+        $types .= 's';
+    }
+
+    $sql .= " ORDER BY t.username_user, t.num_ordre_user";
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param($types, ...$params);
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+
+    $stmt->close();
+
+    return $data;
 }
 
 // Fonction Envoi SMS Apres Creation Compte///////////////////////////////////
@@ -1468,15 +1573,57 @@ function sms_compte_created($numero_destinataire, $login, $default_mdp)
     $nom = info($login)['3'];
     $prenoms = info($login)['4'];
 
-    $user = 'admin';
-    $mot_de_passe = 'Pw@';
+    $user = 'coudsn';
+    $mot_de_passe = 'Mdp@24#';
 
     // NOUVEAU CODE
     $message = 'Bonjour ' . $prenoms . '. Voici vos infos de connexion sur https://campuscoud.com. Utilisateur: NumeroCarte. Mot de passe: ' . $default_mdp . '.';
     $curl = curl_init();
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => 'http://167.240.133.897/SW',
+        CURLOPT_URL => 'http://183.220.113.231/wsSendSMS',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => '',
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 0,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_POSTFIELDS => '{
+    "ws_key": "' . $user . '",
+    "ws_secret": "' . $mot_de_passe . '",
+    "message": "' . $message . '",
+    "to": "' . $numero_destinataire . '"
+}',
+        CURLOPT_HTTPHEADER => array(
+            'Content-Type: application/json'
+        ),
+    ));
+    $response = curl_exec($curl);
+    curl_close($curl);
+
+    /*if ($err) {
+      echo "cURL Error #:" . $err;
+    } else {
+      echo $response;
+    }*/
+    /*if($err)
+        echo "Erreur: le SMS n'a pas été envoyé !";
+    else
+        echo "Votre mot de passe vous a été envoyé par SMS au ".$numero_destinataire;*/
+}
+
+function sms_compte_created_2($numero_destinataire, $login, $prenoms, $default_mdp)
+{
+    $user = 'coudsn';
+    $mot_de_passe = 'Mdp@24#';
+
+    // NOUVEAU CODE
+    $message = 'Bonjour ' . $prenoms . '. Voici vos infos de connexion sur https://campuscoud.com. Utilisateur: NumeroCarte. Mot de passe: ' . $default_mdp . '.';
+    $curl = curl_init();
+
+    curl_setopt_array($curl, array(
+        CURLOPT_URL => 'http://183.220.113.231/wsSendSMS',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -1513,8 +1660,8 @@ function sms_compte_created($numero_destinataire, $login, $default_mdp)
 // ///////////////sms Attributaires
 function sms_attributaires($num_etu)
 {
-    $user = 'admin';
-    $mot_de_passe = 'Pw@';
+    $user = 'coudsn';
+    $mot_de_passe = 'Mdp@24#';
 
     $numero_destinataire = getTelephoneEtudiant($num_etu);  // $numero_destinataire="777089812";
     $prenoms = info($num_etu)['4'];
@@ -1524,7 +1671,7 @@ function sms_attributaires($num_etu)
     $curl = curl_init();
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => 'http://167.240.133.897/SW',
+        CURLOPT_URL => 'http://183.220.113.231/wsSendSMS',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -1551,55 +1698,38 @@ function sms_attributaires($num_etu)
 
 function getDonneesEtudiant($numero_carte)
 {
-    $result = [
-        'faculte' => null,
-        'departement' => null,
-        'nom' => null,
-        'prenom' => null,
-        'date_naissance' => null,
-        'lieu_naissance' => null,
-        'sexe' => null,
-        'num_identite' => null,
-        'telephone' => null,
-        'etat_inscription' => null,
-        'payant' => null,
-        'annee' => null
-    ];
+    $telephone0 = '777089812';
+    $telephone = '';
 
     try {
         $json_url = "https://coud@ucad.sn:dhHNg4VmpfZYR6Q@coudservice.ucad.sn/api/etudiant/$numero_carte";
-        $json = @file_get_contents($json_url);
-
-        // Si l'API ne répond pas ou retourne une erreur
-        if ($json === false) {
-            return null;
-        }
-
+        $json = file_get_contents($json_url);
         $data = json_decode($json);
 
-        // Vérifie si $data contient bien un index 0 et que c’est un objet
-        if (isset($data[0]) && is_object($data[0])) {
-            $result['faculte'] = $data[0]->faculte ?? null;
-            $result['departement'] = $data[0]->departement ?? null;
-            $result['nom'] = $data[0]->nom ?? null;
-            $result['prenom'] = $data[0]->prenom ?? null;
-            $result['date_naissance'] = $data[0]->date_naissance ?? null;
-            $result['lieu_naissance'] = $data[0]->lieu_naissance ?? null;
-            $result['sexe'] = $data[0]->sexe ?? null;
-            $result['num_identite'] = $data[0]->num_identite ?? null;
-            $result['telephone'] = $data[0]->telephone ?? null;
-            $result['etat_inscription'] = $data[0]->etat_inscription ?? null;
-            $result['payant'] = $data[0]->payant ?? null;
-            $result['annee'] = $data[0]->annee ?? null;
-        } else {
-            // Si l'API ne renvoie rien ou pas de résultat
-            return null;
-        }
+        $faculte = $data[0]->faculte;
+        $departement = $data[0]->departement;
+        // $niveauFormation= $data[0]->niveauFormation;  //NON DISPO
+        $nom = $data[0]->nom;
+        $prenom = $data[0]->prenom;
+        $date_naissance = $data[0]->date_naissance;
+        $lieu_naissance = $data[0]->lieu_naissance;
+        $sexe = $data[0]->sexe;
+        // $nationalite= $data[0]->nationalite;           //NON DISPO
+        $num_identite = $data[0]->num_identite;
+        // $typeEtudiant= $data[0]->typeEtudiant;        // NON DISPO
+        // $moyenne= $data[0]->moyenne;                 //NON DISPO
+        // $sessionId= $data[0]->sessionId;           //NON DISPO
+        // $niveau= $data[0]->niveau;                 //NON DISPO
+        // $email_perso= $data[0]->email_perso;       //  NON DISPO
+        // $email_ucad= $data[0]->email_ucad;
+        $telephone = $data[0]->telephone;
+        $etat_inscription = $data[0]->etat_inscription;
+        $annee = $data[0]->annee;
     } catch (Exception $e) {
-        return null;
+        // echo 'Caught exception: ',  $e->getMessage(), "\n";
     }
 
-    return $result;
+    return array($faculte, $departement, $nom, $prenom, $date_naissance, $lieu_naissance, $sexe, $num_identite, $telephone, $etat_inscription, $annee);
 }
 
 function getDonneesEtudiant_2($numero_carte)
@@ -1615,6 +1745,8 @@ function getDonneesEtudiant_2($numero_carte)
         'num_identite' => null,
         'telephone' => null,
         'etat_inscription' => null,
+        'niveau_formation' => null,
+        'email_ucad' => null,
         'payant' => null,
         'annee' => null
     ];
@@ -1639,10 +1771,15 @@ function getDonneesEtudiant_2($numero_carte)
             $result['date_naissance'] = $data[0]->date_naissance ?? null;
             $result['lieu_naissance'] = $data[0]->lieu_naissance ?? null;
             $result['sexe'] = $data[0]->sexe ?? null;
+            if ($result['sexe'] == 'M') {
+                $result['sexe'] = 'G';
+            }
             $result['num_identite'] = $data[0]->num_identite ?? null;
             $result['telephone'] = $data[0]->telephone ?? null;
             $result['etat_inscription'] = $data[0]->etat_inscription ?? null;
             $result['payant'] = $data[0]->payant ?? null;
+            $result['niveau_formation'] = $data[0]->niveau_formation ?? null;
+            $result['email_ucad'] = $data[0]->niveau_formation ?? null;
             $result['annee'] = $data[0]->annee ?? null;
             $result['annee'] = str_replace('-', '_', $result['annee']);
         } else {
@@ -1659,8 +1796,8 @@ function getDonneesEtudiant_2($numero_carte)
 // ///////////////sms Suppleants
 function sms_suppleants($num_etu)
 {
-    $user = 'admin';
-    $mot_de_passe = 'Pw@';
+    $user = 'coudsn';
+    $mot_de_passe = 'Mdp@24#';
 
     $numero_destinataire = getTelephoneEtudiant($num_etu);  // $numero_destinataire="777089812";
     $prenoms = info($num_etu)['4'];
@@ -1670,7 +1807,7 @@ function sms_suppleants($num_etu)
     $curl = curl_init();
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => 'http://167.240.133.897/SW',
+        CURLOPT_URL => 'http://183.220.113.231/wsSendSMS',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -1699,15 +1836,15 @@ function sms_suppleants($num_etu)
 
 function sms_reclamation($numtel, $msg)
 {
-    $user = 'admin';
-    $mot_de_passe = 'Pw@';
+    $user = 'coudsn';
+    $mot_de_passe = 'Mdp@24#';
 
     // NOUVEAU CODE
     $message = $msg;
     $curl = curl_init();
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => 'http://167.240.133.897/SW',
+        CURLOPT_URL => 'http://183.220.113.231/wsSendSMS',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -1748,8 +1885,8 @@ function sms_paiement_etudiant($montant, $num_etu, $num_recu)
     $telephone = getTelephoneEtudiant($num_etu);
     $prenoms = info($num_etu)['4'];  // echo $telephone." ".$prenoms; exit(); die;
 
-    $user = 'admin';
-    $mot_de_passe = 'Pw@';
+    $user = 'coudsn';
+    $mot_de_passe = 'Mdp@24#';
     $date = date('Y-m-d');
     $date = changedateusfr($date);
     $heure = date('H:i:s');
@@ -1758,7 +1895,7 @@ function sms_paiement_etudiant($montant, $num_etu, $num_recu)
     $curl = curl_init();
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => 'http://167.240.133.897/SW',
+        CURLOPT_URL => 'http://183.220.113.231/wsSendSMS',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -1801,15 +1938,15 @@ function sms_recouvrement($id_etu, $pavillon)
     $numero_destinataire = info3($id_etu)['17'];
     $num_etu = info3($id_etu)['2'];
 
-    $user = 'admin';
-    $mot_de_passe = 'Pw@';
+    $user = 'coudsn';
+    $mot_de_passe = 'Mdp@24#';
 
     // NOUVEAU CODE
     $message = 'Bonjour ' . $prenoms . ', resident du pavillon ' . $pavillon . ", vous etes pries de proceder au paiement de votre loyer pour eviter tout contentieux avec l'administration.";
     $curl = curl_init();
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => 'http://167.240.133.897/SW',
+        CURLOPT_URL => 'http://183.220.113.231/wsSendSMS',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -1854,15 +1991,15 @@ function sms_nv_attributaire($num_etu)
     $prenoms = info($num_etu)['4'];
     $numero_destinataire = info($num_etu)['16'];
 
-    $user = 'admin';
-    $mot_de_passe = 'Pw@';
+    $user = 'coudsn';
+    $mot_de_passe = 'Mdp@24#';
 
     // NOUVEAU CODE
     $message = 'Bonjour ' . $prenoms . ", suite à la forclusion d'un(e) etudiant(e), vous etes devenu(e) attributaire d'un lit. Rendez-vous vite sur https://campuscoud.com.";
     $curl = curl_init();
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => 'http://167.240.133.897/SW',
+        CURLOPT_URL => 'http://183.220.113.231/wsSendSMS',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -1901,15 +2038,15 @@ function sms_nv_attributaire($num_etu)
 
 function sms_agents($telephone, $nom, $matricule)
 {
-    $user = 'admin';
-    $mot_de_passe = 'Pw@';
+    $user = 'coudsn';
+    $mot_de_passe = 'Mdp@24#';
 
     // NOUVEAU CODE
     $message = 'Bonjour ' . $nom . '. Voici vos informations de connexion à la plateforme https://campuscoud.com . Nom dutilisateur: ' . $matricule . ' , Mot de passe (par default): COUD';
     $curl = curl_init();
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => 'http://167.240.133.897/SW',
+        CURLOPT_URL => 'http://183.220.113.231/wsSendSMS',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -1941,15 +2078,15 @@ function sms_agents($telephone, $nom, $matricule)
  * function sms_nv_attributaire($telephone,$nom)
  * {
  *
- * $user = "admin";
- * $mot_de_passe = "Pw@";
+ * $user = "coudsn";
+ * $mot_de_passe = "Mdp@24#";
  *
  * //NOUVEAU CODE
  * $message = "Bonjour ".$nom.". Suite à la forclusion d'etudiants, vous etes devenu.e. Attributaire. Rendez-vous vite sur la plateforme https://campuscoud.com et suivez la rubrique Action à faire.";
  * $curl = curl_init();
  *
  * curl_setopt_array($curl, array(
- *   CURLOPT_URL => 'http://167.240.133.897/SW',
+ *   CURLOPT_URL => 'http://183.220.113.231/wsSendSMS',
  *   CURLOPT_RETURNTRANSFER => true,
  *   CURLOPT_ENCODING => '',
  *   CURLOPT_MAXREDIRS => 10,
@@ -1985,15 +2122,67 @@ function sms_nv_suppleant($num_etu)  // ok
     $prenoms = info($num_etu)['4'];
     $numero_destinataire = info($num_etu)['16'];
 
-    $user = 'admin';
-    $mot_de_passe = 'Pw@';
+    $user = 'coudsn';
+    $mot_de_passe = 'Mdp@24#';
 
     // NOUVEAU CODE
     $message = 'Bonjour ' . $prenoms . ", suite à la forclusion d'un(e) etudiant(e), vous etes devenu(e) attributaire d'un lit. Rendez-vous vite sur https://campuscoud.com.";
     $curl = curl_init();
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => 'http://167.240.133.897/SW',
+        CURLOPT_URL => 'http://183.220.113.231/wsSendSMS',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => '',
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 0,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_POSTFIELDS => '{
+    "ws_key": "' . $user . '",
+    "ws_secret": "' . $mot_de_passe . '",
+    "message": "' . $message . '",
+    "to": "' . $numero_destinataire . '"
+}',
+        CURLOPT_HTTPHEADER => array(
+            'Content-Type: application/json'
+        ),
+    ));
+    $response = curl_exec($curl);
+    curl_close($curl);
+
+    /*if ($err) {
+      echo "cURL Error #:" . $err;
+    } else {
+      echo $response;
+    }*/
+    /*if($err)
+        echo "Erreur: le SMS n'a pas été envoyé !";
+    else
+        echo "Votre mot de passe vous a été envoyé par SMS au ".$numero_destinataire;*/
+
+    // Stockage
+    enreg_sms($num_etu, $numero_destinataire, 'Nv_suppleant');
+}
+
+// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Permet denvoyer un SMS aux suppleants relogés apres les retours de lits
+function sms_retours_suppleant($num_etu)  // ok
+{  // echo "id".$num_etu;
+
+    $prenoms = info($num_etu)['4'];
+    $numero_destinataire = info($num_etu)['16'];
+
+    $user = 'coudsn';
+    $mot_de_passe = 'Mdp@24#';
+
+    // NOUVEAU CODE
+    $message = 'Bonjour ' . $prenoms . ', suite à la forclusion de votre Titulaire, vous avez desormais la possibilité de loger. Rendez-vous vite sur https://campuscoud.com et suivez la rubrique Action à faire.';
+    $curl = curl_init();
+
+    curl_setopt_array($curl, array(
+        CURLOPT_URL => 'http://183.220.113.231/wsSendSMS',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -2052,7 +2241,22 @@ getAttributByPagination();
 function getAllEtablissement()
 {
     global $connexion;
-    $requeteListeEtablissement = 'SELECT DISTINCT (etablissement) FROM `codif_etudiant`';
+    $requeteListeEtablissement = 'SELECT DISTINCT (etablissement) FROM `codif_etudiant` order by etablissement asc';
+    $resultatRequeteEtablissement = mysqli_query($connexion, $requeteListeEtablissement);
+    return $resultatRequeteEtablissement;
+}
+
+function getAllEtablissement_dl()
+{
+    global $connexion;
+
+    $requeteListeEtablissement = "
+        SELECT DISTINCT faculte AS etablissement 
+        FROM codif_delai
+        WHERE faculte LIKE '%SOCIAL%'
+        ORDER BY etablissement ASC
+    ";
+
     $resultatRequeteEtablissement = mysqli_query($connexion, $requeteListeEtablissement);
     return $resultatRequeteEtablissement;
 }
@@ -2274,10 +2478,36 @@ function getOneByValidate($num_etu)
 function getOneByValidatePaiement($num_etu, $pavillon)
 {
     global $connexion;
-    $requeteLitClasseValide = "SELECT ce.*, cl.*, vl.*, pc.*, 
-\tCASE WHEN l.id_paie IS NOT NULL THEN 'Migré' ELSE 'Non migré' END AS etat_id_paie FROM codif_etudiant ce 
-\tJOIN codif_affectation a ON ce.id_etu = a.id_etu JOIN codif_validation vl ON a.id_aff = vl.id_aff JOIN codif_lit cl ON a.id_lit = cl.id_lit LEFT JOIN 
-\tcodif_paiement pc ON vl.id_val = pc.id_val LEFT JOIN codif_loger l ON pc.id_paie = l.id_paie WHERE ce.num_etu = '$num_etu' && cl.pavillon ='$pavillon' order by pc.id_paie asc";
+    $requeteLitClasseValide = "
+SELECT 
+    ce.id_etu,
+    ce.num_etu,
+    ce.nom,
+    ce.prenoms,
+    ce.etablissement,
+    ce.niveauFormation,
+    cl.id_lit,
+    cl.pavillon,
+    cl.campus,
+    cl.lit,
+    vl.id_val,
+    vl.dateTime_val,
+    pc.id_paie,
+    pc.dateTime_paie,
+    CASE 
+        WHEN l.id_paie IS NOT NULL THEN 'Migré'
+        ELSE 'Non migré'
+    END AS etat_id_paie
+FROM codif_etudiant ce
+JOIN codif_affectation a ON ce.id_etu = a.id_etu
+JOIN codif_validation vl ON a.id_aff = vl.id_aff
+JOIN codif_lit cl ON a.id_lit = cl.id_lit
+LEFT JOIN codif_paiement pc ON vl.id_val = pc.id_val
+LEFT JOIN codif_loger l ON pc.id_paie = l.id_paie
+WHERE ce.num_etu = '$num_etu'
+AND cl.pavillon = '$pavillon'
+ORDER BY pc.id_paie ASC
+";
     $resultatRequeteLitClasseValide = mysqli_query($connexion, $requeteLitClasseValide);
     return $resultatRequeteLitClasseValide;
 }
@@ -2375,38 +2605,6 @@ function getLitByQuotas($classe, $sexe)
     }
 }
 
-function getLitByQuotas2($classe, $sexe)
-{
-    global $connexion, $limit, $count_datas;
-
-    // Préparer la chaîne LIKE
-    $classe_like = $classe . '%';  // commence par $classe
-
-    $sql = '
-        SELECT COUNT(*) AS total
-        FROM codif_quota 
-        JOIN codif_lit ON codif_quota.id_lit_q = codif_lit.id_lit
-        WHERE codif_quota.NiveauFormation LIKE ?
-          AND codif_lit.sexe = ?
-    ';
-
-    $stmt = $connexion->prepare($sql);
-
-    // ss = deux strings
-    $stmt->bind_param('ss', $classe_like, $sexe);
-    $stmt->execute();
-
-    $result = $stmt->get_result();
-
-    if ($result) {
-        $count_datas = $result->fetch_assoc();
-        $total_pagess = ceil($count_datas['total'] / $limit);
-        return $total_pagess;
-    } else {
-        return 1;
-    }
-}
-
 /*
  * Fonction pour enregistrer les donnees des codif_quota
  * ********************************************************************************
@@ -2441,7 +2639,7 @@ function enreg_sms($num_etu, $telephone, $type)
 function setValidation($buttonId, $user)
 {
     global $connexion, $requete;
-    $date = date('Y-n-j');
+    $date = date('Y-m-d H:i:s');
     $requeteInsertcodif_quota = "INSERT INTO `codif_validation` (`id_aff`, `username_user`, `dateTime_val`) VALUES ('$buttonId', '$user', '$date')";
     $requete = $connexion->prepare($requeteInsertcodif_quota);
     return $requete->execute();
@@ -2468,9 +2666,9 @@ function setPaiement($buttonId, $user, $montant, $libelle, $quittance, $an, $ord
  */
 function accronyme($user)
 {
-    global $connexion;
+    global $connexion_user;
     $rq = "SELECT var FROM codif_user WHERE `username_user`='$user'";
-    $ex = mysqli_query($connexion, $rq);
+    $ex = mysqli_query($connexion_user, $rq);
 
     $st = mysqli_fetch_assoc($ex);
     $var = $st['var'];
@@ -2517,7 +2715,7 @@ function setLoger($id_paie, $user, $id_etu)
     return $requete->execute();*/
 
     global $connexion, $requete;
-    $date = date('Y-n-j');
+    $date = date('Y-m-d H:i:s');
     $requeteInsertcodif_quota = "INSERT INTO `codif_loger` (`id_val`,`id_paie`, `dateTime_loger`, `username_user`, `id_etu`, `statut`) 
 \t                                                VALUES (NULL,'$id_paie', '$date', '$user', '$id_etu', 'Attributaire')";
     // echo $requeteInsertcodif_quota;exit();
@@ -2647,11 +2845,11 @@ function getDateLitByStudent($idLit)
  */
 function login($username, $password)
 {
-    global $connexion;
+    global $connexion_user;
     $users = "SELECT * FROM `codif_user` where `username_user`='$username' and `password_user` =  '" . SHA1($password) . "' and is_active=1";
     // $users = "SELECT * FROM `codif_user` where `username_user`='$username' and `password_user` =  '$password' ";
 
-    $info = $connexion->query($users);
+    $info = $connexion_user->query($users);
     return $info->fetch_assoc();
 }
 
@@ -2689,46 +2887,6 @@ function setFiltre_detail($filter, $sexe, $niveau)
         $resultatRequeteTotalLit = mysqli_query($connexion, $sqlFilter);
         return $resultatRequeteTotalLit;
     }
-}
-
-function setFiltre_detail2($filter, $sexe, $niveau)
-{
-    global $connexion;
-
-    // Préparer la valeur pour LIKE
-    $niveau_like = $niveau . '%';
-
-    $sql = "
-        SELECT 
-            codif_lit.*,
-            CASE 
-                WHEN codif_quota.id_lit_q IS NOT NULL 
-                     AND codif_affectation.id_lit IS NOT NULL 
-                    THEN 'Migré dans les deux'
-                WHEN codif_quota.id_lit_q IS NOT NULL 
-                    THEN 'Migré vers codif_quota uniquement'
-                WHEN codif_affectation.id_lit IS NOT NULL 
-                    THEN 'Migré vers codif_affectation uniquement'
-                ELSE 'Non migré'
-            END AS statut_migration
-        FROM codif_lit
-        LEFT JOIN codif_quota 
-            ON codif_lit.id_lit = codif_quota.id_lit_q
-        LEFT JOIN codif_affectation 
-            ON codif_lit.id_lit = codif_affectation.id_lit
-        WHERE codif_lit.pavillon = ?
-          AND codif_lit.sexe = ?
-          AND (codif_affectation.statut != 'Suppleant(e)' OR codif_affectation.statut IS NULL)
-          AND codif_quota.NiveauFormation LIKE ?
-    ";
-
-    $stmt = $connexion->prepare($sql);
-
-    // sss = 3 strings
-    $stmt->bind_param('sss', $filter, $sexe, $niveau_like);
-    $stmt->execute();
-
-    return $stmt->get_result();
 }
 
 /*
@@ -3131,20 +3289,19 @@ function getValidatePaiementLitByStudent($numEtudiant)
  * Ajouter dans la table codif_affectation lorsque l'etudiant choisi une lit
  * ********************************************************************************
  */
-
-/*
- * function addAffectation($lastValue, $idEtu)
- * {
- *     try {
- *         global $connexion;
- *         $requeteInsertAff = "INSERT INTO `codif_affectation` (`id_lit`, `id_etu`, `dateTime_aff`, `statut`) VALUES ($lastValue, $idEtu, NOW(), 'Attributaire')";
- *         $requeteEtu = $connexion->prepare($requeteInsertAff);
- *         return $requeteEtu->execute();
- *     } catch (Exception $e) {
- *     }
- * }
- */
 function addAffectation($lastValue, $idEtu)
+{
+    try {
+        global $connexion;
+        $requeteInsertAff = "INSERT INTO `codif_affectation` (`id_lit`, `id_etu`, `dateTime_aff`, `statut`) VALUES ($lastValue, $idEtu, NOW(), 'Attributaire')";
+        $requeteEtu = $connexion->prepare($requeteInsertAff);
+        return $requeteEtu->execute();
+    } catch (Exception $e) {
+        echo $e;
+    }
+}
+
+function addAffectation_clt($lastValue, $idEtu)
 {
     global $connexion;
 
@@ -3194,8 +3351,7 @@ function addPolitiqueConf($idEtu)
 function getQuotaClasse($classe, $sexe)
 {
     global $connexion;
-    $classe = $classe . '%';
-    $requeteQuotaClasse = "SELECT COUNT(*) FROM `codif_quota` JOIN codif_lit ON codif_lit.id_lit = codif_quota.id_lit_q WHERE `NiveauFormation` LIKE '$classe' AND codif_lit.sexe = '$sexe'";
+    $requeteQuotaClasse = "SELECT COUNT(*) FROM `codif_quota` JOIN codif_lit ON codif_lit.id_lit = codif_quota.id_lit_q WHERE `NiveauFormation` = '$classe' AND codif_lit.sexe = '$sexe'";
     $resultRequeteQuotaClasse = mysqli_query($connexion, $requeteQuotaClasse);
     return $resultRequeteQuotaClasse->fetch_assoc();
 }
@@ -3481,13 +3637,17 @@ function getStatutStudentByQuota($quota, $classe, $sexe)
     ce.niveauFormation,
     ce.etablissement,
     ranks.rang, 
-    CASE 
-        WHEN $quota=0 THEN 'Non Defini'
-\t\tWHEN cf.id_etu IS NOT NULL THEN 'Forclos(e)' 
-        WHEN ranks.rang <= $quota THEN 'Attributaire' 
-        WHEN ranks.rang <= $quota*2 THEN 'Suppleant(e)' 
-        ELSE 'Non Attributaire' 
-    END AS statut 
+    CASE
+    WHEN $quota = 0 THEN 'Non Defini'
+
+    WHEN cf.id_etu IS NOT NULL THEN 'Forclos(e)'
+
+    WHEN cl.statut IS NOT NULL THEN cl.statut
+
+    WHEN ranks.rang <= $quota THEN 'Attributaire'
+    WHEN ranks.rang <= ($quota * 2) THEN 'Suppleant(e)'
+    ELSE 'Non Attributaire'
+END AS statut
 FROM codif_etudiant ce
 LEFT JOIN (
     SELECT 
@@ -3499,6 +3659,8 @@ LEFT JOIN (
       AND id_etu NOT IN (SELECT id_etu FROM codif_forclusion)
 ) ranks ON ce.id_etu = ranks.id_etu
 LEFT JOIN codif_forclusion cf ON ce.id_etu = cf.id_etu
+LEFT JOIN codif_loger cl
+    ON ce.id_etu = cl.id_etu
 WHERE ce.niveauFormation = '$classe' 
   AND ce.sexe = '$sexe' 
 ORDER BY rang ASC;
@@ -3920,15 +4082,69 @@ Recuperer les paiments dans un intervalle de date données
 function getPaiementWithDateInterval($date_debut, $date_fin, $username)
 {
     global $connexion;
-    $sql = "SELECT ce.num_etu, ce.nom, ce.prenoms, pc.dateTime_paie, pc.montant, pc.quittance, pc.libelle FROM codif_etudiant ce JOIN codif_affectation a ON ce.id_etu = a.id_etu 
-\tJOIN codif_validation vl ON a.id_aff = vl.id_aff JOIN codif_paiement pc ON pc.id_val = vl.id_val 
-\tWHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin' and pc.username_user='$username'";
-    // $result = mysqli_query($connexion, $sql);
-    // return $result->fetch_array();
+
+    $sql = "
+    SELECT *
+    FROM (
+        SELECT
+            ce.num_etu,
+            ce.nom,
+            ce.prenoms,
+            pc.dateTime_paie,
+            pc.montant,
+            pc.quittance,
+            pc.libelle,
+            pc.id_paie
+        FROM codif_etudiant ce
+        INNER JOIN codif_affectation a
+            ON ce.id_etu = a.id_etu
+        INNER JOIN codif_validation vl
+            ON a.id_aff = vl.id_aff
+        INNER JOIN codif_paiement pc
+            ON pc.id_val = vl.id_val
+        WHERE pc.username_user = ?
+
+        UNION ALL
+
+        SELECT
+            ce.num_etu,
+            ce.nom,
+            ce.prenoms,
+            pc.dateTime_paie,
+            pc.montant,
+            pc.quittance,
+            pc.libelle,
+            pc.id_paie
+        FROM codif_etudiant ce
+        INNER JOIN codif_paiement pc
+            ON pc.id_etu = ce.id_etu
+        WHERE pc.username_user = ?
+          AND (pc.id_val IS NULL OR pc.id_val = 0)
+    ) t
+    WHERE 1=1
+    ";
+
+    $params = [$username, $username];
+    $types = 'ss';
+
+    if (!empty($date_debut)) {
+        $sql .= " AND t.dateTime_paie >= ?";
+        $params[] = $date_debut . ' 00:00:00';
+        $types .= 's';
+    }
+
+    if (!empty($date_fin)) {
+        $sql .= " AND t.dateTime_paie <= ?";
+        $params[] = $date_fin . ' 23:59:59';
+        $types .= 's';
+    }
+
+    $sql .= " ORDER BY t.id_paie DESC";
 
     $stmt = $connexion->prepare($sql);
-    // $stmt->bind_param("s", $pavillon);
+    $stmt->bind_param($types, ...$params);
     $stmt->execute();
+
     $result = $stmt->get_result();
 
     $data = [];
@@ -3936,7 +4152,8 @@ function getPaiementWithDateInterval($date_debut, $date_fin, $username)
         $data[] = $row;
     }
 
-    // $stmt->close();
+    $stmt->close();
+
     return $data;
 }
 
@@ -3984,9 +4201,9 @@ function info($login)
 function info2($login)
 {
     // Recherche des infos du user
-    global $connexion;
+    global $connexion_user;
     $rr = "select password_user,type_mdp from codif_user where username_user='$login'";
-    $ee = mysqli_query($connexion, $rr);
+    $ee = mysqli_query($connexion_user, $rr);
     $ss = mysqli_fetch_array($ee);
 
     $mdp = $ss['password_user'];
@@ -4048,11 +4265,45 @@ function info4($id)
  * Fonction d'affichage de la situation de l'etudiant (paiement caution et mensualité)
  * ********************************************************************************
  */
+function getAllSituation_2($num_etu)
+{
+    global $connexion;
+    $requeteSelect = 
+    "SELECT * FROM `codif_paiement` 
+        JOIN `codif_validation` ON codif_validation.id_val = codif_paiement.id_val 
+        JOIN `codif_affectation`ON codif_affectation.id_aff = codif_validation.id_aff 
+        JOIN `codif_etudiant` ON codif_etudiant.id_etu = codif_affectation.id_etu 
+        JOIN `codif_lit` ON codif_lit.id_lit = codif_affectation.id_lit 
+        JOIN `codif_etudiant` AS etu ON etu.id_etu = codif_paiement.id_etu 
+    WHERE codif_etudiant.num_etu='$num_etu' ORDER BY id_paie ASC";
+    $resulteRequete = $connexion->query($requeteSelect);
+    return $resulteRequete;
+}
+
 function getAllSituation($num_etu)
 {
     global $connexion;
-    $requeteSelect = "SELECT * FROM `codif_paiement` JOIN `codif_validation` ON codif_validation.id_val = codif_paiement.id_val JOIN `codif_affectation`
-\ton codif_affectation.id_aff = codif_validation.id_aff JOIN `codif_etudiant` on codif_etudiant.id_etu = codif_affectation.id_etu JOIN `codif_lit` on codif_lit.id_lit = codif_affectation.id_lit WHERE codif_etudiant.num_etu='$num_etu' ORDER BY id_paie ASC";
+
+    $requeteSelect = "
+        SELECT *
+        FROM codif_paiement
+        LEFT JOIN codif_validation
+            ON codif_validation.id_val = codif_paiement.id_val
+        LEFT JOIN codif_affectation
+            ON codif_affectation.id_aff = codif_validation.id_aff
+        LEFT JOIN codif_etudiant
+            ON codif_etudiant.id_etu = codif_affectation.id_etu
+        LEFT JOIN codif_lit
+            ON codif_lit.id_lit = codif_affectation.id_lit
+        LEFT JOIN codif_etudiant AS etu
+            ON etu.id_etu = codif_paiement.id_etu
+        WHERE (
+            codif_etudiant.num_etu = '$num_etu'
+            OR etu.num_etu = '$num_etu'
+        )
+        ORDER BY codif_paiement.id_paie ASC
+    ";
+
     $resulteRequete = $connexion->query($requeteSelect);
     return $resulteRequete;
 }
@@ -4115,8 +4366,17 @@ function getNbreMois2($numEtudiant)
             $date_sys = $date_fin;
         }
 
-        $nbr_mois = $date_debut->diff($date_sys);
-        $nbr_mois = $nbr_mois->format('%m');
+        // $nbr_mois = $date_debut->diff($date_sys);
+        // $nbr_mois = $nbr_mois->format('%m');
+        // return $nbr_mois + 1;
+
+        $interval = $date_debut->diff($date_sys);
+
+        $nbr_mois = ($interval->y * 12) + $interval->m;
+        $nbrs_reduction = getNbrsReduction($numEtudiant);
+
+        $nbr_mois = $nbr_mois - $nbrs_reduction;
+
         return $nbr_mois + 1;
     }
 }
@@ -5087,11 +5347,11 @@ function isChoix($num_etu)
 // ############ POUR RECUPERER LES USERS ############################
 function getUsers()
 {
-    global $connexion;
+    global $connexion_user;
 
     // Requête SQL sécurisée
     $query = "SELECT id_user, username_user, prenom_user, nom_user, telephone_user, profil_user, var, sexe_user, type_mdp, pavillon, campus, is_active, datesys FROM codif_user where profil_user !='user'";
-    $stmt = $connexion->prepare($query);
+    $stmt = $connexion_user->prepare($query);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -5122,34 +5382,6 @@ function getAllPavillons($connexion)
     }
 
     return $pavillons;  // Retourne un tableau des pavillons
-}
-
-function getDepartements()
-{
-    global $connexion;
-
-    $sql = "
-        SELECT DISTINCT(departement) AS dep
-        FROM codif_etudiant
-        WHERE departement IS NOT NULL
-          AND departement <> ''
-          AND departement COLLATE utf8mb4_unicode_ci NOT IN (
-              SELECT DISTINCT(departement) COLLATE utf8mb4_unicode_ci
-              FROM black_list
-          )
-        ORDER BY departement
-    ";
-
-    $resultat = mysqli_query($connexion, $sql);
-
-    $departements = [];
-    if ($resultat && mysqli_num_rows($resultat) > 0) {
-        while ($row = mysqli_fetch_assoc($resultat)) {
-            $departements[] = $row['dep'];
-        }
-    }
-
-    return $departements;
 }
 
 function getAllPavillons_2($connexion)
@@ -5207,23 +5439,6 @@ function getPavillonsByCampus($connexion, $campus)
     }
 
     return $pavillons;  // Retourne un tableau des pavillons
-}
-
-function getCampusByPavillon($connexion, $pavillon)
-{
-    // Échapper la valeur pour éviter l'injection SQL
-    $pavillon = mysqli_real_escape_string($connexion, $pavillon);
-
-    $query = "SELECT DISTINCT campus FROM codif_lit_complet WHERE pavillon='$pavillon' LIMIT 1";
-    $result = mysqli_query($connexion, $query);
-
-    if (!$result) {
-        die("Erreur lors de l'exécution de la requête : " . mysqli_error($connexion));
-    }
-
-    // Récupérer le campus
-    $row = mysqli_fetch_assoc($result);
-    return $row['campus'] ?? null;  // Retourne le campus ou null si aucun résultat
 }
 
 function getPavillonsByCampus2($connexion, $campus)
@@ -5316,6 +5531,35 @@ function enregistrerUtilisateur($connexion, $nom, $prenom, $var, $sexe, $telepho
 
     // Liaison des paramètres (avec gestion de `NULL`)
     mysqli_stmt_bind_param($stmt, 'sssssssssss', $nom, $prenom, $var, $sexe, $telephone, $username, $passwordHash, $profil, $pavillon, $campus, $fac);
+
+    // Exécution de la requête
+    $result = mysqli_stmt_execute($stmt);
+
+    // Vérification et fermeture
+    if ($result) {
+        mysqli_stmt_close($stmt);
+        return true;  // Succès
+    } else {
+        return "Erreur lors de l'insertion : " . mysqli_error($connexion);
+    }
+}
+
+function enregistrerUtilisateur_2($connexion, $nom, $prenom, $var, $sexe, $telephone, $username, $profil, $password)
+{
+    // Mot de passe par défaut (haché avec SHA1)
+    $passwordHash = sha1($password);
+
+    // Requête SQL avec des requêtes préparées
+    $sql = 'INSERT INTO codif_user (nom_user, prenom_user, var, sexe_user, telephone_user, username_user, password_user, profil_user, datesys)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+
+    // Préparation de la requête
+    $stmt = mysqli_prepare($connexion, $sql);
+    if (!$stmt) {
+        return 'Erreur de préparation : ' . mysqli_error($connexion);
+    }
+    // Liaison des paramètres (avec gestion de `NULL`)
+    mysqli_stmt_bind_param($stmt, 'ssssssss', $nom, $prenom, $var, $sexe, $telephone, $username, $passwordHash, $profil);
 
     // Exécution de la requête
     $result = mysqli_stmt_execute($stmt);
@@ -5454,39 +5698,10 @@ function enregistrerEtudiant($connexion, $num_etu, $prenoms, $nom, $telephone, $
     }
 }
 
-function enregistrerEtudiant2($connexion, $num_etu, $prenoms, $nom, $telephone, $lieuNaissance, $dateNaissance, $etablissement, $departement, $niveauFormation, $moyenne, $numIdentite, $sexe)
-{
-    // Sécurisation des entrées
-    $num_etu = mysqli_real_escape_string($connexion, $num_etu);
-    $prenoms = mysqli_real_escape_string($connexion, $prenoms);
-    $nom = mysqli_real_escape_string($connexion, $nom);
-    $telephone = mysqli_real_escape_string($connexion, $telephone);
-    $lieuNaissance = mysqli_real_escape_string($connexion, $lieuNaissance);
-    $dateNaissance = mysqli_real_escape_string($connexion, $dateNaissance);
-    $etablissement = mysqli_real_escape_string($connexion, $etablissement);
-    $departement = mysqli_real_escape_string($connexion, $departement);
-    $niveauFormation = mysqli_real_escape_string($connexion, $niveauFormation);
-    $moyenne = mysqli_real_escape_string($connexion, $moyenne);
-    $numIdentite = mysqli_real_escape_string($connexion, $numIdentite);
-    $sexe = mysqli_real_escape_string($connexion, $sexe);
-
-    // Requête SQL d'insertion
-    $datesys = date('Y-m-d H:i:s');
-    $var = 'Ajout Manuel ' . $datesys = date('Y-m-d H:i:s');
-    $sql = "INSERT INTO codif_etudiant (num_etu, prenoms, nom, telephone, lieuNaissance, dateNaissance, etablissement, departement, niveauFormation, moyenne, numIdentite, sexe, var) 
-            VALUES ('$num_etu', '$prenoms', '$nom', '$telephone', '$lieuNaissance', '$dateNaissance', '$etablissement', '$departement', '$niveauFormation', '$moyenne', '$numIdentite', '$sexe', '$var')";
-
-    if (mysqli_query($connexion, $sql)) {
-        return mysqli_insert_id($connexion);  // retourne l'id du nouvel étudiant
-    } else {
-        return false;
-    }
-}
-
 function studentConnect2($username)
 {
     global $connexion;
-    $users = "SELECT ce.num_etu, ce.nom, ce.sexe, ce.dateNaissance, ce.telephone, a.dateTime_aff, ce.niveauFormation, ce.departement, ce.etablissement, ce.prenoms, lg.dateTime_loger, li.lit, vl.dateTime_val, pc.dateTime_paie, pc.montant, pc.quittance, pc.username_user, pc.libelle 
+    $users = "SELECT ce.id_etu,ce.num_etu, ce.nom, ce.sexe, ce.dateNaissance,ce.moyenne, ce.telephone, a.dateTime_aff, ce.niveauFormation, ce.departement, ce.etablissement, ce.prenoms, lg.dateTime_loger, li.lit, vl.dateTime_val, pc.dateTime_paie, pc.montant, pc.quittance, pc.username_user, pc.libelle 
 FROM codif_etudiant ce 
 LEFT JOIN codif_affectation a ON ce.id_etu = a.id_etu 
 LEFT JOIN codif_lit li ON li.id_lit = a.id_lit
@@ -5501,8 +5716,7 @@ WHERE ce.num_etu = '$username'";
 function getQuotaClasse_2($classe, $sexe)
 {
     global $connexion;
-    $classe = $classe . '%';
-    $requeteQuotaClasse = "SELECT DISTINCT pavillon, chambre, lit, id_lit_q  FROM `codif_quota` JOIN codif_lit ON codif_lit.id_lit = codif_quota.id_lit_q WHERE `NiveauFormation` LIKE '$classe' AND codif_lit.sexe = '$sexe'";
+    $requeteQuotaClasse = "SELECT DISTINCT pavillon, chambre, lit, id_lit_q  FROM `codif_quota` JOIN codif_lit ON codif_lit.id_lit = codif_quota.id_lit_q WHERE `NiveauFormation` = '$classe' AND codif_lit.sexe = '$sexe'";
     $resultRequeteQuotaClasse = mysqli_query($connexion, $requeteQuotaClasse);
     return $resultRequeteQuotaClasse;
 }
@@ -5510,8 +5724,7 @@ function getQuotaClasse_2($classe, $sexe)
 function isDemarre($classe, $sexe)
 {
     global $connexion;
-    $classe = $classe . '%';
-    $requeteQuotaClasse = "SELECT * FROM `codif_demarrage` WHERE `niveauFormation` LIKE '$classe' AND `sexe`='$sexe'";
+    $requeteQuotaClasse = "SELECT * FROM `codif_demarrage` WHERE `niveauFormation`='$classe' AND `sexe`='$sexe'";
     $resultRequeteQuotaClasse = mysqli_query($connexion, $requeteQuotaClasse);
     return $resultRequeteQuotaClasse->fetch_assoc();
 }
@@ -5705,6 +5918,7 @@ function getPaymentDetailsByPavillon1($pavillonDonne, $connexion, $dateDebut = n
         e.num_etu AS num_etu,
         e.nom AS etudiant_nom,
         e.prenoms AS etudiant_prenoms,
+        e.etablissement,
         l.indiv AS type_chambre,
         lg.id_log AS log_id,
         lg.id_val AS validation_id,
@@ -5784,17 +5998,27 @@ function getPaymentDetailsByPavillon1($pavillonDonne, $connexion, $dateDebut = n
         if ($etudiantId) {
             $nombreMois = getNbreMois2($etudiant_num);
             $prixLit = getMontant($row['type_chambre']);
+
             $montantLoyerFacture = $nombreMois * $prixLit;
             $montantCautionFacture = verifCaution($etudiantId) ? 5000 : 0;
-            $montantFactureTotal = $montantLoyerFacture + $montantCautionFacture;
 
+            /** Arriérés de l'étudiant */
+            $montantArrierer = getMontantArrierer($connexion, $etudiant_num);
+
+            /** Total facturé */
+            $montantFactureTotal = $montantLoyerFacture + $montantCautionFacture + $montantArrierer;
+
+            /** Paiements effectués */
             $montantPayeTotal = $row['montant_paye_total'] ?? 0;
             $cautionPayee = $row['caution_payee'] ?? 0;
             $loyerPaye = $montantPayeTotal - $cautionPayee;
 
-            $resteLoyer = $montantLoyerFacture - $loyerPaye;
+            /** Restes à payer */
+            $resteLoyer = max(0, $montantLoyerFacture - $loyerPaye);
             $resteCaution = max(0, $montantCautionFacture - $cautionPayee);
-            $resteAPayerTotal = $resteLoyer + $resteCaution;
+
+            // $resteAPayerTotal = $resteLoyer + $resteCaution+ $montantArrierer;
+            $resteAPayerTotal = $montantFactureTotal - $montantPayeTotal;
         } else {
             $montantLoyerFacture = 0;
             $montantCautionFacture = 0;
@@ -5802,6 +6026,7 @@ function getPaymentDetailsByPavillon1($pavillonDonne, $connexion, $dateDebut = n
             $montantPayeTotal = 0;
             $cautionPayee = 0;
             $loyerPaye = 0;
+            $montantArrierer = 0;
             $resteLoyer = 0;
             $resteCaution = 0;
             $resteAPayerTotal = 0;
@@ -5814,6 +6039,7 @@ function getPaymentDetailsByPavillon1($pavillonDonne, $connexion, $dateDebut = n
             'etudiant_id' => $etudiantId,
             'etudiant_nom' => $row['etudiant_nom'],
             'etudiant_prenoms' => $row['etudiant_prenoms'],
+            'etablissement' => $row['etablissement'],
             'num_etu' => $etudiant_num,
             'type_chambre' => $row['type_chambre'],
             'montant_facture_total' => $montantFactureTotal,
@@ -5825,6 +6051,7 @@ function getPaymentDetailsByPavillon1($pavillonDonne, $connexion, $dateDebut = n
             'reste_loyer' => $resteLoyer,
             'reste_caution' => $resteCaution,
             'reste_a_payer_total' => $resteAPayerTotal,
+            'montant_arrierer' => $montantArrierer,
             'log_id' => $row['log_id'],
             'validation_id' => $row['validation_id'],
             'paiement_id' => $row['paiement_id'],
@@ -5860,6 +6087,576 @@ function getNombreLitParFormationEtSexe($connexion, $niveauFormation, $sexe)
 
     // Retourner le total
     return $row['total_lits'] ?? 0;
+}
+
+function getLitParChambre($link, $chambre)
+{
+    $sql = 'SELECT 
+                l.id_lit, 
+                l.lit, 
+                af.niveauFormation,
+                e.nom,
+                e.prenoms,
+                e.num_etu,
+                cc.statut,
+
+                v.dateTime_val,
+                paie.dateTime_paie,
+                lg.dateTime_loger
+
+            FROM codif_lit l
+
+            LEFT JOIN codif_quota af 
+                ON l.id_lit = af.id_lit_q
+
+            LEFT JOIN codif_affectation cc 
+                ON cc.id_lit = l.id_lit 
+
+            LEFT JOIN codif_etudiant e 
+                ON cc.id_etu = e.id_etu
+
+            /*  DERNIÈRE VALIDATION */
+            LEFT JOIN codif_validation v 
+                ON v.id_aff = cc.id_aff
+                AND v.dateTime_val = (
+                    SELECT MAX(v2.dateTime_val)
+                    FROM codif_validation v2
+                    WHERE v2.id_aff = cc.id_aff
+                )
+
+            /*  DERNIER PAIEMENT */
+            LEFT JOIN codif_paiement paie 
+                ON paie.id_val = v.id_val
+                AND paie.dateTime_paie = (
+                    SELECT MAX(p2.dateTime_paie)
+                    FROM codif_paiement p2
+                    WHERE p2.id_val = v.id_val
+                )
+
+            /*  DERNIER LOGEMENT */
+            LEFT JOIN codif_loger lg 
+                ON (
+                    lg.id_val = v.id_val 
+                    OR lg.id_paie = paie.id_paie
+                )
+                AND lg.dateTime_loger = (
+                    SELECT MAX(l2.dateTime_loger)
+                    FROM codif_loger l2
+                    WHERE 
+                        l2.id_val = v.id_val 
+                        OR l2.id_paie = paie.id_paie
+                )
+
+            WHERE l.chambre = ?
+        ';
+
+    $stmt = $link->prepare($sql);
+    $stmt->bind_param('s', $chambre);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+
+    return $data;
+}
+
+function getLitParChambre_2($link, $chambre)
+{
+    $sql = "
+
+    /* ================== ETUDIANTS AFFECTÉS ================== */
+    SELECT 
+        l.id_lit, 
+        l.lit, 
+        af.niveauFormation,
+        e.nom,
+        e.prenoms,
+        e.num_etu,
+        cc.statut,
+
+        v.dateTime_val,
+        paie.dateTime_paie,
+
+        /* LOGEMENT UNIFIÉ (IMPORTANT) */
+        lg.dateTime_loger
+
+    FROM codif_lit l
+
+    LEFT JOIN codif_quota af 
+        ON l.id_lit = af.id_lit_q
+
+    LEFT JOIN codif_affectation cc 
+        ON cc.id_lit = l.id_lit 
+
+    LEFT JOIN codif_etudiant e 
+        ON cc.id_etu = e.id_etu
+
+    /* DERNIÈRE VALIDATION */
+    LEFT JOIN codif_validation v 
+        ON v.id_aff = cc.id_aff
+        AND v.dateTime_val = (
+            SELECT MAX(v2.dateTime_val)
+            FROM codif_validation v2
+            WHERE v2.id_aff = cc.id_aff
+        )
+
+    /* DERNIER PAIEMENT */
+    LEFT JOIN codif_paiement paie 
+        ON paie.id_val = v.id_val
+        AND paie.dateTime_paie = (
+            SELECT MAX(p2.dateTime_paie)
+            FROM codif_paiement p2
+            WHERE p2.id_val = v.id_val
+        )
+
+        /* DERNIER LOGEMENT DE L'ÉTUDIANT */
+    LEFT JOIN codif_loger lg 
+        ON lg.id_etu = e.id_etu
+        AND lg.dateTime_loger = (
+            SELECT MAX(l2.dateTime_loger)
+            FROM codif_loger l2
+            WHERE l2.id_etu = e.id_etu
+        )
+
+    WHERE l.chambre = ?
+
+    UNION
+
+    /* ================== ETUDIANTS HÉBERGÉS ================== */
+    SELECT 
+        l3.id_lit,
+        l3.lit,
+        e2.niveauFormation,
+        e2.nom,
+        e2.prenoms,
+        e2.num_etu,
+        lg2.statut,
+
+        NULL AS dateTime_val,
+        NULL AS dateTime_paie,
+
+        lg2.dateTime_loger
+
+    FROM codif_loger lg2
+
+    JOIN codif_etudiant e2 
+        ON lg2.id_etu = e2.id_etu
+
+    JOIN codif_paiement p3
+        ON lg2.id_paie = p3.id_paie
+
+    JOIN codif_validation v3
+        ON p3.id_val = v3.id_val
+
+    JOIN codif_affectation a3
+        ON v3.id_aff = a3.id_aff
+
+    JOIN codif_lit l3
+        ON a3.id_lit = l3.id_lit
+
+    WHERE l3.chambre = ?
+
+    /* éviter doublon attributaire */
+    AND NOT EXISTS (
+        SELECT 1
+        FROM codif_affectation a
+        WHERE a.id_etu = e2.id_etu
+    )
+
+    ORDER BY 
+        FIELD(statut, 'Attributaire', 'Suppleant(e)', 'Clando'),
+        lit ASC
+
+    ";
+
+    $stmt = $link->prepare($sql);
+    $stmt->bind_param('ss', $chambre, $chambre);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+
+    return $data;
+}
+
+/*
+ * function getLitParChambre($link, $chambre) {
+ *     // Requête SQL avec jointure gauche (LEFT JOIN)
+ *     $sql = "SELECT
+ *                 l.id_lit,
+ *                 l.lit,
+ *                 af.niveauFormation,
+ *                 e.nom,
+ *                 e.prenoms,
+ *                 e.num_etu
+ *             FROM codif_lit l
+ *             LEFT JOIN codif_quota af ON l.id_lit = af.id_lit_q
+ *             LEFT JOIN codif_affectation cc ON  cc.id_lit = l.id_lit
+ *             LEFT JOIN codif_etudiant e ON  cc.id_etu = e.id_etu
+ *             WHERE l.chambre = ?";
+ *
+ *     $stmt = $link->prepare($sql);
+ *     $stmt->bind_param("s", $chambre);
+ *     $stmt->execute();
+ *     $result = $stmt->get_result();
+ *
+ *     // Tableau des résultats
+ *     $data = [];
+ *     while ($row = $result->fetch_assoc()) {
+ *         $data[] = $row;
+ *     }
+ *     return $data;
+ * }
+ */
+
+// RECUPERER LES LITS ET TITULAIRES AYANT VALIDER DONT LEURS SUPPLEANTS N'ONT PAS VALIDER
+function getLitValAndNotSuppByFac($fac)
+{
+    global $connexion;
+
+    $sql = "SELECT lit.lit, lit.indiv, etu.*
+            FROM codif_lit lit
+            JOIN codif_affectation aff ON aff.id_lit = lit.id_lit
+            JOIN codif_etudiant etu ON etu.id_etu = aff.id_etu
+            JOIN codif_validation val ON val.id_aff = aff.id_aff
+            WHERE etu.etablissement = ?  and (lit.pavillon!='N' and lit.pavillon!='X')
+            GROUP BY lit.id_lit
+            HAVING COUNT(aff.id_lit) = 1
+               AND lit.indiv = 0";  // lit NON individuel (modifiable selon ton besoin)
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param('s', $fac);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function getTitulaireAndSuppleantByFac($fac)
+{
+    // 1. récupérer les titulaires avec leurs lits
+    $titulaireRows = getLitValAndNotSuppByFac($fac);
+
+    $result = [];
+
+    foreach ($titulaireRows as $row) {
+        $num_etu = $row['num_etu'];
+        $classe = $row['niveauFormation'];
+        $sexe = $row['sexe'];
+
+        // 2. récupérer le quota pour cette classe/sexe
+        $quotaRow = getQuotaClasse($classe, $sexe);
+        $quota = intval($quotaRow['COUNT(*)']);
+
+        // 3. récupérer le statut + rang du titulaire
+        $dataStatut = getOnestudentStatus($quota, $classe, $sexe, $num_etu);
+
+        if (!$dataStatut) {
+            // étudiant introuvable dans le classement
+            continue;
+        }
+
+        $rangTitulaire = intval($dataStatut['rang']);
+
+        // 4. trouver le suppléant correspondant
+        $suppleant = getOneSuppleantByTitulaire($quota, $classe, $sexe, $rangTitulaire);
+
+        // 5. construire la ligne finale
+        $result[] = [
+            'lit' => $row['lit'],
+            'indiv' => $row['indiv'],
+            // titulaire
+            'titulaire' => [
+                'num_etu' => $row['num_etu'],
+                'nom' => $row['nom'],
+                'prenom' => $row['prenoms'],
+                'classe' => $classe,
+                'sexe' => $sexe,
+                'rang' => $rangTitulaire,
+            ],
+            // suppléant trouvé
+            'suppleant' => $suppleant ? [
+                'num_etu' => $suppleant['num_etu'],
+                'nom' => $suppleant['nom'],
+                'prenom' => $suppleant['prenoms'],
+                'classe' => $classe,
+                'sexe' => $sexe,
+                'rang' => $suppleant['rang']
+            ] : null
+        ];
+    }
+
+    return $result;
+}
+
+function getLitNonVal($fac)
+{
+    global $connexion;
+
+    $sql = "SELECT 
+    l.id_lit,
+    e.*,
+    l.lit,
+    l.sexe,
+    l.chambre,
+    l.pavillon
+FROM codif_lit l
+JOIN codif_quota q ON q.id_lit_q = l.id_lit
+JOIN codif_affectation a ON a.id_lit = l.id_lit
+JOIN codif_etudiant e ON e.id_etu = a.id_etu
+WHERE l.id_lit NOT IN (
+    SELECT cl.id_lit
+    FROM codif_lit cl
+    JOIN codif_affectation ca ON ca.id_lit = cl.id_lit
+    INNER JOIN codif_validation cv ON cv.id_aff = ca.id_aff
+    INNER JOIN codif_paiement cp ON cp.id_val = cv.id_val
+)
+AND e.etablissement=? AND l.pavillon != 'N' AND l.pavillon != 'X'
+GROUP BY l.id_lit
+ORDER BY e.etablissement;";  // lit NON individuel (modifiable selon ton besoin)
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param('s', $fac);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function getTitulaireAndSuppleantByFac2($fac)
+{
+    // 1. récupérer les titulaires avec leurs lits
+    $titulaireRows = getLitNonVal($fac);
+
+    $result = [];
+
+    foreach ($titulaireRows as $row) {
+        $num_etu = $row['num_etu'];
+        $classe = $row['niveauFormation'];
+        $sexe = $row['sexe'];
+
+        // 2. récupérer le quota pour cette classe/sexe
+        $quotaRow = getQuotaClasse($classe, $sexe);
+        $quota = intval($quotaRow['COUNT(*)']);
+
+        // 3. récupérer le statut + rang du titulaire
+        $dataStatut = getOnestudentStatus($quota, $classe, $sexe, $num_etu);
+
+        if (!$dataStatut) {
+            // étudiant introuvable dans le classement
+            continue;
+        }
+
+        $rangTitulaire = intval($dataStatut['rang']);
+
+        // 4. trouver le suppléant correspondant
+        $suppleant = getOneSuppleantByTitulaire($quota, $classe, $sexe, $rangTitulaire);
+
+        // 5. construire la ligne finale
+        $result[] = [
+            'lit' => $row['lit'],
+            // titulaire
+            'titulaire' => [
+                'num_etu' => $row['num_etu'],
+                'nom' => $row['nom'],
+                'prenom' => $row['prenoms'],
+                'classe' => $classe,
+                'sexe' => $sexe,
+                'rang' => $rangTitulaire,
+            ],
+            // suppléant trouvé
+            'suppleant' => $suppleant ? [
+                'num_etu' => $suppleant['num_etu'],
+                'nom' => $suppleant['nom'],
+                'prenom' => $suppleant['prenoms'],
+                'classe' => $classe,
+                'sexe' => $sexe,
+                'rang' => $suppleant['rang']
+            ] : null
+        ];
+    }
+
+    return $result;
+}
+
+function getAttributaireAndSuppleantByFac($fac)
+{
+    global $connexion;
+
+    $result = [];
+
+    $etuRows = getEtuNonAffByFac($fac);
+
+    foreach ($etuRows as $etu) {
+        $id_etu = $etu['id_etu'];
+        $num_etu = $etu['num_etu'];
+        $classe = $etu['niveauQuota'];
+        $sexe = $etu['sexe'];
+
+        // 3. récupérer quota classe + sexe
+        $quotaRow = getQuotaClasse($classe, $sexe);
+        $quota = intval($quotaRow['COUNT(*)']);
+
+        // 4. statut + rang
+        $dataStatut = getOnestudentStatus($quota, $classe, $sexe, $num_etu);
+        if (!$dataStatut)
+            continue;
+
+        if ($dataStatut['statut'] !== 'Attributaire') {
+            continue;
+        }
+
+        $rangTitulaire = intval($dataStatut['rang']);
+
+        // 5. trouver suppléant
+        $suppleant = getOneSuppleantByTitulaire($quota, $classe, $sexe, $rangTitulaire);
+
+        // 6. push dans tableau
+        $result[] = [
+            'lit' => null,
+            'indiv' => null,
+            'titulaire' => [
+                'num_etu' => $etu['num_etu'],
+                'id_etu' => $etu['id_etu'],
+                'nom' => $etu['nom'],
+                'prenom' => $etu['prenoms'],
+                'classe' => $classe,
+                'sexe' => $sexe,
+                'rang' => $rangTitulaire
+            ],
+            'suppleant' => $suppleant ? [
+                'num_etu' => $suppleant['num_etu'],
+                'id_etu' => $suppleant['id_etu'],
+                'nom' => $suppleant['nom'],
+                'prenom' => $suppleant['prenoms'],
+                'classe' => $classe,
+                'sexe' => $sexe,
+                'rang' => $suppleant['rang']
+            ] : null
+        ];
+    }
+
+    //  TRIER PAR RANG DU TITULAIRE
+    usort($result, function ($a, $b) {
+        return $a['titulaire']['rang'] <=> $b['titulaire']['rang'];
+    });
+
+    return $result;
+}
+
+function getEtuNonAffByFac($fac)
+{
+    global $connexion;
+
+    $sql = 'SELECT DISTINCT
+        NULL AS chambre,
+        NULL AS lit,
+        q.niveauFormation AS niveauQuota,
+        e.num_etu,
+        e.nom,
+        e.id_etu,
+        e.sexe,
+        e.prenoms,
+        e.etablissement
+    FROM codif_etudiant e
+    JOIN codif_quota q 
+        ON q.niveauFormation = e.niveauFormation
+    WHERE e.id_etu NOT IN (SELECT id_etu FROM codif_affectation)
+      AND q.id_lit_q NOT IN (SELECT id_lit FROM codif_affectation)
+      AND e.etablissement = ? ;';
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param('s', $fac);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+/*
+ * function getLitNonAffByFac($fac) {
+ *     global $connexion;
+ *
+ *     $sql = "SELECT
+ *         lit.chambre,
+ *         lit.lit,
+ *         lit.sexe,
+ *         q.niveauFormation AS niveauQuota,
+ *         NULL AS num_etu,
+ *         NULL AS nom,
+ *         NULL AS prenoms,
+ *
+ *         -- Établissement filtré ici
+ *         (
+ *             SELECT etu.etablissement
+ *             FROM codif_etudiant etu
+ *             WHERE etu.niveauFormation = q.niveauFormation
+ *               AND etu.etablissement = ?   -- FILTRE ÉTABLISSEMENT
+ *             LIMIT 1
+ *         ) AS etablissement
+ *
+ *     FROM codif_lit lit
+ *     JOIN codif_quota q
+ *         ON q.id_lit_q = lit.id_lit
+ *     WHERE lit.id_lit NOT IN (SELECT id_lit FROM codif_affectation)
+ *       AND EXISTS (
+ *             SELECT 1
+ *             FROM codif_etudiant etu
+ *             WHERE etu.niveauFormation = q.niveauFormation
+ *               AND etu.etablissement = ?   -- GARANTIR MÊME FILTRE
+ *         );";   // lit NON individuel (modifiable selon ton besoin)
+ *
+ *     $stmt = $connexion->prepare($sql);
+ *     $stmt->bind_param("ss", $fac,$fac);
+ *     $stmt->execute();
+ *
+ *     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+ * }
+ */
+
+function getLitNonAffByFac($fac)
+{
+    global $connexion;
+
+    $sql = 'SELECT
+        lit.chambre,
+        lit.id_lit,
+        lit.lit,
+        lit.sexe,
+        q.niveauFormation AS niveauQuota,
+        NULL AS num_etu,
+        NULL AS nom,
+        NULL AS prenoms,
+
+        -- Établissement filtré ici
+        (
+            SELECT etu.etablissement
+            FROM codif_etudiant etu
+            WHERE etu.niveauFormation = q.niveauFormation
+              AND etu.etablissement = ?   -- FILTRE ÉTABLISSEMENT
+            LIMIT 1
+        ) AS etablissement
+        
+    FROM codif_lit lit
+    JOIN codif_quota q 
+        ON q.id_lit_q = lit.id_lit
+    WHERE lit.id_lit NOT IN (SELECT DISTINCT id_lit FROM codif_affectation)
+      AND EXISTS (
+            SELECT 1
+            FROM codif_etudiant etu
+            WHERE etu.niveauFormation = q.niveauFormation
+              AND etu.etablissement = ?   -- GARANTIR MÊME FILTRE
+        );';  // lit NON individuel (modifiable selon ton besoin)
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param('ss', $fac, $fac);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
 function getBlack_list($connexion)
@@ -5904,224 +6701,254 @@ function getBlackListInfo($num_etu, $connexion)
     ];
 }
 
-function getLitParChambre($link, $chambre)
+function getPaymentDetailsByDepartement($departementDonne, $connexion)
 {
-    $sql = 'SELECT 
-                l.id_lit, 
-                l.lit, 
-                af.niveauFormation,
-                e.nom,
-                e.prenoms,
-                e.num_etu,
-
-                MIN(v.dateTime_val) AS dateTime_val,
-                MIN(lg.dateTime_loger) AS dateTime_loger,
-                MIN(paie.dateTime_paie) AS dateTime_paie
-
-            FROM codif_lit l
-
-            LEFT JOIN codif_quota af 
-                ON l.id_lit = af.id_lit_q
-
-            LEFT JOIN codif_affectation cc 
-                ON cc.id_lit = l.id_lit 
-
-            LEFT JOIN codif_etudiant e 
-                ON cc.id_etu = e.id_etu
-
-            LEFT JOIN codif_validation v 
-                ON v.id_aff = cc.id_aff
-
-            LEFT JOIN codif_paiement paie 
-                ON paie.id_val = v.id_val
-
-            LEFT JOIN codif_loger lg 
-                ON lg.id_val = v.id_val OR lg.id_paie = paie.id_paie
-            
-            WHERE l.chambre = ?
-
-            GROUP BY 
-                e.num_etu
-            ';
-
-    $stmt = $link->prepare($sql);
-    $stmt->bind_param('s', $chambre);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    $data = [];
-    while ($row = $result->fetch_assoc()) {
-        $data[] = $row;
-    }
-
-    return $data;
-}
-
-function getLitEtudiant($link, $lit)
-{
-    $sql = '
+    $sql = "
         SELECT 
-            l.id_lit,
-            l.lit,
-            af.niveauFormation,
-            e.id_etu,
-            e.nom,
-            e.sexe,
+            e.departement,
+            e.id_etu AS etudiant_id,
+            e.num_etu AS num_etu,
+            e.nom AS etudiant_nom,
+            e.prenoms AS etudiant_prenoms,
+            e.niveauFormation,
             e.telephone,
-            e.prenoms,
-            e.num_etu,
-            cc.statut,
-            cc.id_aff
-        FROM codif_lit l
-        JOIN codif_affectation cc 
-            ON cc.id_lit = l.id_lit
-        JOIN codif_etudiant e 
-            ON e.id_etu = cc.id_etu
-        LEFT JOIN codif_quota af 
-            ON af.id_lit_q = l.id_lit
-        WHERE l.lit = ?
-          AND NOT EXISTS (
-              SELECT 1
-              FROM codif_validation v
-              WHERE v.id_aff = cc.id_aff
-          )
-    ';
+            l.indiv AS type_chambre,
+            l.chambre,
+            l.lit,
+            lg.id_log AS log_id,
+            lg.id_val AS validation_id,
+            lg.id_paie AS paiement_id,
+            lg.username_user AS utilisateur,
+            a.rappel_envoye,
+            lg.datetime_loger AS date_log,
+            COALESCE((
+                SELECT SUM(p.montant)
+                FROM codif_paiement p
+                WHERE p.id_val = v.id_val
+            ), 0) AS montant_paye_total
+        FROM 
+            codif_etudiant e
+        JOIN 
+            codif_affectation a ON a.id_etu = e.id_etu
+        JOIN 
+            codif_validation v ON a.id_aff = v.id_aff
+        JOIN 
+            codif_lit l ON a.id_lit = l.id_lit
+        LEFT JOIN 
+            codif_loger lg ON lg.id_etu = e.id_etu  
+        WHERE 
+            e.departement = ? 
+            AND (a.statut = 'Attributaire' OR a.id_aff IS NULL)
+        GROUP BY 
+            e.id_etu, l.chambre, l.lit, lg.id_log
+        ORDER BY 
+            e.nom, e.prenoms
+    ";
 
-    $stmt = $link->prepare($sql);
-    $stmt->bind_param('s', $lit);
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param('s', $departementDonne);
     $stmt->execute();
     $result = $stmt->get_result();
 
     $data = [];
+
     while ($row = $result->fetch_assoc()) {
-        $data[] = $row;
+        $etudiantId = $row['etudiant_id'];
+        $etudiant_num = $row['num_etu'];
+
+        // Obtenir le nombre de mois pour l’étudiant
+        $nombreMois = getNbreMois2($etudiant_num);
+
+        // Déterminer le prix du lit selon le type de chambre
+        $prixLit = getMontant($row['type_chambre']);
+
+        // Calcul du montant facturé (+5000 si caution)
+        if (verifCaution($etudiantId)) {
+            $montantFacture = ($nombreMois * $prixLit) + 5000;
+        } else {
+            $montantFacture = $nombreMois * $prixLit;
+        }
+
+        $montantPaye = $row['montant_paye_total'] ?? 0;
+        $resteAPayer = $montantFacture - $montantPaye;
+
+        //  On garde uniquement ceux qui doivent encore de l’argent
+        if ($resteAPayer > 0) {
+            $data[] = [
+                'departement' => $row['departement'],
+                'etudiant_id' => $row['etudiant_id'],
+                'num_etu' => $row['num_etu'],
+                'etudiant_nom' => $row['etudiant_nom'],
+                'niveauFormation' => $row['niveauFormation'],
+                'telephone' => $row['telephone'],
+                'etudiant_prenoms' => $row['etudiant_prenoms'],
+                'chambre' => $row['chambre'],
+                'lit' => $row['lit'],
+                'montant_facture' => $montantFacture,
+                'montant_paye' => $montantPaye,
+                'reste_a_payer' => $resteAPayer,
+                'log_id' => $row['log_id'],
+                'validation_id' => $row['validation_id'],
+                'paiement_id' => $row['paiement_id'],
+                'utilisateur' => $row['utilisateur'],
+                'rappel_envoye' => $row['rappel_envoye'],
+                'date_log' => $row['date_log']
+            ];
+        }
     }
 
-    if (!empty($data)) {
-        $etudiant = $data[0];
-
-        $quotaRow = getQuotaClasse($etudiant['niveauFormation'], $etudiant['sexe']);
-        $quota = (int) ($quotaRow['COUNT(*)'] ?? 0);
-
-        $statut = getOnestudentStatus(
-            $quota,
-            $etudiant['niveauFormation'],
-            $etudiant['sexe'],
-            $etudiant['num_etu']
-        );
-
-        $rang = (int) ($statut['rang'] ?? 0);
-
-        $data[0]['suppleant'] = ($rang > 0)
-            ? getOneSuppleantByTitulaire(
-                $quota,
-                $etudiant['niveauFormation'],
-                $etudiant['sexe'],
-                $rang
-            )
-            : null;
-    }
-
+    $stmt->close();
     return $data;
 }
 
-function rechercherEtudiants($connexion, $search)
+function getPaymentDetailsByFaculter($faculteDonnee, $connexion)
 {
-    $sql = 'SELECT 
-                e.id_etu,
-                e.nom,
-                e.prenoms,
-                e.num_etu,
-                e.telephone,
-                e.dateNaissance,
-                e.sexe,
-                l.chambre,
-                l.pavillon,
-                l.lit,
-                a.statut
-            FROM codif_affectation a
-            LEFT JOIN codif_etudiant e ON a.id_etu = e.id_etu
-            LEFT JOIN codif_lit l ON a.id_lit = l.id_lit
-            WHERE 
-                e.nom LIKE ?
-                OR e.prenoms LIKE ?
-                OR e.num_etu LIKE ?
-                OR e.telephone LIKE ?
-            ORDER BY e.nom ASC';
+    $sql = "
+        SELECT 
+            e.departement,
+            e.etablissement,
+            e.id_etu AS etudiant_id,
+            e.num_etu AS num_etu,
+            e.nom AS etudiant_nom,
+            e.prenoms AS etudiant_prenoms,
+            e.niveauFormation,
+            e.telephone,
+            l.indiv AS type_chambre,
+            l.chambre,
+            l.lit,
+            lg.id_log AS log_id,
+            lg.id_val AS validation_id,
+            lg.id_paie AS paiement_id,
+            lg.username_user AS utilisateur,
+            a.rappel_envoye,
+            lg.datetime_loger AS date_log,
+            COALESCE((
+                SELECT SUM(p.montant)
+                FROM codif_paiement p
+                WHERE p.id_val = v.id_val
+            ), 0) AS montant_paye_total
+        FROM 
+            codif_etudiant e
+        JOIN 
+            codif_affectation a ON a.id_etu = e.id_etu
+        JOIN 
+            codif_validation v ON a.id_aff = v.id_aff
+        JOIN 
+            codif_lit l ON a.id_lit = l.id_lit
+        LEFT JOIN 
+            codif_loger lg ON lg.id_etu = e.id_etu  
+        WHERE 
+            e.etablissement = ? 
+            AND (a.statut = 'Attributaire' OR a.id_aff IS NULL) AND e.num_etu NOT IN (
+    SELECT b.num_etu COLLATE utf8mb4_unicode_ci
+    FROM black_list b
+)
+        GROUP BY 
+            e.id_etu, l.chambre, l.lit, lg.id_log
+        ORDER BY 
+            e.nom, e.prenoms
+    ";
 
-    $stmt = mysqli_prepare($connexion, $sql);
-
-    if (!$stmt) {
-        die('Erreur préparation : ' . mysqli_error($connexion));
-    }
-
-    $searchParam = '%' . $search . '%';
-
-    mysqli_stmt_bind_param($stmt, 'ssss',
-        $searchParam,
-        $searchParam,
-        $searchParam,
-        $searchParam);
-
-    mysqli_stmt_execute($stmt);
-
-    $result = mysqli_stmt_get_result($stmt);
-
-    $etudiants = [];
-
-    while ($row = mysqli_fetch_assoc($result)) {
-        $etudiants[] = $row;
-    }
-
-    mysqli_stmt_close($stmt);
-
-    return $etudiants;
-}
-
-// ********POUR OBTENIR LE NOMBRE EXACTES DES QUOTA DEJA ATTRIBUER A UNE FORMATION PAR SEXE*****
-function quota_saisie($connexion, $niveauFormation, $sexe)
-{
-    // Préparer la requête SQL
-    $sql = 'SELECT COUNT(*) AS total_lits
-            FROM codif_quota cq
-            INNER JOIN codif_lit cl ON cq.id_lit_q = cl.id_lit
-            WHERE cq.niveauFormation LIKE ? 
-              AND cl.sexe = ?';
-
-    // Préparer la requête
-    $niveauFormation = $niveauFormation . '%';
     $stmt = $connexion->prepare($sql);
-    $stmt->bind_param('ss', $niveauFormation, $sexe);  // deux paramètres string
-
-    // Exécuter
+    $stmt->bind_param('s', $faculteDonnee);
     $stmt->execute();
     $result = $stmt->get_result();
-    $row = $result->fetch_assoc();
 
-    // Retourner le total
-    return $row['total_lits'] ?? 0;
+    $data = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $etudiantId = $row['etudiant_id'];
+        $etudiant_num = $row['num_etu'];
+
+        // Obtenir le nombre de mois pour l’étudiant
+        $nombreMois = getNbreMois2($etudiant_num);
+
+        // Déterminer le prix du lit selon le type de chambre
+        $prixLit = getMontant($row['type_chambre']);
+
+        // Calcul du montant facturé (+5000 si caution)
+        if (verifCaution($etudiantId)) {
+            $montantFacture = ($nombreMois * $prixLit) + 5000;
+        } else {
+            $montantFacture = $nombreMois * $prixLit;
+        }
+
+        $montantPaye = $row['montant_paye_total'] ?? 0;
+        $resteAPayer = $montantFacture - $montantPaye;
+
+        //  On garde uniquement ceux qui doivent encore de l’argent
+        if ($resteAPayer > 0) {
+            $data[] = [
+                'departement' => $row['departement'],
+                'etablissement' => $row['etablissement'],
+                'etudiant_id' => $row['etudiant_id'],
+                'num_etu' => $row['num_etu'],
+                'etudiant_nom' => $row['etudiant_nom'],
+                'niveauFormation' => $row['niveauFormation'],
+                'telephone' => $row['telephone'],
+                'etudiant_prenoms' => $row['etudiant_prenoms'],
+                'chambre' => $row['chambre'],
+                'lit' => $row['lit'],
+                'montant_facture' => $montantFacture,
+                'montant_paye' => $montantPaye,
+                'reste_a_payer' => $resteAPayer,
+                'log_id' => $row['log_id'],
+                'validation_id' => $row['validation_id'],
+                'paiement_id' => $row['paiement_id'],
+                'utilisateur' => $row['utilisateur'],
+                'rappel_envoye' => $row['rappel_envoye'],
+                'date_log' => $row['date_log']
+            ];
+        }
+    }
+
+    $stmt->close();
+    return $data;
 }
 
-function quota_prevu($connexion, $niveauFormation, $sexe)
+function getDepartements()
 {
-    // Préparer la requête SQL
-    $sql = 'SELECT nombre 
-            FROM codif_ref_quota
-            WHERE niveauFormation = ? 
-              AND sexe = ? 
-            LIMIT 1';  // on suppose une seule ligne par combinaison
+    global $connexion;
 
-    // Préparer la requête
-    $stmt = $connexion->prepare($sql);
-    $stmt->bind_param('ss', $niveauFormation, $sexe);  // deux paramètres string
+    $sql = "
+        SELECT DISTINCT(departement) AS dep
+        FROM codif_etudiant
+        WHERE departement IS NOT NULL
+          AND departement <> ''
+          AND departement COLLATE utf8mb4_unicode_ci NOT IN (
+              SELECT DISTINCT(departement) COLLATE utf8mb4_unicode_ci
+              FROM black_list
+          )
+        ORDER BY departement
+    ";
 
-    // Exécuter
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $row = $result->fetch_assoc();
+    $resultat = mysqli_query($connexion, $sql);
 
-    // Retourner le nombre trouvé ou 0 par défaut
-    return $row['nombre'] ?? 0;
+    $departements = [];
+    if ($resultat && mysqli_num_rows($resultat) > 0) {
+        while ($row = mysqli_fetch_assoc($resultat)) {
+            $departements[] = $row['dep'];
+        }
+    }
+
+    return $departements;
+}
+
+function getCampusByPavillon($connexion, $pavillon)
+{
+    // Échapper la valeur pour éviter l'injection SQL
+    $pavillon = mysqli_real_escape_string($connexion, $pavillon);
+
+    $query = "SELECT DISTINCT campus FROM codif_lit_complet WHERE pavillon='$pavillon' LIMIT 1";
+    $result = mysqli_query($connexion, $query);
+
+    if (!$result) {
+        die("Erreur lors de l'exécution de la requête : " . mysqli_error($connexion));
+    }
+
+    // Récupérer le campus
+    $row = mysqli_fetch_assoc($result);
+    return $row['campus'] ?? null;  // Retourne le campus ou null si aucun résultat
 }
 
 function getLitByPcs($fac)
@@ -6324,7 +7151,8 @@ function getOccupantsByLit($lit)
             e.sexe,
             e.telephone,
             e.etablissement AS faculte,
-            e.departement
+            e.departement,
+            e.NiveauFormation
         FROM codif_affectation a
         JOIN codif_lit l ON l.id_lit = a.id_lit
         LEFT JOIN codif_etudiant e ON e.id_etu = a.id_etu
@@ -6424,200 +7252,485 @@ function isAffectationValidee($id_aff)
     return ($row['total'] > 0);
 }
 
-// RECUPERER LES LITS ET TITULAIRES AYANT VALIDER DONT LEURS SUPPLEANTS N'ONT PAS VALIDER
-function getLitValAndNotSuppByFac($fac)
+function supprimerPaiement($connexion, $id_paie, $deleted_by)
 {
-    global $connexion;
+    // Sécurisation
+    $id_paie = mysqli_real_escape_string($connexion, $id_paie);
+    $deleted_by = mysqli_real_escape_string($connexion, $deleted_by);
 
-    $sql = "SELECT lit.lit, lit.indiv, etu.*
-            FROM codif_lit lit
-            JOIN codif_affectation aff ON aff.id_lit = lit.id_lit
-            JOIN codif_etudiant etu ON etu.id_etu = aff.id_etu
-            JOIN codif_validation val ON val.id_aff = aff.id_aff
-            WHERE etu.etablissement = ? AND lit.pavillon != 'N' AND lit.pavillon != 'X'
-            GROUP BY lit.id_lit
-            HAVING COUNT(aff.id_lit) = 1
-               AND lit.indiv = 0";  // lit NON individuel (modifiable selon ton besoin)
+    // 1️ Récupérer le paiement avant suppression
+    $sqlSelect = "SELECT * FROM codif_paiement WHERE id_paie = $id_paie";
+    $result = mysqli_query($connexion, $sqlSelect);
 
-    $stmt = $connexion->prepare($sql);
-    $stmt->bind_param('s', $fac);
-    $stmt->execute();
+    if ($row = mysqli_fetch_assoc($result)) {
+        // Échapper les données
+        $id_val = mysqli_real_escape_string($connexion, $row['id_val']);
+        $montant = mysqli_real_escape_string($connexion, $row['montant']);
+        $libelle = mysqli_real_escape_string($connexion, $row['libelle']);
+        $username_user = mysqli_real_escape_string($connexion, $row['username_user']);
+        $quittance = mysqli_real_escape_string($connexion, $row['quittance']);
+        $an = mysqli_real_escape_string($connexion, $row['an']);
+        $num_ordre_user = mysqli_real_escape_string($connexion, $row['num_ordre_user']);
+        $dateTime_paie = mysqli_real_escape_string($connexion, $row['dateTime_paie']);
 
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        // 2️ Archiver le paiement
+        $sqlArchive = "INSERT INTO codif_archiv_acp_suppr
+            (id_paie, id_val, montant, libelle, username_user, quittance, an, num_ordre_user, dateTime_paie, deleted_at, deleted_by)
+            VALUES 
+            ($id_paie, '$id_val', '$montant', '$libelle', '$username_user', '$quittance', '$an', '$num_ordre_user', '$dateTime_paie', NOW(), '$deleted_by')";
+
+        if (!mysqli_query($connexion, $sqlArchive)) {
+            return 'Erreur lors de l’archivage du paiement.';
+        }
+
+        // 3️ Supprimer le paiement
+        $sqlDelete = "DELETE FROM codif_paiement WHERE id_paie = $id_paie";
+        if (mysqli_query($connexion, $sqlDelete)) {
+            return 'Paiement supprimé avec succès.';
+        } else {
+            return 'Erreur lors de la suppression du paiement.';
+        }
+    } else {
+        return 'Paiement introuvable.';
+    }
 }
 
-function getLitNonVal($fac)
+/*
+ * function getLitEtudiant($link, $lit)
+ * {
+ *     // Requête SQL avec jointure gauche (LEFT JOIN)
+ *     $sql = 'SELECT
+ *                 l.id_lit,
+ *                 l.lit,
+ *                 af.niveauFormation,
+ *                 e.nom,
+ *                 e.prenoms,
+ *                 e.num_etu,
+ *                 e.id_etu
+ *             FROM codif_lit l
+ *             LEFT JOIN codif_quota af ON l.id_lit = af.id_lit_q
+ *             LEFT JOIN codif_affectation cc ON  cc.id_lit = l.id_lit
+ *             LEFT JOIN codif_etudiant e ON  cc.id_etu = e.id_etu
+ *             WHERE l.lit = ?';
+ *
+ *     $stmt = $link->prepare($sql);
+ *     $stmt->bind_param('s', $lit);
+ *     $stmt->execute();
+ *     $result = $stmt->get_result();
+ *
+ *     // Tableau des résultats
+ *     $data = [];
+ *     while ($row = $result->fetch_assoc()) {
+ *         $data[] = $row;
+ *     }
+ *     return $data;
+ * }
+ */
+
+function getLitEtudiant($link, $lit)
 {
-    global $connexion;
-
-    $sql = "SELECT 
-    l.id_lit,
-    e.*,
-    l.lit,
-    l.sexe,
-    l.chambre,
-    l.pavillon
-FROM codif_lit l
-JOIN codif_quota q ON q.id_lit_q = l.id_lit
-JOIN codif_affectation a ON a.id_lit = l.id_lit
-JOIN codif_etudiant e ON e.id_etu = a.id_etu
-WHERE l.id_lit NOT IN (
-    SELECT cl.id_lit
-    FROM codif_lit cl
-    JOIN codif_affectation ca ON ca.id_lit = cl.id_lit
-    INNER JOIN codif_validation cv ON cv.id_aff = ca.id_aff
-)
-AND e.etablissement=? AND l.pavillon != 'N' AND l.pavillon != 'X'
-GROUP BY l.id_lit
-ORDER BY e.etablissement;";  // lit NON individuel (modifiable selon ton besoin)
-
-    $stmt = $connexion->prepare($sql);
-    $stmt->bind_param('s', $fac);
-    $stmt->execute();
-
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
-
-function getLitNonAffByFac($fac)
-{
-    global $connexion;
-
-    $sql = 'SELECT
-        lit.chambre,
-        lit.id_lit,
-        lit.lit,
-        lit.sexe,
-        q.niveauFormation AS niveauQuota,
-        NULL AS num_etu,
-        NULL AS nom,
-        NULL AS prenoms,
-
-        -- Établissement filtré ici
-        (
-            SELECT etu.etablissement
-            FROM codif_etudiant etu
-            WHERE etu.niveauFormation = q.niveauFormation
-              AND etu.etablissement = ?   -- FILTRE ÉTABLISSEMENT
-            LIMIT 1
-        ) AS etablissement
-        
-    FROM codif_lit lit
-    JOIN codif_quota q 
-        ON q.id_lit_q = lit.id_lit
-    WHERE lit.id_lit NOT IN (SELECT DISTINCT id_lit FROM codif_affectation)
-      AND EXISTS (
-            SELECT 1
-            FROM codif_etudiant etu
-            WHERE etu.niveauFormation = q.niveauFormation
-              AND etu.etablissement = ?   -- GARANTIR MÊME FILTRE
-        );';  // lit NON individuel (modifiable selon ton besoin)
-
-    $stmt = $connexion->prepare($sql);
-    $stmt->bind_param('ss', $fac, $fac);
-    $stmt->execute();
-
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
-
-function getEtuNonAffByFac($fac)
-{
-    global $connexion;
-
-    $sql = 'SELECT DISTINCT
-        NULL AS chambre,
-        NULL AS lit,
-        q.niveauFormation AS niveauQuota,
-        e.num_etu,
-        e.nom,
-        e.id_etu,
-        e.sexe,
-        e.prenoms,
-        e.etablissement,
-        rq.nombre
-    FROM codif_etudiant e
-    JOIN codif_quota q 
-        ON q.niveauFormation = e.niveauFormation
-    JOIN codif_ref_quota rq 
-        ON rq.niveauFormation = e.niveauFormation COLLATE utf8mb4_unicode_ci
-    AND rq.sexe = e.sexe COLLATE utf8mb4_unicode_ci
-    WHERE e.id_etu NOT IN (SELECT id_etu FROM codif_affectation)
-      AND q.id_lit_q NOT IN (SELECT id_lit FROM codif_affectation)
-      AND e.etablissement = ? ;';
-
-    $stmt = $connexion->prepare($sql);
-    $stmt->bind_param('s', $fac);
-    $stmt->execute();
-
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
-
-function getEtuNonAffByFac_2($fac)
-{
-    global $connexion;
-
-    $sql = 'SELECT DISTINCT
-        NULL AS chambre,
-        NULL AS lit,
-        q.niveauFormation AS niveauQuota,
-        e.num_etu,
-        e.nom,
-        e.id_etu,
-        e.sexe,
-        e.prenoms,
-        e.etablissement,
-        rq.nombre,
-        ranks.rang,
-
-        CASE 
-            WHEN rq.nombre = 0 THEN "Non Defini"
-            WHEN cf.id_etu IS NOT NULL THEN "Forclos(e)"
-            WHEN ranks.rang <= rq.nombre THEN "Attributaire"
-            WHEN ranks.rang <= rq.nombre * 2 THEN "Suppleant(e)"
-            ELSE "Non Attributaire"
-        END AS statut
-
-    FROM codif_etudiant e
-
-    JOIN codif_quota q 
-        ON q.niveauFormation = e.niveauFormation
-
-    JOIN codif_ref_quota rq 
-        ON rq.niveauFormation = e.niveauFormation COLLATE utf8mb4_unicode_ci
-        AND rq.sexe = e.sexe COLLATE utf8mb4_unicode_ci
-
-    LEFT JOIN (
+    $sql = '
         SELECT 
-            id_etu,
-            niveauFormation,
-            sexe,
-            ROW_NUMBER() OVER (
-                PARTITION BY niveauFormation, sexe
-                ORDER BY sessionId ASC, moyenne DESC, id_etu ASC, dateNaissance ASC
-            ) AS rang
-        FROM codif_etudiant
-        WHERE id_etu NOT IN (SELECT id_etu FROM codif_forclusion)
-    ) ranks 
-        ON e.id_etu = ranks.id_etu
+            l.id_lit,
+            l.lit,
+            af.niveauFormation,
+            e.id_etu,
+            e.nom,
+            e.sexe,
+            e.telephone,
+            e.prenoms,
+            e.num_etu,
+            cc.statut,
+            cc.id_aff
+        FROM codif_lit l
+        JOIN codif_affectation cc 
+            ON cc.id_lit = l.id_lit
+        JOIN codif_etudiant e 
+            ON e.id_etu = cc.id_etu
+        LEFT JOIN codif_quota af 
+            ON af.id_lit_q = l.id_lit
+        WHERE l.lit = ?
+          AND NOT EXISTS (
+              SELECT 1
+              FROM codif_validation v
+              WHERE v.id_aff = cc.id_aff
+          )
+    ';
 
-    LEFT JOIN codif_forclusion cf 
-        ON e.id_etu = cf.id_etu
-
-    WHERE e.id_etu NOT IN (SELECT id_etu FROM codif_affectation)
-      AND q.id_lit_q NOT IN (SELECT id_lit FROM codif_affectation)
-      AND e.etablissement = ?
-
-      /* FILTRE ATTRIBUTAIRE */
-      AND rq.nombre > 0
-      AND cf.id_etu IS NULL
-      AND ranks.rang <= rq.nombre
-
-    ORDER BY ranks.rang ASC;';
-
-    $stmt = $connexion->prepare($sql);
-    $stmt->bind_param('s', $fac);
+    $stmt = $link->prepare($sql);
+    $stmt->bind_param('s', $lit);
     $stmt->execute();
+    $result = $stmt->get_result();
 
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+
+    if (!empty($data)) {
+        $etudiant = $data[0];
+
+        $quotaRow = getQuotaClasse($etudiant['niveauFormation'], $etudiant['sexe']);
+        $quota = (int) ($quotaRow['COUNT(*)'] ?? 0);
+
+        $statut = getOnestudentStatus(
+            $quota,
+            $etudiant['niveauFormation'],
+            $etudiant['sexe'],
+            $etudiant['num_etu']
+        );
+
+        $rang = (int) ($statut['rang'] ?? 0);
+
+        $data[0]['suppleant'] = ($rang > 0)
+            ? getOneSuppleantByTitulaire(
+                $quota,
+                $etudiant['niveauFormation'],
+                $etudiant['sexe'],
+                $rang
+            )
+            : null;
+    }
+
+    return $data;
+}
+
+function getPaiementWithDateInterval_3_old($date_debut, $date_fin, $username, $libelle = '', $page = 1, $limit = 20)
+{
+    global $connexion;
+
+    // Sécuriser les entrées
+    $date_debut = !empty($date_debut) ? mysqli_real_escape_string($connexion, $date_debut) : '2025-01-01';
+    $date_fin = !empty($date_fin) ? mysqli_real_escape_string($connexion, $date_fin) : date('Y-m-d');
+    $username = !empty($username) ? mysqli_real_escape_string($connexion, $username) : '';
+    $libelleFilter = $libelle;
+    $libelle = !empty($libelle) ? '%' . mysqli_real_escape_string($connexion, $libelle) . '%' : '';
+
+    // Calcul de l'offset
+    $page = max(1, (int) $page);
+    $limit = max(1, (int) $limit);
+    $offset = ($page - 1) * $limit;
+
+    // Construire la requête SQL principale
+    $sql = "SELECT ce.num_etu, ce.nom, ce.prenoms, pc.id_paie, pc.dateTime_paie, pc.montant, pc.an, 
+                   pc.id_val, pc.quittance, pc.username_user, pc.libelle 
+            FROM codif_etudiant ce 
+            JOIN codif_affectation a ON ce.id_etu = a.id_etu 
+            JOIN codif_validation vl ON a.id_aff = vl.id_aff 
+            JOIN codif_paiement pc ON pc.id_val = vl.id_val 
+            WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+
+    if (!empty($username)) {
+        $sql .= " AND pc.username_user = '$username'";
+    }
+
+    if (!empty($libelle)) {
+        if ($libelleFilter === 'LOYER') {
+            $sql .= " AND pc.libelle != 'CAUTION'";
+        } else {
+            $sql .= " AND pc.libelle LIKE '$libelle'";
+        }
+    }
+
+    $sql .= ' ORDER BY pc.dateTime_paie DESC, pc.quittance DESC, ce.nom ASC';
+    $sql .= " LIMIT $limit OFFSET $offset";
+
+    $result = $connexion->query($sql);
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+
+    // Calcul du montant total
+    $totalMontant = 0;
+
+    if (empty($libelleFilter)) {
+        $sqlTotal = "SELECT SUM(pc.montant) AS montantTotal 
+                     FROM codif_paiement pc
+                     JOIN codif_validation vl ON pc.id_val = vl.id_val
+                     WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+        if (!empty($username)) {
+            $sqlTotal .= " AND pc.username_user = '$username'";
+        }
+    } elseif ($libelleFilter === 'CAUTION') {
+        $sqlTotal = "SELECT COUNT(pc.montant) AS countPayments 
+                     FROM codif_paiement pc
+                     JOIN codif_validation vl ON pc.id_val = vl.id_val
+                     WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+        if (!empty($username)) {
+            $sqlTotal .= " AND pc.username_user = '$username'";
+        }
+        $sqlTotal .= " AND pc.libelle LIKE '%CAUTION%'";
+    } elseif ($libelleFilter === 'LOYER') {
+        $sqlTotal = "SELECT SUM(
+                        CASE 
+                        WHEN pc.libelle LIKE '%CAUTION%' 
+                        THEN pc.montant - 5000 
+                        ELSE pc.montant 
+                        END
+                     ) AS montantTotal
+                     FROM codif_paiement pc
+                     JOIN codif_validation vl ON pc.id_val = vl.id_val
+                     WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+        if (!empty($username)) {
+            $sqlTotal .= " AND pc.username_user = '$username'";
+        }
+        $sqlTotal .= " AND pc.libelle NOT LIKE 'CAUTION'";
+    }
+
+    $resultTotal = $connexion->query($sqlTotal);
+    if ($rowTotal = $resultTotal->fetch_assoc()) {
+        $totalMontant = isset($rowTotal['montantTotal'])
+            ? $rowTotal['montantTotal']
+            : (isset($rowTotal['countPayments']) ? $rowTotal['countPayments'] * 5000 : 0);
+    }
+
+    // Calcul du nombre total de lignes pour pagination
+    $sqlCount = "SELECT COUNT(*) AS totalRows 
+                 FROM codif_paiement pc
+                 JOIN codif_validation vl ON pc.id_val = vl.id_val
+                 WHERE pc.dateTime_paie >= '$date_debut' AND pc.dateTime_paie <= '$date_fin'";
+
+    if (!empty($username)) {
+        $sqlCount .= " AND pc.username_user = '$username'";
+    }
+
+    if (!empty($libelle)) {
+        if ($libelleFilter === 'LOYER') {
+            $sqlCount .= " AND pc.libelle != 'CAUTION'";
+        } else {
+            $sqlCount .= " AND pc.libelle LIKE '$libelle'";
+        }
+    }
+
+    $resultCount = $connexion->query($sqlCount);
+    $totalRows = $resultCount->fetch_assoc()['totalRows'];
+    $totalPages = ceil($totalRows / $limit);
+
+    return [
+        'data' => $data,
+        'totalMontant' => $totalMontant,
+        'page' => $page,
+        'limit' => $limit,
+        'totalRows' => $totalRows,
+        'totalPages' => $totalPages
+    ];
+}
+
+function getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libelle = '', $page = 1, $limit = 20)
+{
+    global $connexion;
+
+    $date_debut = !empty($date_debut)
+        ? mysqli_real_escape_string($connexion, $date_debut)
+        : '2025-01-01';
+
+    $date_fin = !empty($date_fin)
+        ? mysqli_real_escape_string($connexion, $date_fin)
+        : date('Y-m-d');
+
+    $username = !empty($username)
+        ? mysqli_real_escape_string($connexion, $username)
+        : '';
+
+    $libelleFilter = $libelle;
+
+    $libelle = !empty($libelle)
+        ? '%' . mysqli_real_escape_string($connexion, $libelle) . '%'
+        : '';
+
+    $page = max(1, (int)$page);
+    $limit = max(1, (int)$limit);
+    $offset = ($page - 1) * $limit;
+
+    $baseQuery = "
+    (
+        SELECT
+            ce.num_etu,
+            ce.nom,
+            ce.prenoms,
+            pc.id_paie,
+            pc.dateTime_paie,
+            pc.montant,
+            pc.an,
+            pc.id_val,
+            pc.quittance,
+            pc.username_user,
+            pc.libelle
+        FROM codif_etudiant ce
+        INNER JOIN codif_affectation a
+            ON ce.id_etu = a.id_etu
+        INNER JOIN codif_validation vl
+            ON a.id_aff = vl.id_aff
+        INNER JOIN codif_paiement pc
+            ON pc.id_val = vl.id_val
+
+        UNION ALL
+
+        SELECT
+            ce.num_etu,
+            ce.nom,
+            ce.prenoms,
+            pc.id_paie,
+            pc.dateTime_paie,
+            pc.montant,
+            pc.an,
+            pc.id_val,
+            pc.quittance,
+            pc.username_user,
+            pc.libelle
+        FROM codif_etudiant ce
+        INNER JOIN codif_paiement pc
+            ON pc.id_etu = ce.id_etu
+        WHERE pc.id_val IS NULL
+           OR pc.id_val = 0
+    ) p
+    ";
+
+    // =========================
+    // LISTE DES PAIEMENTS
+    // =========================
+
+    $sql = "
+    SELECT *
+    FROM $baseQuery
+    WHERE dateTime_paie >= '$date_debut'
+      AND dateTime_paie <= '$date_fin'
+    ";
+
+    if (!empty($username)) {
+        $sql .= " AND username_user = '$username'";
+    }
+
+    if (!empty($libelle)) {
+        if ($libelleFilter === 'LOYER') {
+            $sql .= " AND libelle <> 'CAUTION'";
+        } else {
+            $sql .= " AND libelle LIKE '$libelle'";
+        }
+    }
+
+    $sql .= "
+    ORDER BY dateTime_paie DESC,
+             quittance DESC,
+             nom ASC
+    LIMIT $limit OFFSET $offset
+    ";
+
+    $result = $connexion->query($sql);
+
+    $data = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+
+    // =========================
+    // TOTAL MONTANT
+    // =========================
+
+    $totalMontant = 0;
+
+    if (empty($libelleFilter)) {
+
+        $sqlTotal = "
+        SELECT SUM(montant) AS montantTotal
+        FROM $baseQuery
+        WHERE dateTime_paie >= '$date_debut'
+          AND dateTime_paie <= '$date_fin'
+        ";
+
+        if (!empty($username)) {
+            $sqlTotal .= " AND username_user = '$username'";
+        }
+
+    } elseif ($libelleFilter === 'CAUTION') {
+
+        $sqlTotal = "
+        SELECT COUNT(*) AS countPayments
+        FROM $baseQuery
+        WHERE dateTime_paie >= '$date_debut'
+          AND dateTime_paie <= '$date_fin'
+        ";
+
+        if (!empty($username)) {
+            $sqlTotal .= " AND username_user = '$username'";
+        }
+
+        $sqlTotal .= " AND libelle LIKE '%CAUTION%'";
+
+    } elseif ($libelleFilter === 'LOYER') {
+
+        $sqlTotal = "
+        SELECT
+        SUM(
+            CASE
+                WHEN libelle LIKE '%CAUTION%'
+                THEN montant - 5000
+                ELSE montant
+            END
+        ) AS montantTotal
+        FROM $baseQuery
+        WHERE dateTime_paie >= '$date_debut'
+          AND dateTime_paie <= '$date_fin'
+        ";
+
+        if (!empty($username)) {
+            $sqlTotal .= " AND username_user = '$username'";
+        }
+
+        $sqlTotal .= " AND libelle <> 'CAUTION'";
+    }
+
+    $resultTotal = $connexion->query($sqlTotal);
+
+    if ($rowTotal = $resultTotal->fetch_assoc()) {
+
+        if (isset($rowTotal['montantTotal'])) {
+            $totalMontant = $rowTotal['montantTotal'];
+        } elseif (isset($rowTotal['countPayments'])) {
+            $totalMontant = $rowTotal['countPayments'] * 5000;
+        }
+    }
+
+    // =========================
+    // TOTAL LIGNES
+    // =========================
+
+    $sqlCount = "
+    SELECT COUNT(*) AS totalRows
+    FROM $baseQuery
+    WHERE dateTime_paie >= '$date_debut'
+      AND dateTime_paie <= '$date_fin'
+    ";
+
+    if (!empty($username)) {
+        $sqlCount .= " AND username_user = '$username'";
+    }
+
+    if (!empty($libelle)) {
+
+        if ($libelleFilter === 'LOYER') {
+            $sqlCount .= " AND libelle <> 'CAUTION'";
+        } else {
+            $sqlCount .= " AND libelle LIKE '$libelle'";
+        }
+    }
+
+    $resultCount = $connexion->query($sqlCount);
+
+    $totalRows = $resultCount->fetch_assoc()['totalRows'];
+
+    $totalPages = ceil($totalRows / $limit);
+
+    return [
+        'data' => $data,
+        'totalMontant' => $totalMontant,
+        'page' => $page,
+        'limit' => $limit,
+        'totalRows' => $totalRows,
+        'totalPages' => $totalPages
+    ];
 }
 
 function getEtuNonAffByFac_3($fac)
@@ -6738,188 +7851,6 @@ function getEtuNonAffByFac_3($fac)
     $stmt->execute();
 
     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
-
-function getTitulaireAndSuppleantByFac($fac)
-{
-    // 1. récupérer les titulaires avec leurs lits
-    $titulaireRows = getLitValAndNotSuppByFac($fac);
-
-    $result = [];
-
-    foreach ($titulaireRows as $row) {
-        $num_etu = $row['num_etu'];
-        $classe = $row['niveauFormation'];
-        $sexe = $row['sexe'];
-
-        // 2. récupérer le quota pour cette classe/sexe
-        $quotaRow = getQuotaClasse($classe, $sexe);
-        $quota = intval($quotaRow['COUNT(*)']);
-
-        // 3. récupérer le statut + rang du titulaire
-        $dataStatut = getOnestudentStatus($quota, $classe, $sexe, $num_etu);
-
-        if (!$dataStatut) {
-            // étudiant introuvable dans le classement
-            continue;
-        }
-
-        $rangTitulaire = intval($dataStatut['rang']);
-
-        // 4. trouver le suppléant correspondant
-        $suppleant = getOneSuppleantByTitulaire($quota, $classe, $sexe, $rangTitulaire);
-
-        // 5. construire la ligne finale
-        $result[] = [
-            'lit' => $row['lit'],
-            'indiv' => $row['indiv'],
-            // titulaire
-            'titulaire' => [
-                'num_etu' => $row['num_etu'],
-                'nom' => $row['nom'],
-                'prenom' => $row['prenoms'],
-                'classe' => $classe,
-                'sexe' => $sexe,
-                'rang' => $rangTitulaire,
-            ],
-            // suppléant trouvé
-            'suppleant' => $suppleant ? [
-                'num_etu' => $suppleant['num_etu'],
-                'nom' => $suppleant['nom'],
-                'prenom' => $suppleant['prenoms'],
-                'classe' => $classe,
-                'sexe' => $sexe,
-                'rang' => $suppleant['rang']
-            ] : null
-        ];
-    }
-
-    usort($result, function ($a, $b) {
-        return $a['titulaire']['rang'] <=> $b['titulaire']['rang'];
-    });
-
-    return $result;
-}
-
-function getTitulaireAndSuppleantByFac2($fac)
-{
-    // 1. récupérer les titulaires avec leurs lits
-    $titulaireRows = getLitNonVal($fac);
-
-    $result = [];
-
-    foreach ($titulaireRows as $row) {
-        $num_etu = $row['num_etu'];
-        $classe = $row['niveauFormation'];
-        $sexe = $row['sexe'];
-
-        // 2. récupérer le quota pour cette classe/sexe
-        $quotaRow = getQuotaClasse($classe, $sexe);
-        $quota = intval($quotaRow['COUNT(*)']);
-
-        // 3. récupérer le statut + rang du titulaire
-        $dataStatut = getOnestudentStatus($quota, $classe, $sexe, $num_etu);
-
-        if (!$dataStatut) {
-            // étudiant introuvable dans le classement
-            continue;
-        }
-
-        $rangTitulaire = intval($dataStatut['rang']);
-
-        // 4. trouver le suppléant correspondant
-        $suppleant = getOneSuppleantByTitulaire($quota, $classe, $sexe, $rangTitulaire);
-
-        // 5. construire la ligne finale
-        $result[] = [
-            'lit' => $row['lit'],
-            // titulaire
-            'titulaire' => [
-                'num_etu' => $row['num_etu'],
-                'nom' => $row['nom'],
-                'prenom' => $row['prenoms'],
-                'classe' => $classe,
-                'sexe' => $sexe,
-                'rang' => $rangTitulaire,
-            ],
-            // suppléant trouvé
-            'suppleant' => $suppleant ? [
-                'num_etu' => $suppleant['num_etu'],
-                'nom' => $suppleant['nom'],
-                'prenom' => $suppleant['prenoms'],
-                'classe' => $classe,
-                'sexe' => $sexe,
-                'rang' => $suppleant['rang']
-            ] : null
-        ];
-    }
-    usort($result, function ($a, $b) {
-        return $a['titulaire']['rang'] <=> $b['titulaire']['rang'];
-    });
-
-    return $result;
-}
-
-function getAttributaireAndSuppleantByFac($fac)
-{
-    global $connexion;
-
-    $result = [];
-
-    $etuRows = getEtuNonAffByFac($fac);
-
-    foreach ($etuRows as $etu) {
-        $id_etu = $etu['id_etu'];
-        $num_etu = $etu['num_etu'];
-        $classe = $etu['niveauQuota'];
-        $sexe = $etu['sexe'];
-        $quota = intval($etu['nombre']);
-
-        // 4. statut + rang
-        $dataStatut = getOnestudentStatus($quota, $classe, $sexe, $num_etu);
-        if (!$dataStatut)
-            continue;
-
-        if ($dataStatut['statut'] !== 'Attributaire') {
-            continue;
-        }
-
-        $rangTitulaire = intval($dataStatut['rang']);
-
-        // 5. trouver suppléant
-        $suppleant = getOneSuppleantByTitulaire($quota, $classe, $sexe, $rangTitulaire);
-
-        // 6. push dans tableau
-        $result[] = [
-            'lit' => null,
-            'indiv' => null,
-            'titulaire' => [
-                'num_etu' => $etu['num_etu'],
-                'id_etu' => $etu['id_etu'],
-                'nom' => $etu['nom'],
-                'prenoms' => $etu['prenoms'],
-                'classe' => $classe,
-                'sexe' => $sexe,
-                'rang' => $rangTitulaire
-            ],
-            'suppleant' => $suppleant ? [
-                'num_etu' => $suppleant['num_etu'],
-                'id_etu' => $suppleant['id_etu'],
-                'nom' => $suppleant['nom'],
-                'prenoms' => $suppleant['prenoms'],
-                'classe' => $classe,
-                'sexe' => $sexe,
-                'rang' => $suppleant['rang']
-            ] : null
-        ];
-    }
-
-    //  TRIER PAR RANG DU TITULAIRE
-    usort($result, function ($a, $b) {
-        return $a['titulaire']['rang'] <=> $b['titulaire']['rang'];
-    });
-
-    return $result;
 }
 
 function getStatsByFacAndNiveau($fac, $sexe)
@@ -7052,6 +7983,7 @@ function getEtudiantsModal($fac, $niveau, $sexe)
         /* ===== STATUT ===== */
         CASE 
             WHEN cf.id_etu IS NOT NULL THEN 'Forclos(e)'
+            WHEN cl.statut IS NOT NULL THEN cl.statut
             WHEN rq.nombre IS NULL OR rq.nombre = 0 THEN 'Non Defini'
             WHEN r.rang <= rq.nombre THEN 'Attributaire'
             WHEN r.rang <= rq.nombre * 2 THEN 'Suppleant(e)'
@@ -7096,6 +8028,7 @@ function getEtudiantsModal($fac, $niveau, $sexe)
     LEFT JOIN codif_validation v ON v.id_aff = a.id_aff
     LEFT JOIN codif_paiement p ON p.id_val = v.id_val
     LEFT JOIN codif_loger l ON l.id_val = v.id_val OR l.id_paie = p.id_paie
+    LEFT JOIN codif_loger cl ON e.id_etu = cl.id_etu
 
     /* ===== FILTRES ===== */
     WHERE e.etablissement = ?
@@ -7115,5 +8048,522 @@ function getEtudiantsModal($fac, $niveau, $sexe)
     $stmt->execute();
 
     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function getDeuxEtudiantsFull($link, $num_etu1, $num_etu2)
+{
+    $sql = '
+        SELECT 
+            e.id_etu,
+            e.num_etu,
+            e.nom,
+            e.prenoms,
+            e.sexe,
+            e.telephone,
+            e.niveauFormation,
+            e.etablissement,
+
+            cc.id_aff,
+            cc.statut AS statut_affectation,
+
+            l.id_lit,
+            l.lit,
+
+            q.niveauFormation AS niveau_quota
+
+        FROM codif_etudiant e
+
+        LEFT JOIN codif_affectation cc 
+            ON cc.id_etu = e.id_etu
+
+        LEFT JOIN codif_lit l 
+            ON l.id_lit = cc.id_lit
+
+        LEFT JOIN codif_quota q 
+            ON q.id_lit_q = l.id_lit
+
+        WHERE e.num_etu IN (?, ?)
+    ';
+
+    $stmt = $link->prepare($sql);
+    $stmt->bind_param('ss', $num_etu1, $num_etu2);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+
+    $data = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $data[$row['num_etu']] = $row;
+    }
+
+    return $data;
+}
+
+function getStatistiquesToutesFacultes()
+{
+    global $connexion;
+
+    $sql = "
+    SELECT 
+        e.etablissement,
+
+        /* ================= AFFECTÉS ================= */
+        COUNT(DISTINCT CASE WHEN e.sexe = 'M' THEN a.id_etu END) AS affecte_garcon,
+        COUNT(DISTINCT CASE WHEN e.sexe = 'F' THEN a.id_etu END) AS affecte_fille,
+
+        /* ================= VALIDÉS ================= */
+        COUNT(DISTINCT CASE WHEN v.id_val IS NOT NULL AND e.sexe = 'M' THEN a.id_etu END) AS valide_garcon,
+        COUNT(DISTINCT CASE WHEN v.id_val IS NOT NULL AND e.sexe = 'F' THEN a.id_etu END) AS valide_fille,
+
+        /* ================= LOGÉS ================= */
+        COUNT(DISTINCT CASE WHEN p.id_paie IS NOT NULL AND e.sexe = 'M' THEN a.id_etu END) AS loge_garcon,
+        COUNT(DISTINCT CASE WHEN p.id_paie IS NOT NULL AND e.sexe = 'F' THEN a.id_etu END) AS loge_fille
+
+    FROM codif_etudiant e
+
+    LEFT JOIN codif_affectation a ON a.id_etu = e.id_etu
+    LEFT JOIN codif_validation v ON v.id_aff = a.id_aff
+    LEFT JOIN codif_paiement p ON p.id_val = v.id_val
+
+    GROUP BY e.etablissement
+    ORDER BY e.etablissement ASC
+    ";
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function getStatistiquesToutesFacultes_2()
+{
+    global $connexion;
+
+    $sql = "
+    SELECT 
+        e.etablissement,
+
+        /* STRUCTURE */
+        COUNT(DISTINCT l.chambre) AS nb_chambres,
+        COUNT(DISTINCT l.id_lit) AS nb_lits,
+
+        /* AFFECTÉS */
+        COUNT(DISTINCT CASE WHEN e.sexe = 'G' THEN a.id_etu END) AS affecte_garcon,
+        COUNT(DISTINCT CASE WHEN e.sexe = 'F' THEN a.id_etu END) AS affecte_fille,
+
+        /* VALIDÉS */
+        COUNT(DISTINCT CASE WHEN v.id_val IS NOT NULL AND e.sexe = 'G' THEN a.id_etu END) AS valide_garcon,
+        COUNT(DISTINCT CASE WHEN v.id_val IS NOT NULL AND e.sexe = 'F' THEN a.id_etu END) AS valide_fille,
+
+        /* LOGÉS */
+        COUNT(DISTINCT CASE WHEN p.id_paie IS NOT NULL AND e.sexe = 'G' THEN a.id_etu END) AS loge_garcon,
+        COUNT(DISTINCT CASE WHEN p.id_paie IS NOT NULL AND e.sexe = 'F' THEN a.id_etu END) AS loge_fille
+
+    FROM codif_etudiant e
+
+    LEFT JOIN codif_affectation a ON a.id_etu = e.id_etu
+    LEFT JOIN codif_lit l ON l.id_lit = a.id_lit
+    LEFT JOIN codif_validation v ON v.id_aff = a.id_aff
+    LEFT JOIN codif_paiement p ON p.id_val = v.id_val
+
+    GROUP BY e.etablissement
+    ORDER BY e.etablissement
+    ";
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function getStatsCampus()
+{
+    global $connexion;
+
+    $sql = "
+    SELECT 
+    campus,
+
+    COUNT(DISTINCT pavillon) AS nb_pavillons,
+    COUNT(DISTINCT chambre) AS nb_chambres,
+    COUNT(DISTINCT id_lit) AS nb_lits,
+
+    /* Lits par sexe */
+    COUNT(CASE WHEN sexe = 'G' THEN 1 END) AS lits_garcons,
+    COUNT(CASE WHEN sexe = 'F' THEN 1 END) AS lits_filles
+
+    FROM codif_lit
+
+    GROUP BY campus
+    ORDER BY campus
+    ";
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function faculteExisteDansDelai($connexion, $faculte)
+{
+    $sql = 'SELECT COUNT(*) as total FROM codif_delai WHERE faculte = ?';
+    $stmt = mysqli_prepare($connexion, $sql);
+    mysqli_stmt_bind_param($stmt, 's', $faculte);
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($result);
+
+    return $row['total'] > 0;
+}
+
+function etudiantAPaye($connexion, $numEtudiant)
+{
+    $sql = '
+        SELECT p.id_paie
+        FROM codif_etudiant e
+        JOIN codif_affectation a ON a.id_etu = e.id_etu
+        JOIN codif_validation v ON v.id_aff = a.id_aff
+        JOIN codif_paiement p ON p.id_val = v.id_val
+        WHERE e.num_etu = ?
+        LIMIT 1
+    ';
+
+    $stmt = mysqli_prepare($connexion, $sql);
+    mysqli_stmt_bind_param($stmt, 's', $numEtudiant);
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    if ($result && mysqli_num_rows($result) > 0) {
+        return true;  // paiement existe
+    } else {
+        return false;  // aucun paiement
+    }
+}
+
+function sommePaiementArrieres($connexion, $numEtudiant)
+{
+    $sql = "
+        SELECT COALESCE(SUM(p.montant), 0) AS total_arrieres
+        FROM codif_etudiant e
+        JOIN codif_affectation a ON a.id_etu = e.id_etu
+        JOIN codif_validation v ON v.id_aff = a.id_aff
+        JOIN codif_paiement p ON p.id_val = v.id_val
+        WHERE e.num_etu = ?
+        AND p.libelle = 'ARRIERES'
+    ";
+
+    $stmt = mysqli_prepare($connexion, $sql);
+    mysqli_stmt_bind_param($stmt, 's', $numEtudiant);
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($result);
+
+    return $row ? (float) $row['total_arrieres'] : 0;
+}
+
+function codificationAnneeSuivanteExiste($connexion, $faculte, $annee)
+{
+    try {
+        // Exemple : 2024_2025 => 2025_2026
+        $annees = explode('_', $annee);
+        $anneeSuivante = ($annees[0] + 1) . '_' . ($annees[1] + 1);
+
+        // Nom de la base suivante
+        $base = 'campuscoud';
+
+        // Paramètres de connexion
+        $serveur = 'localhost';
+        $user = 'root';
+        $pw = '';
+
+        // Connexion
+        $connexionCheck = mysqli_connect($serveur, $user, $pw);
+
+        if (!$connexionCheck) {
+            return false;
+        }
+
+        // Vérifier si la base existe
+        $checkDb = mysqli_query(
+            $connexionCheck,
+            "SHOW DATABASES LIKE '" . mysqli_real_escape_string($connexionCheck, $base) . "'"
+        );
+
+        if (!$checkDb || mysqli_num_rows($checkDb) == 0) {
+            mysqli_close($connexionCheck);
+            return false;
+        }
+
+        // Sélection de la base
+        if (!mysqli_select_db($connexionCheck, $base)) {
+            mysqli_close($connexionCheck);
+            return false;
+        }
+
+        // Vérification de la codification
+        $sql = "
+            SELECT id_delai
+            FROM codif_delai
+            WHERE LOWER(nature)='depart'
+            AND faculte='" . mysqli_real_escape_string($connexionCheck, $faculte) . "'
+            LIMIT 1
+        ";
+
+        $result = mysqli_query($connexionCheck, $sql);
+
+        if (!$result) {
+            mysqli_close($connexionCheck);
+            return false;
+        }
+
+        $existe = mysqli_num_rows($result) > 0;
+
+        mysqli_close($connexionCheck);
+
+        return $existe;
+    } catch (mysqli_sql_exception $e) {
+        // Mot de passe incorrect, utilisateur incorrect,
+        // serveur inaccessible, etc.
+        return false;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+function EtuAnneeSuivanteExiste($connexion, $num_etu, $annee)
+{
+    try {
+        // Exemple : 2024_2025 => 2025_2026
+        $annees = explode('_', $annee);
+        $anneeSuivante = ($annees[0] + 1) . '_' . ($annees[1] + 1);
+
+        // Nom de la base suivante
+        $base = 'campuscoud';
+
+        // Paramètres de connexion
+        $serveur = 'localhost';
+        $user = 'root';
+        $pw = '';
+
+        // Connexion
+        $connexionCheck = mysqli_connect($serveur, $user, $pw);
+
+        if (!$connexionCheck) {
+            return false;
+        }
+
+        // Vérifier si la base existe
+        $checkDb = mysqli_query(
+            $connexionCheck,
+            "SHOW DATABASES LIKE '" . mysqli_real_escape_string($connexionCheck, $base) . "'"
+        );
+
+        if (!$checkDb || mysqli_num_rows($checkDb) == 0) {
+            mysqli_close($connexionCheck);
+            return false;
+        }
+
+        // Sélection de la base
+        if (!mysqli_select_db($connexionCheck, $base)) {
+            mysqli_close($connexionCheck);
+            return false;
+        }
+
+        // Vérification de la codification
+        $sql = "
+            SELECT num_etu
+            FROM blacklist
+            WHERE num_etu='" . mysqli_real_escape_string($connexionCheck, $num_etu) . "'
+            LIMIT 1
+        ";
+
+        $result = mysqli_query($connexionCheck, $sql);
+
+        if (!$result) {
+            mysqli_close($connexionCheck);
+            return false;
+        }
+
+        $existe = mysqli_num_rows($result) > 0;
+
+        mysqli_close($connexionCheck);
+
+        return $existe;
+    } catch (mysqli_sql_exception $e) {
+        // Mot de passe incorrect, utilisateur incorrect,
+        // serveur inaccessible, etc.
+        return false;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+function getEtudiantsAttributairesNonAffectes($connexion, $faculte)
+{
+    $sql = '
+        SELECT e.*
+        FROM codif_etudiant e
+        WHERE e.etablissement = ?
+        AND NOT EXISTS (
+            SELECT 1
+            FROM codif_affectation a
+            WHERE a.id_etu = e.id_etu
+        )
+        ORDER BY e.nom, e.prenoms
+    ';
+
+    $stmt = mysqli_prepare($connexion, $sql);
+
+    if (!$stmt) {
+        return [];
+    }
+
+    mysqli_stmt_bind_param($stmt, 's', $faculte);
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    $etudiants = [];
+
+    // Cache pour éviter de recalculer plusieurs fois
+    $cacheStatuts = [];
+
+    while ($etudiant = mysqli_fetch_assoc($result)) {
+        $classe = $etudiant['niveauFormation'];
+        $sexe = $etudiant['sexe'];
+
+        $cle = $classe . '_' . $sexe;
+
+        if (!isset($cacheStatuts[$cle])) {
+            $quotaData = getQuotaClasse($classe, $sexe);
+
+            $quota = isset($quotaData['COUNT(*)'])
+                ? (int) $quotaData['COUNT(*)']
+                : 0;
+
+            $listeStatuts = getStatutStudentByQuota(
+                $quota,
+                $classe,
+                $sexe
+            );
+
+            foreach ($listeStatuts as $student) {
+                $cacheStatuts[$cle]['students'][$student['num_etu']] = $student;
+            }
+
+            $cacheStatuts[$cle]['quota'] = $quota;
+        }
+
+        if (
+            isset(
+                $cacheStatuts[$cle]['students'][$etudiant['num_etu']]
+            )
+        ) {
+            $studentStatus =
+                $cacheStatuts[$cle]['students'][$etudiant['num_etu']];
+
+            if ($studentStatus['statut'] === 'Attributaire') {
+                $etudiant['statut'] = 'Attributaire';
+                $etudiant['rang'] = $studentStatus['rang'];
+                $etudiant['quota'] = $cacheStatuts[$cle]['quota'];
+
+                $etudiants[] = $etudiant;
+            }
+        }
+    }
+
+    mysqli_stmt_close($stmt);
+
+    return $etudiants;
+}
+
+function getMontantArrierer($connexion, $numEtudiant)
+{
+    // Montant restant dans black_list
+    $sqlBlackList = 'SELECT reste_a_payer FROM black_list WHERE num_etu = ?';
+    $stmt = $connexion->prepare($sqlBlackList);
+    $stmt->bind_param('s', $numEtudiant);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $montantRestant = 0;
+
+    if ($row = $result->fetch_assoc()) {
+        $montantRestant = (float) $row['reste_a_payer'];
+    }
+
+    $stmt->close();
+
+    // Somme des paiements effectués
+    $sqlArrierer = '
+        SELECT COALESCE(SUM(montant_paye), 0) AS total_paye
+        FROM arrierer
+        WHERE num_etu = ?
+    ';
+
+    $stmt = $connexion->prepare($sqlArrierer);
+    $stmt->bind_param('s', $numEtudiant);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $totalPaye = 0;
+
+    if ($row = $result->fetch_assoc()) {
+        $totalPaye = (float) $row['total_paye'];
+    }
+
+    $stmt->close();
+
+    return $montantRestant + $totalPaye;
+}
+
+function getIsBlack_list($num_etu)
+{
+    global $connexion;
+    $studentValidate = "
+        SELECT 
+        black_list.*,
+        etu.*,
+        lit.*,
+        v.id_val AS valide,
+        aff.id_aff AS affect
+
+        FROM black_list
+        JOIN codif_etudiant etu
+        ON etu.num_etu COLLATE utf8mb4_unicode_ci = black_list.num_etu COLLATE utf8mb4_unicode_ci
+        LEFT JOIN codif_affectation aff ON etu.id_etu = aff.id_etu
+        LEFT JOIN codif_validation v ON v.id_aff = aff.id_aff
+        LEFT JOIN codif_lit lit ON lit.id_lit = aff.id_lit
+        WHERE black_list.num_etu COLLATE utf8mb4_unicode_ci =
+            '$num_etu'
+        ";
+    $infoValite = mysqli_query($connexion, $studentValidate);
+    $data = $infoValite->fetch_assoc();
+    return $data;
+}
+
+function getNbrsReduction($num_etu)
+{
+    global $connexion;
+
+    $sql = "SELECT nbr_mois 
+            FROM codif_reduction 
+            WHERE num_etu = ?";
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("s", $num_etu);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+
+    if ($row = $result->fetch_assoc()) {
+        return $row['nbr_mois'];
+    }
+
+    return 0;
 }
 ?>

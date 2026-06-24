@@ -1,12 +1,12 @@
-<?php session_start();  ?>  
+<?php session_start();   ?>  
 <html lang="en">
 
 <?php 
 
 include('../activite.php');
-include('head.html');
-include('../head2.php');
- 
+include('head.html'); 
+include('../head.php');
+
 ?>
 
 	<!--section id="homedesigne" class="s-homedesigne">
@@ -23,7 +23,7 @@ include('../head2.php');
             <div class="row contact__main">
             <div class="col-eight tab-full contact__form1">
                 <form name="contactForm" id="contactForm" method="post" action="mp2">
-<?php
+<?php  
 
 if (isset($_SERVER['HTTPS']) &&    ($_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] == 1) ||
     isset($_SERVER['HTTP_X_FORWARDED_PROTO']) &&

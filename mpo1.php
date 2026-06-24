@@ -86,6 +86,16 @@ window.onunload=function(){void(0)}
                     <div class="form-field">
                         <input name="numIdentite" required type="text" id="numIdentite" placeholder="Numero d'Identification Nationale" value="" class="full-width">
                     </div>
+                    
+                                            <div class="form-field">
+                                <select name="annee" id="annee" required class="full-width">
+                                    <option value="">-- Choisir l'année academique --</option>
+									
+<option value="2024_2025">2024_2025</option>
+<option value="2025_2026">2025_2026</option>
+                                  
+                                </select>
+                            </div>
 
 					
                     <div class="form-field">

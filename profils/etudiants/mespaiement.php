@@ -22,133 +22,121 @@ $id_etu=info($_SESSION['num_etu'])['15'];
 </head>
 
 <body>
-    <?php include('../../head.php'); ?>
-    <div class="container">
-        <?php
-        $montantLit = getPrixMensuelLit($_SESSION['num_etu']);
-        if (isIndivLitStudent($_SESSION['num_etu']) == "oui") {
-            $indiv = 'Lit individuel';
-        } else {
-            $indiv = 'Lit normal';
-        }
-        // Recuperation date debut codification du niveauFormation de l'etudiant
-        $rdate_debut = getAllDelai("depart", info($_SESSION['num_etu'])[5]);
-        $date_debut = dateFromat($rdate_debut['data_limite']);		
-		
-        // Calcul nombre de mois entre date debut et date systeme
-        $nbr_mois_systeme_debut = calcul_nbreMois($date_debut);
+ <?php
+    include('../../head.php'); ?>
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 
-        $tableau_situation_paye = getAllSituation($_SESSION['num_etu']);
-        $i = 0;
-       /* while ($situation = mysqli_fetch_array($tableau_situation_paye)) {
-            $libelle[$i] = $situation['libelle'];
-            $i++;
-            $_montant_restant = $situation['restant'];
-        }*/
-        if (isset($libelle)) {
-            global $nbr_mois_impaye;
-            $chaine_libelle = json_encode($libelle);
-            $chaine_libelle = str_replace(['[', ']', '"', 'CAUTION'], ' ', $chaine_libelle);
-            $nbr_mois_payer = countWords($chaine_libelle);
-            $nbr_mois_impaye = $nbr_mois_systeme_debut - $nbr_mois_payer;
-        } else {
-            global $nbr_mois_impaye;
-            $nbr_mois_payer = 0;
-            $nbr_mois_impaye = $nbr_mois_systeme_debut;
-        }
+<div class="container mt-4">
+
+    <?php
+$montantLit = getPrixMensuelLit($_SESSION['num_etu']);
+$indiv = (isIndivLitStudent($_SESSION['num_etu']) == "oui") ? 'Lit individuel' : 'Lit normal';
+
+$rdate_debut = getAllDelai("depart", info($_SESSION['num_etu'])[5]);
+$date_debut = dateFromat($rdate_debut['data_limite']);		
+$nbr_mois_systeme_debut = calcul_nbreMois($date_debut);
+$arr = getMontantArrierer($connexion, $_SESSION['num_etu']);
+
+if(verifCaution($id_etu)){
+    $totalfacture = ($montantLit * $nbr_mois_systeme_debut) + 5000 + $arr;
+} else {
+    $totalfacture = ($montantLit * $nbr_mois_systeme_debut + $arr);
+}
 
 
-        if (isset($_montant_restant)) {
-            global $_a_payer;
-            $_a_payer = $_montant_restant;
-        } else {
-            global $_a_payer;
-            $_a_payer = getMontantPaye($_SESSION['num_etu']);
-        }
-        ?>
-        <div class="row" style="margin-left:17%">
-            <div class="col-md-3" > <caption>Infos de facturation</caption>
-                <table class="table table-hover"> 
-                    <tr class="table-primary" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
-                        <td>Type de lit : <?= $indiv; ?> </td>
-                    </tr>
-					<tr class="table-info" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
-                        <td>Caution : 5000 F </td>
-                    </tr>
-                    <tr class="table-secondary" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
-                        <td>Mensualite : <?= $montantLit; ?> F</td>
-                    </tr>
-                    <tr class="table-info" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
-                        <td>Nbr de Mois facturés : <?= $nbr_mois_systeme_debut; ?></td>
-                    </tr>
-					<?php 
-					if(verifCaution($id_etu)){
-					$totalfacture=($montantLit*$nbr_mois_systeme_debut)+5000; } else {
-					$totalfacture=($montantLit*$nbr_mois_systeme_debut);    
-					}
-					
-					?>
-                    <tr class="table-primary" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
-                        <td>Total facturé : <?= $totalfacture; ?> F</td>
-                         </tr>
-						 <?php $totalpaye=0; if(getTotalPaye($_SESSION['num_etu'])){$totalpaye=getTotalPaye($_SESSION['num_etu']);}?>
-						 <tr class="table-secondary" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
-                        <td>Total Payé : <?= $totalpaye; ?> F</td>
-                         </tr>
-						 
-						 <?php $restant=0; $restant=$totalfacture-$totalpaye;
-						 if($restant>=0)
-						 {?>
-							 <tr class="table-info" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
-                        <td>Montant à payer : <?= $restant; ?> F</td>
-                         </tr>
-						 <?php
-						 }
-						  else
-						 {$restant=-$restant;
-							 ?>
-							 <tr class="table-info" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
-                        <td>Montant payé par Avance : <?= $restant; ?> F</td>
-                         </tr>
-						 <?php
-						 }						 
-						 ?>
 
-                    <!--<tr class="table-dark" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
-                        <td>SOLDE :</td>
-                    </tr> -->
-                </table>
-            </div>
-            <div class="col-md-6">  <caption>Historique des paiements</caption>
-                <table class="table table-hover" >
-                    <tr class="table-success" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
-                        <td>Qittance</td>
-                        <td>Date</td>
-                        <td>Libelle</td>
-                        <td>Montant</td>
-                        <!--td>Recu</td>
-                        <td>Restant</td-->
-                        <!--td>Agent ACP</td-->
-                    </tr>
-                    <?php while ($row = mysqli_fetch_array($tableau_data_etudiant)) {
-                    ?>
-                        <tr class="table-secondary" style="font-size: 14px;">
-                            <td><?= $row['quittance'] ?></td>
-                            <td><?= dateFromat($row['dateTime_paie']) ?></td>
-                            <td><?= $row['libelle'] ?></td>
-                            <td><?= $row['montant'] ?></td>
-                            <!--td><?php //$row['montant_recu'] ?></td>
-                            <td><?php //$row['restant'] ?></td>
-                            <td><?php //$row[2] ?></td-->
-                        </tr>
-                    <?php } ?>
-                </table>
+$totalpaye = getTotalPaye($_SESSION['num_etu']) ?? 0;
+$restant = $totalfacture - $totalpaye;
+?>
+
+    <div class="row g-4">
+
+        <!-- INFOS FACTURATION -->
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    Infos de facturation
+                </div>
+                <div class="card-body">
+                    <p><b>Type de lit :</b> <?= $indiv; ?>; <b>Caution :</b> 5000 F;
+                        <b>Mensualité :</b> <?= $montantLit; ?> F; <b>Mois facturés :</b>
+                        <?= $nbr_mois_systeme_debut; ?>
+                    </p>
+                    <hr>
+                    <p><b>Total facturé :</b> <?= $totalfacture; ?> F ; <b>Total payé :</b>
+                        <?= $totalpaye; ?> F</p>
+
+                    <?php if($restant >= 0): ?>
+                    <p class="text-danger"><b>À payer :</b> <?= $restant; ?> F</p>
+                    <?php else: ?>
+                    <p class="text-success"><b>Avance :</b> <?= abs($restant); ?> F</p>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
+
+        <!-- HISTORIQUE -->
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    Historique des paiements
+                </div>
+                <div class="card-body">
+
+                    <div class="table-responsive">
+                        <table id="tablePaiement" class="table table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Quittance</th>
+                                    <th>Date</th>
+                                    <th>Libellé</th>
+                                    <th>Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php while ($row = mysqli_fetch_array($tableau_data_etudiant)): ?>
+                                <tr>
+                                    <td><?= $row['quittance'] ?></td>
+                                    <td><?= date('d/m/Y', strtotime($row['dateTime_paie'])) ?></td>
+                                    <td><?= $row['libelle'] ?></td>
+                                    <td><?= $row['montant'] ?> F</td>
+                                </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
     </div>
-    <script src="../../assets/js/jquery-3.2.1.min.js"></script>
-    <script src="../../assets/js/plugins.js"></script>
-    <script src="../../assets/js/main.js"></script>
+</div>
+
+<!-- JS -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#tablePaiement').DataTable({
+        pageLength: 10,
+        order: [],
+        language: {
+            url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json"
+        }
+    });
+});
+</script>
+<style>
+#tablePaiement th,
+#tablePaiement td {
+    vertical-align: middle;
+    font-size: 12px;
+}
+</style>
 </body>
 
 </html>

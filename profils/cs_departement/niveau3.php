@@ -4,7 +4,7 @@ if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
     exit();
 }
 unset($_SESSION['classe']);
-include('../../traitement/fonction.php');
+include('../../traitement/fonction.php');  
 include('../../traitement/requete3.php');
 
 verif_type_mdp_2($_SESSION['username']);

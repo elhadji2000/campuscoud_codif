@@ -1,37 +1,39 @@
-<?php session_start();
+<?php
+session_start();
 
-include('../../traitement/fonction.php');
+include ('../../traitement/fonction.php');
 
 verif_type_mdp_2($_SESSION['username']);
 
 $pavillonDonne = $_SESSION['pavillon'];
 $result = getPaymentDetailsByPavillon1($pavillonDonne, $connexion);
-$expediteur = $pavillonDonne; 
+$expediteur = $pavillonDonne;
 $destinataire = getCampusByPavillon($connexion, $pavillonDonne);
 
 if (isset($_GET['alert']) && $_GET['alert'] == 'success') {
     echo "<script type='text/javascript'>alert('Rappel envoyé avec succès!');</script>";
 }
 if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['etudiant_id'])) {
-    $etudiant_id = intval($_GET['etudiant_id']); // Sanitize the input
-    
+    $etudiant_id = intval($_GET['etudiant_id']);  // Sanitize the input
+
     // Appeler la fonction de rappel
-    sms_recouvrement($etudiant_id, $pavillonDonne);	
-	
+    sms_recouvrement($etudiant_id, $pavillonDonne);
+
     rappel("Rappel envoyé avec succès pour l'étudiant ID: $etudiant_id", $etudiant_id, $connexion);
-    
+
     // Ajouter un message de confirmation (utilisation de session ou redirection)
     $message = "Rappel envoyé avec succès pour l'étudiant ID: $etudiant_id";
 
     // Rediriger vers la même page sans les paramètres GET
-    header("Location: " . strtok($_SERVER["REQUEST_URI"], '?') . "?success=true");
+    header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?') . '?success=true');
     exit();
 }
 
+// $aa = getNbreMois2("20220B09G");
+// var_dump($aa);
 
-
-
- //include('../../head.php'); ?>
+// include('../../head.php');
+?>
 
 
 <script>
@@ -66,6 +68,7 @@ function confirmRappel(form) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     <style>
     #floatingBtn {
         position: fixed;
@@ -79,7 +82,7 @@ function confirmRappel(form) {
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 26px;
+        font-size: 11px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         cursor: pointer;
         z-index: 1050;
@@ -151,9 +154,12 @@ function confirmRappel(form) {
         bottom: 0;
         background: white;
     }
+    table{
+        font-size:12px;
+    }
     </style>
 
-    <?php include('../../head.php'); ?>
+    <?php include ('../../head.php'); ?>
 </head>
 
 <body>
@@ -163,7 +169,7 @@ function confirmRappel(form) {
             CAMPUSCOUD
         </div>
 		
-		<?php //if (($_SESSION['profil'] == 'chef_residence')) { ?>
+		<?php // if (($_SESSION['profil'] == 'chef_residence')) { ?>
 		<nav class="header-nav-wrap">
       <ul class="header-nav">
           <li class="nav-item active">
@@ -180,7 +186,7 @@ function confirmRappel(form) {
         </li>
 		        </ul>
     </nav>
-        <?php //} ?>
+        <?php // } ?>
 		
     </header-->
     <!--section id="homedesigne" class="s-homedesigne">
@@ -200,7 +206,8 @@ function confirmRappel(form) {
                         <th scope="col">Chambre</th>
                         <th scope="col">Lit</th>
                         <th scope="col">Carte Etudiant</th>
-                        <th scope="col">Prenom et Nom</th>
+                        <th scope="col">Prenom</th>
+                        <th scope="col">Nom</th>
                         <th scope="col">Total Facturé</th>
                         <th scope="col">Total Payé</th>
                         <th scope="col">Montant Dû</th>
@@ -222,50 +229,53 @@ function confirmRappel(form) {
                         <th scope="row" rowspan="<?= $litCount ?>"><?= $counter ?></th>
                         <td rowspan="<?= $litCount ?>"><?= htmlspecialchars($currentChambre) ?></td>
                         <?php foreach ($chambreRows as $i => $litRow): ?>
-                        <?php 
-                                        // Vérification du statut du rappel pour chaque étudiant dans la ligne
-                                        $resteAPayer = (int)$litRow['reste_a_payer_total'];
-                                        $canRemind = false;
+                        <?php
+                        // Vérification du statut du rappel pour chaque étudiant dans la ligne
+                        $montant_facture_total= (int) $litRow['montant_facture_total'];
+                        $reste_a_payer_total= (int) $litRow['reste_a_payer_total'];
+                        $resteAPayer = (int) $litRow['reste_a_payer_total'];
+                        $canRemind = false;
 
-                                        // Vérification du montant restant à payer et de la date du dernier rappel
-                                        if ($resteAPayer >= 6000) {
-                                            if (!empty($litRow['rappel_envoye'])) {
-                                                $lastReminderDate = new DateTime($litRow['rappel_envoye']);
-                                                $currentDate = new DateTime();
-                                                $interval = $lastReminderDate->diff($currentDate);
+                        // Vérification du montant restant à payer et de la date du dernier rappel
+                        if ($resteAPayer >= 6000) {
+                            if (!empty($litRow['rappel_envoye'])) {
+                                $lastReminderDate = new DateTime($litRow['rappel_envoye']);
+                                $currentDate = new DateTime();
+                                $interval = $lastReminderDate->diff($currentDate);
 
-                                                // Si le dernier rappel a plus de 1 mois, autoriser le rappel
-                                                if ($interval->m >= 1) {
-                                                    $canRemind = true;
-                                                }
-                                            } else {
-                                                $canRemind = true;  // Si aucun rappel n'a été envoyé
-                                            }
-                                           if ($litRow['rappel_envoye'] === null 
-                                                || $litRow['rappel_envoye'] === "NULL"
-                                                || $litRow['rappel_envoye'] === "" 
-                                                || $litRow['rappel_envoye'] == "0000-00-00") {
-                                            $canRemind = true;
-                                            }
-
-                                        }
-                                        ?>
+                                // Si le dernier rappel a plus de 1 mois, autoriser le rappel
+                                if ($interval->m >= 1) {
+                                    $canRemind = true;
+                                }
+                            } else {
+                                $canRemind = true;  // Si aucun rappel n'a été envoyé
+                            }
+                            if ($litRow['rappel_envoye'] === null ||
+                                    $litRow['rappel_envoye'] === 'NULL' ||
+                                    $litRow['rappel_envoye'] === '' ||
+                                    $litRow['rappel_envoye'] == '0000-00-00') {
+                                $canRemind = true;
+                            }
+                        }
+                        ?>
                         <?php if ($i > 0): ?>
                     <tr>
                         <?php endif; ?>
                         <td><?= htmlspecialchars($litRow['lit']) ?></td>
-                        <td><?= htmlspecialchars($litRow['num_etu']) ?></td>
-                        <td><?= htmlspecialchars($litRow['etudiant_prenoms'] . " " . $litRow['etudiant_nom']) ?></td>
-                        <td><?= number_format($litRow['montant_facture_total'], 0, ',', ' ') ?> F CFA</td>
+                        <td><?= htmlspecialchars($litRow['num_etu'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($litRow['etudiant_prenoms']) ?>
+                        <td><?= htmlspecialchars($litRow['etudiant_nom']) ?>
+                        </td>
+                        <td><?= number_format($montant_facture_total, 0, ',', ' ') ?> F</td>
 
                         <td>
-                            <a
-                                href="details.php?id_etu=<?= urlencode($litRow['etudiant_id']) ?>&etu=<?= urlencode($litRow['num_etu']) ?>">
-                                <?= number_format($litRow['montant_paye_total'], 0, ',', ' ') ?> F CFA
+                            <a style="font-size:11px;" href="details.php?id_etu=<?= urlencode($litRow['etudiant_id']) ?>&etu=<?= urlencode($litRow['num_etu'] ?? '') ?>"
+                                >
+                                <?= number_format($litRow['montant_paye_total'], 0, ',', ' ') ?> F
                             </a>
                         </td>
 
-                        <td><?= number_format($litRow['reste_a_payer_total'], 0, ',', ' ') ?> F CFA</td>
+                        <td><?= number_format($reste_a_payer_total, 0, ',', ' ') ?> F</td>
                         <td>
                             <form method="GET" action="" onsubmit="return confirmRappel(this);">
                                 <input type="hidden" name="etudiant_id" value="<?= $litRow['etudiant_id'] ?>">
@@ -294,39 +304,42 @@ function confirmRappel(form) {
                         <th scope="row" rowspan="<?= $litCount ?>"><?= $counter ?></th>
                         <td rowspan="<?= $litCount ?>"><?= htmlspecialchars($currentChambre) ?></td>
                         <?php foreach ($chambreRows as $i => $litRow): ?>
-                        <?php 
-                                // Vérification du statut du rappel pour chaque étudiant dans la ligne
-                                $resteAPayer = (int)$litRow['reste_a_payer_total'];
-                                $canRemind = false;
+                        <?php
+                        // Vérification du statut du rappel pour chaque étudiant dans la ligne
+                        $montant_facture_total= (int) $litRow['montant_facture_total'];
+                        $reste_a_payer_total = (int) $litRow['reste_a_payer_total'];
+                        $resteAPayer = (int) $litRow['reste_a_payer_total'];
+                        $canRemind = false;
 
-                                if ($resteAPayer >= 6000) {
-                                    if (!empty($litRow['rappel_envoye'])) {
-                                        $lastReminderDate = new DateTime($litRow['rappel_envoye']);
-                                        $currentDate = new DateTime();
-                                        $interval = $lastReminderDate->diff($currentDate);
+                        if ($resteAPayer >= 6000) {
+                            if (!empty($litRow['rappel_envoye'])) {
+                                $lastReminderDate = new DateTime($litRow['rappel_envoye']);
+                                $currentDate = new DateTime();
+                                $interval = $lastReminderDate->diff($currentDate);
 
-                                        if ($interval->m >= 1) {
-                                            $canRemind = true;
-                                        }
-                                    } else {
-                                        $canRemind = true; // Si aucun rappel n'a été envoyé
-                                    }
+                                if ($interval->m >= 1) {
+                                    $canRemind = true;
                                 }
-                                ?>
+                            } else {
+                                $canRemind = true;  // Si aucun rappel n'a été envoyé
+                            }
+                        }
+                        ?>
                         <?php if ($i > 0): ?>
                     <tr>
                         <?php endif; ?>
                         <td><?= htmlspecialchars($litRow['lit']) ?></td>
                         <td><?= htmlspecialchars($litRow['num_etu']) ?></td>
-                        <td><?= htmlspecialchars($litRow['etudiant_prenoms'] . " " . $litRow['etudiant_nom']) ?></td>
-                        <td><?= number_format($litRow['montant_facture_total'], 0, ',', ' ') ?> F CFA</td>
+                         <td><?= htmlspecialchars($litRow['etudiant_prenoms']) ?>
+                        <td><?= htmlspecialchars($litRow['etudiant_nom']) ?>
+                        <td><?= number_format($montant_facture_total, 0, ',', ' ') ?> F</td>
                         <td>
-                            <a
-                                href="details.php?id_etu=<?= urlencode($litRow['etudiant_id']) ?>&etu=<?= urlencode($litRow['num_etu']) ?>">
-                                <?= number_format($litRow['montant_paye_total'], 0, ',', ' ') ?> F CFA
+                            <a style="font-size:11px;" href="details.php?id_etu=<?= urlencode($litRow['etudiant_id']) ?>&etu=<?= urlencode($litRow['num_etu']) ?>"
+                                >
+                                <?= number_format($litRow['montant_paye_total'], 0, ',', ' ') ?> F
                             </a>
                         </td>
-                        <td><?= number_format($litRow['reste_a_payer_total'], 0, ',', ' ') ?> F CFA</td>
+                        <td><?= number_format($reste_a_payer_total, 0, ',', ' ') ?> F</td>
                         <td>
                             <form method="GET" action="" onsubmit="return confirmRappel(this);">
                                 <input type="hidden" name="etudiant_id" value="<?= $litRow['etudiant_id'] ?>">
@@ -341,8 +354,9 @@ function confirmRappel(form) {
             </table>
         </center>
     </div>
-    <?php 
-     if ($_SESSION["var"] !== "RCR") {?>
+    <?php
+    if ($_SESSION['var'] == 'RCR') {
+        ?>
     <!-- Bouton flottant -->
     <div id="floatingBtn" data-bs-toggle="modal" data-bs-target="#infoModal">
         <i class="fas fa-comments">
@@ -361,7 +375,7 @@ function confirmRappel(form) {
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="infoModalLabel">💬 Instructions du chef de service</h5>
+                    <h5 class="modal-title" id="infoModalLabel"> Instructions du chef de service</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                         aria-label="Fermer"></button>
                 </div>
@@ -377,8 +391,8 @@ function confirmRappel(form) {
             </div>
         </div>
     </div>
-    <?php }?>
-    <?php //include('footer.php'); ?>
+    <?php } ?>
+    <?php // include('footer.php'); ?>
     <script src="../../assets/js/script.js"></script>
     <script src="../../assets/js/jquery-3.2.1.min.js"></script>
     <script src="../../assets/js/plugins.js"></script>
@@ -393,7 +407,7 @@ function confirmRappel(form) {
         let refreshInterval = null;
         const POLL_MS = 3000; // fréquence de rafraîchissement
 
-        // 🔹 Fonction pour charger les messages + badge
+        //  Fonction pour charger les messages + badge
         function loadMessages(scrollToBottom = false, fetchMessages = true) {
             $.get('getMessages.php', {
                 destinataire
@@ -402,15 +416,15 @@ function confirmRappel(form) {
                 const messages = result.messages || [];
                 const unreadCount = result.unreadCount ?? 0;
 
-                // ✅ Met à jour le badge (toujours visible)
+                //  Met à jour le badge (toujours visible)
                 const badge = $('#unreadCount');
                 badge.text(unreadCount);
                 badge.show(); // s'assure que le badge reste affiché
 
-                // 🟢 Si on veut juste le badge, on s'arrête ici
+                //  Si on veut juste le badge, on s'arrête ici
                 if (!fetchMessages) return;
 
-                // 🔹 Afficher les messages si besoin
+                //  Afficher les messages si besoin
                 if (messages.length !== lastMessageCount) {
                     $('#chatBox').empty();
 
@@ -428,7 +442,7 @@ function confirmRappel(form) {
                         </div>
                     `);
 
-                        // 🔹 Marquer comme lu les messages reçus
+                        //  Marquer comme lu les messages reçus
                         if (msg.destinataire === expediteur && msg.lu == 0) {
                             $.post('markAsRead.php', {
                                 id: msg.id
@@ -445,7 +459,7 @@ function confirmRappel(form) {
             });
         }
 
-        // 🔹 Envoi du message
+        //  Envoi du message
         function sendMessage() {
             const message = $('#messageInput').val().trim();
             if (message === '') return;
@@ -465,16 +479,16 @@ function confirmRappel(form) {
                         $('#sendBtn').prop('disabled', false);
                     }, 300);
                 } else {
-                    alert("❌ Erreur lors de l'envoi du message.");
+                    alert(" Erreur lors de l'envoi du message.");
                     $('#sendBtn').prop('disabled', false);
                 }
             }).fail(() => {
-                alert("⚠️ Une erreur réseau est survenue.");
+                alert(" Une erreur réseau est survenue.");
                 $('#sendBtn').prop('disabled', false);
             });
         }
 
-        // 🔹 Événements
+        //  Événements
         $('#sendBtn').click(sendMessage);
         $('#messageInput').keypress(e => {
             if (e.which === 13) {
@@ -483,7 +497,7 @@ function confirmRappel(form) {
             }
         });
 
-        // 🔹 Polling permanent pour le badge
+        //  Polling permanent pour le badge
         function startBackgroundPolling() {
             if (refreshInterval) return;
             loadMessages(false, false); // juste le badge
@@ -496,7 +510,7 @@ function confirmRappel(form) {
             refreshInterval = null;
         }
 
-        // 🔹 Gestion de la modale
+        //  Gestion de la modale
         $('#infoModal').on('shown.bs.modal', function() {
             stopBackgroundPolling(); // évite conflit
             loadMessages(true); // afficher le contenu

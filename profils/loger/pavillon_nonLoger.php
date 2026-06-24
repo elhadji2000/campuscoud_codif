@@ -67,7 +67,7 @@ verif_type_mdp_2($_SESSION['username']);
     </section-->
     <div class="container-fluid">
         <center>
-            <br><h2><u>LISTE DES ETUDIANTS QUI DOIVENT VENIR SE PRESENTER OBLIGATOIREMENT AU CHEF DE LA RESIDENCE <?= htmlspecialchars($pavillon) ?></u></h2><br>
+            <br><h2><u>VEUILLEZ INVITER CES ETUDIANTS DE LA RESIDENCE <?= htmlspecialchars($pavillon) ?> A SE PRESENTER POUR ENREGISTREMENT</u></h2><br>
          
         </center>
         <center>
@@ -107,7 +107,7 @@ verif_type_mdp_2($_SESSION['username']);
                      <?php }  ?>
                      
                     <?php  
-                   $niveauFormation= $lits[0]['niveauFormation'];  
+                   $niveauFormation= $lits[0]['niveauFormation']??"";  
                    ?>
                    
                    <!--td><?= htmlspecialchars($niveauFormation) ?></td-->

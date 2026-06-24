@@ -26,7 +26,7 @@ $result = getTotauxFacturesEtPaiements($campusDonnee, $connexion, $dateDebut, $d
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
      <link rel="stylesheet" href="../../assets/css/main.css">
     <link rel="stylesheet" href="../../assets/css/styles.css">
-    <link rel="stylesheet" href="./global.css">
+    <link rel="stylesheet" href="./global_2.css">
 </head>
 
 <body>

@@ -15,7 +15,12 @@ if (isset($_POST['numEtudiant'])) {
     if (getIsForclu($num_etu)) {
         $queryString = http_build_query(['data' => getIsForclu($num_etu)]);
         header('Location: validation.php?erreurForclo=Etudiant(e) Forclos(e) !!!&statut=Forclos(e)&' . $queryString);
-    } else {
+    } 
+    elseif(getIsBlack_list($num_etu)){
+         $queryString = http_build_query(['data' => getIsBlack_list($num_etu)]);
+        header('Location: validation.php?erreurForclo=Etudiant(e) avec arrierer!!!&statut=inconnu(e)&' . $queryString);
+    }
+    else {
         $dataStudentConnect = studentConnect($num_etu);
         if ($dataStudentConnect) {
             $moyenneStudentSearch = studentConnect($num_etu)['moyenne'];
@@ -35,7 +40,7 @@ if (isset($_POST['numEtudiant'])) {
                     }
                     if ($array['migration_status'] == 'Non migré') {
                         $queryString = http_build_query(['data' => $array]);
-                        header('location: validation.php?' . $queryString);
+                        header('location: validation.php?statut=Attributaire&' . $queryString);
                         exit();
                     } else {
                         $queryString = http_build_query(['data' => $array]);
@@ -73,7 +78,7 @@ if (isset($_POST['numEtudiant'])) {
                             }
                             if ($arraySuppleant['migration_status'] == 'Non migré') {
                                 $queryString = http_build_query(['data' => $arraySuppleant]);
-                                header('location: validation.php?erreurValider=Lit Suppleant(e) non encore validé !!!&' . $queryString);
+                                header('location: validation.php?erreurValider=Lit Suppleant(e) non encore validé !!!&statut=Suppleant(e)&' . $queryString);
                                 exit();
                             } else {
                                 $queryString = http_build_query(['data' => $arraySuppleant]);
@@ -111,25 +116,46 @@ if (isset($_POST['numEtudiant'])) {
 
 if (isset($_POST['valide'])) {
     try {
-        $id_aff = $_POST['valide'];
-        $user = $_SESSION['username'];
-        // Appel de la fonction d'enregistrement de la validation du lit
+        $id_aff  = $_POST['valide'];
+        $num_etu = $_POST['num_etu'];
+        $tel     = $_POST['tel_tuteur'] ?? null; // récupération téléphone
+        $user    = $_SESSION['username'];
+
+        //  1. Mise à jour du téléphone (si rempli)
+        if (!empty($tel)) {
+            $tel = trim($tel);
+
+            // sécurisation (optionnel mais conseillé)
+            $tel = mysqli_real_escape_string($connexion, $tel);
+            $num_etu = mysqli_real_escape_string($connexion, $num_etu);
+
+            $sqlTel = "UPDATE codif_etudiant 
+                       SET tel_tuteur = '$tel' 
+                       WHERE num_etu = '$num_etu'";
+
+            mysqli_query($connexion, $sqlTel);
+        }
+
+        //  2. Validation normale (ta logique existante)
         $requete = setValidation($id_aff, $user);
-        print_r($requete);
+
         if ($requete == 1) {
             header('Location: validation.php?successValider=Codification validee avec success !!!');
+            exit();
         }
+
     } catch (mysqli_sql_exception $e) {
-        header('Location: validation.php?erreurValider=Etudiant déja valider !!!');
+        header('Location: validation.php?erreurValider=Etudiant déjà validé !!!');
+        exit();
     }
 } elseif (isset($_POST['idLit']) && isset($_POST['id_etu'])) {
-    $idLit = $_POST['idLit'];
+    $idLit = (int)$_POST['idLit'];
     $idEtudiantSuppleant = $_POST['id_etu'];
     $numEtudiantSuppleant = $_SESSION['numEtudiantSuppleant'];
     // Affecter le lit du titulaire à son Suppleant(e)
     $estAffecte = isAffecte($idEtudiantSuppleant);
 
-    if ($estAffecte === true) {
+    if ($estAffecte == true) {
         // Déjà affecté → on considère l'opération comme réussie
         $resultatAffectationSuppleant = true;
     } else {
@@ -138,7 +164,7 @@ if (isset($_POST['valide'])) {
     }
 
     // $resulotatAffectationSuppleant = addAffectationOnSuppleant($idLit, $idEtudiantSuppleant);
-    if ($resulotatAffectationSuppleant == 1) {
+    if ($resultatAffectationSuppleant == 1) {
         $dataSuppleantAffectation = getOneByAffectation($numEtudiantSuppleant);
         $user = $_SESSION['username'];
         if (mysqli_num_rows($dataSuppleantAffectation) > 0) {

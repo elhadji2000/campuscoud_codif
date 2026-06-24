@@ -1,4 +1,5 @@
-<?php session_start();
+<?php
+session_start();
 if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
     header('Location: /campuscoud.com/');
     exit();
@@ -7,11 +8,11 @@ if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
 //     header('location: /campuscoud.com/profils/personnels/niveau.php');
 //     exit();
 // }
-//connexion à la base de données
-include('../../traitement/fonction.php');
+// connexion à la base de données
+include ('../../traitement/fonction.php');
 connexionBD();
 // Sélectionnez les options à partir de la base de données avec une pagination
-include('../../traitement/requete.php');
+include ('../../traitement/requete.php');
 
 verif_type_mdp_2($_SESSION['username']);
 
@@ -57,7 +58,7 @@ if (isset($_GET['erreurForclo'])) {
     <link rel="stylesheet" href="../../assets/bootstrap/js/bootstrap.bundle.min.js">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-<?php include('../../head.php'); ?>
+<?php include ('../../head.php'); ?>
 </head>
 
 <body>
@@ -69,7 +70,7 @@ if (isset($_GET['erreurForclo'])) {
             CAMPUSCOUD
         </div>
 		
-		<?php //if (($_SESSION['profil'] == 'chef_residence')) { ?>
+		<?php // if (($_SESSION['profil'] == 'chef_residence')) { ?>
 		<nav class="header-nav-wrap">
       <ul class="header-nav">
           <li class="nav-item active">
@@ -86,7 +87,7 @@ if (isset($_GET['erreurForclo'])) {
         </li>
 		        </ul>
     </nav>
-        <?php //} ?>
+        <?php // } ?>
 		
     </header-->
 	
@@ -126,7 +127,7 @@ if (isset($_GET['erreurForclo'])) {
             <form action="requestLoger.php" method="POST" style="display: flex;justify-content: center">
                 <div class="row">
                     <div class="col-md-10">
-                        <input id="numEtudiant" name="numEtudiant" type="text" class="form-control" placeholder="NUMERO CARTE ETUDIANT" oninput="checkInput()" onblur="validateInput()">
+                        <input id="numEtudiant" name="numEtudiant" type="text" class="form-control" placeholder="NUMERO CARTE ETUDIANT"  onblur="validateInput()">
                         <script>
                             // Sélectionner l'élément input
                             var inputElement = document.getElementById('numEtudiant');
@@ -163,10 +164,10 @@ if (isset($_GET['erreurForclo'])) {
                     if (isset($_GET['data'])) {
                         $data = $_GET['data'];
                         if ((isset($_GET['statut']) && $_GET['statut'] == 'Suppleant(e)') || (isset($_GET['statut']) && $_GET['statut'] == 'Forclos(e)')) {
-							
-							$info = info($data['num_etu']);  $id_etu = $info[15]; 
-							
-                    ?>
+                            $info = info($data['num_etu']);
+                            $id_etu = $info[15];
+
+                            ?>
                             <form action="requestLoger.php" method="POST">
                                 <div class="row" style="display: flex;justify-content: center;color:black;">
                                     <div class="col-md-4 mb-3">
@@ -213,17 +214,17 @@ if (isset($_GET['erreurForclo'])) {
                                 </div>
                                 <div class="row" style="display: flex;justify-content: center;color:black;">
                                     <div class="col-md-4 mb-3">
-                                        <input class="form-control" placeholder="Validé le : <?= dateFromat($data['dateTime_val']);  ?>" disabled>
+                                        <input class="form-control" placeholder="Validé le : <?= dateFromat($data['dateTime_val']); ?>" disabled>
                                     </div>
                                     <!--div class="col-md-4 mb-3">
-                                        <input class="form-control" placeholder="Logé le : <?= dateFromat($data['dateTime_loger']);  ?>" disabled>
+                                        <input class="form-control" placeholder="Logé le : <?= dateFromat($data['dateTime_loger']); ?>" disabled>
                                     </div-->
                                 </div>
                             <?php } ?>
-                            <?php   //echo $data['etat_id_val']; echo $_GET['statut'];
-                            if (((isset($data['etat_id_val']) ) && $data['etat_id_val']== "Migré") || (isset($_GET['statut']) && $_GET['statut'] == "Forclos(e)")) {
-                            //if (((isset($data['id_val']) ) && $data['id_val']> 0) || (isset($_GET['statut']) && $_GET['statut'] == "Forclos(e)")) {
-							?>
+                            <?php  // echo $data['etat_id_val']; echo $_GET['statut'];
+                            if (((isset($data['etat_id_val'])) && $data['etat_id_val'] == 'Migré') || (isset($_GET['statut']) && $_GET['statut'] == 'Forclos(e)')) {
+                                // if (((isset($data['id_val']) ) && $data['id_val']> 0) || (isset($_GET['statut']) && $_GET['statut'] == "Forclos(e)")) {
+                                ?>
                                 <div class="row" style="display: flex;justify-content: center;color:black;">
                                     <div class="col-md-4 mb-3">
                                         <a class="btn btn-secondary" href="/campuscoud.com/profils/loger/loger.php" type="button">RETOUR</a>
@@ -231,9 +232,7 @@ if (isset($_GET['erreurForclo'])) {
                                 </div>
                             <?php
                             } else {
-								
-								
-                            ?>
+                                ?>
 													
 							
 							
@@ -305,43 +304,48 @@ if (isset($_GET['erreurForclo'])) {
                                 
                                 <?php
                                 if ($data['etat_id_paie'] == 'Migré') {
-                                ?>
+                                    ?>
 								<div class="row" style="display: flex;justify-content: center;color:black;">
                                     <div class="col-md-4 mb-3">
-									<?php $date=$data['dateTime_val'];$date=changedateusfr($date); ?>
-                                        <input class="form-control" placeholder="Validé le <?= $date  ?>" disabled>
+									<?php $date = $data['dateTime_val'];
+                                    $date = changedateusfr($date); ?>
+                                        <input class="form-control" placeholder="Validé le <?= $date ?>" disabled>
                                     </div>
                                     <div class="col-md-4">
-									<?php $date=$data['dateTime_paie'];$date=changedateusfr($date); ?>
-                                        <input class="form-control" placeholder="A payé <?= $data['montant']?>F le <?= $date ?>" disabled>
+									<?php $date = $data['dateTime_paie'];
+                                    $date = changedateusfr($date); ?>
+                                        <input class="form-control" placeholder="A payé <?= $data['montant'] ?>F le <?= $date ?>" disabled>
                                     </div>
                                 </div>
                                     <div class="row" style="display: flex;justify-content: center;color:black;">
                                         <div class="col-md-4 mb-3">
-										<?php $date=$data['dateTime_paie'];$date=changedateusfr($date); ?>
-                                            <input class="form-control" placeholder="A été logé le <?= $date;  ?> par l'agent <?= $data['username_user'] ?>" disabled>
+										<?php $date = $data['dateTime_paie'];
+                                        $date = changedateusfr($date); ?>
+                                            <input class="form-control" placeholder="A été logé le <?= $date; ?> par l'agent <?= $data['username_user'] ?>" disabled>
                                         </div>
                                     </div>
                                     <a class="btn btn-secondary" href="/campuscoud.com/profils/loger/loger.php" type="button">RETOUR</a>
                                 <?php
-                                } else {  
+                                } else {
                                 ?>
 								
-								    <?php if (getIdPay($data['id_etu'])!=0) { ?>		
+								    <?php if (getIdPay($data['id_etu']) != 0) { ?>		
                                
 									  <div class="row" style="display: flex;justify-content: center;color:black;">
                                     <div class="col-md-4 mb-3">
-									<?php $date=$data['dateTime_val'];$date=changedateusfr($date); ?>
-                                        <input class="form-control" placeholder="Validé le <?= $date  ?>" disabled>
+									<?php $date = $data['dateTime_val'];
+                                    $date = changedateusfr($date); ?>
+                                        <input class="form-control" placeholder="Validé le <?= $date ?>" disabled>
                                     </div>
                                     <!--div class="col-md-4">
-									<?php $date=$data['dateTime_paie'];$date=changedateusfr($date); ?>
-                                        <input class="form-control" placeholder="A payé <?php // echo $data['montant']; ?>F le <?php //echo $date; ?>" disabled>
+									<?php $date = $data['dateTime_paie'];
+                                    $date = changedateusfr($date); ?>
+                                        <input class="form-control" placeholder="A payé <?php // echo $data['montant']; ?>F le <?php // echo $date; ?>" disabled>
                                     </div-->
                                 </div>
 								
 								
-								<?php $tableau_data_etudiant = getAllSituation($data['num_etu']);  ?>
+								<?php $tableau_data_etudiant = getAllSituation($data['num_etu']); ?>
 								
 									<div class="col-md-8" style="margin-left:17%">
                                     <table align='center' class="table table-hover">
@@ -354,15 +358,16 @@ if (isset($_GET['erreurForclo'])) {
                                             <td>Restant</td-->
                                             <td>Agent ACP</td>
                                         </tr>
-                                        <?php while ($row = mysqli_fetch_array($tableau_data_etudiant)) {
-                                        ?>
+                                        <?php
+                                        while ($row = mysqli_fetch_array($tableau_data_etudiant)) {
+                                            ?>
                                             <tr class="table" style="font-size: 14px; background-color: rgba(50, 115, 220, 0.1) ;">
                                                 <td><?= $row['quittance'] ?></td>
                                                 <td><?= dateFromat($row['dateTime_paie']) ?></td>
                                                 <td><?= $row['libelle'] ?></td>
                                                 <td><?= $row['montant'] ?></td>
-                                                <!--td><?php //$row['montant_recu'] ?></td>
-                                                <td><?php //$row['restant'] ?></td-->
+                                                <!--td><?php // $row['montant_recu'] ?></td>
+                                                <td><?php // $row['restant'] ?></td-->
                                                 <td><?= $row[2] ?></td>
                                             </tr>
                                         <?php } ?>
@@ -370,11 +375,11 @@ if (isset($_GET['erreurForclo'])) {
                                 </div>
 									
                                     <button class="btn btn-success" type="button" data-toggle="modal" data-target="#confirmationModal">LOGER</button>
-									<?php 
-$id_etu=$data['id_etu'];
-$id_paie=getIdPay($id_etu); 
+									<?php
+                                    $id_etu = $data['id_etu'];
+                                    $id_paie = getIdPay($id_etu);
 
-										?>
+                                    ?>
                                         <input class="form-control" name="valide" value="<?= $id_paie ?>" style="visibility: hidden;">
 										<input class="form-control" name="id_etu" value="<?= $id_etu ?>" style="visibility: hidden;">
 									
@@ -382,8 +387,9 @@ $id_paie=getIdPay($id_etu);
 									
 									<div class="row" style="display: flex;justify-content: center;color:black;">
                                     <div class="col-md-4 mb-3">
-									<?php $date=$data['dateTime_val'];$date=changedateusfr($date); ?>
-                                        <input class="form-control" placeholder="Validé le <?= $date  ?>" disabled>
+									<?php $date = $data['dateTime_val'];
+                                    $date = changedateusfr($date); ?>
+                                        <input class="form-control" placeholder="Validé le <?= $date ?>" disabled>
                                     </div>
 									 <div class="col-md-4 mb-3">
 									
@@ -392,7 +398,8 @@ $id_paie=getIdPay($id_etu);
                                 </div>
 								<a class="btn btn-secondary" href="/campuscoud.com/profils/loger/loger.php" type="button">RETOUR</a>
 									
-									<?php }} ?>
+									<?php }
+                                } ?>
                                 <!-- Modal -->
                                 <div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" -labelledby="confirmationModalLabel" aria-hidden="true">
                                     <div class="modal-dialog" role="document">

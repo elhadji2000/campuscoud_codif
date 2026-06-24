@@ -1,11 +1,11 @@
 <?php
 session_start();
 if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
-    header('Location: /campuscoud/');
+    header('Location: /campuscoud.com/');
     exit();
 }
 if (empty($_SESSION['classe'])) {
-    header('location: niveau3.php');
+    header('location: niveau3.php'); 
     exit();
 }
 

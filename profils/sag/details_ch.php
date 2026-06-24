@@ -70,7 +70,7 @@ $lits = getLitParChambre($link, $numch);
                     <tbody>
                         <?php if (empty($numch)) : ?>
                         <tr>
-                            <td colspan="5" style="text-align:center;">
+                            <td colspan="8" style="text-align:center;">
                                 Veuillez entrer un numéro de chambre pour lancer la recherche.
                             </td>
                         </tr>
@@ -107,7 +107,7 @@ $lits = getLitParChambre($link, $numch);
                         <?php endforeach; ?>
                         <?php else : ?>
                         <tr>
-                            <td colspan="4" style="text-align:center;">
+                            <td colspan="8" style="text-align:center;">
                                  Aucun lit trouvé pour la chambre <?= htmlspecialchars($numch); ?>.
                             </td>
                         </tr>

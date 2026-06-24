@@ -62,25 +62,6 @@ if (empty($suppleant)) {
 }
 mysqli_begin_transaction($connexion);
 try {
-
-     /* ===============================
-       2. Vérifier si le suppléant existe en DB
-    =============================== */
-
-    if ($suppleant) {
-        // Supprimer l'entrée existante
-        $stmt = mysqli_prepare($connexion, 'DELETE FROM codif_etudiant WHERE id_etu = ?');
-        mysqli_stmt_bind_param($stmt, 'i', $suppleant['id_etu']);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
-
-        // $suppleant = $suppleantDB;
-    } else {
-        $_SESSION['message'] = 'suppleant introuvable';
-        $_SESSION['message_type'] = 'danger';
-        header('Location: remplacer.php');
-        exit();
-    }
     /* ===============================
       1. Mettre à jour le niveauFormation du titulaire
    =============================== */
@@ -113,6 +94,24 @@ try {
     $etudiant = studentConnect($numero);
     $idTitulaire = intval($etudiant['id_etu']);
 
+    /* ===============================
+       2. Vérifier si le suppléant existe en DB
+    =============================== */
+
+    if ($suppleant) {
+        // Supprimer l'entrée existante
+        $stmt = mysqli_prepare($connexion, 'DELETE FROM codif_etudiant WHERE id_etu = ?');
+        mysqli_stmt_bind_param($stmt, 'i', $suppleant['id_etu']);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+
+        // $suppleant = $suppleantDB;
+    } else {
+        $_SESSION['message'] = 'suppleant introuvable';
+        $_SESSION['message_type'] = 'danger';
+        header('Location: remplacer.php');
+        exit();
+    }
 
     /* ===============================
        3. Mise à jour du titulaire avec le suppléant
@@ -169,7 +168,7 @@ try {
 
     mysqli_stmt_execute($stmt);
     mysqli_stmt_close($stmt);
-    // POUR VALIDATION DU LIT
+    // POUR VALIDATION DU LIT ET ENVOI DU SMS
     $validation = setValidation($id_aff, $id_user);
     $sms = sms_nv_attributaire($num_etu);
 

@@ -10,17 +10,16 @@ include('../../traitement/fonction.php');
 
 $connexion = connexionBD(); 
 
-//sms_attributaires('20230BM1I');
-
+//sms_attributaires('20250DFNQ');
 //sms_suppleants('20220B8LB') ;
 
-sms_nv_attributaire('20240CYV6'); 
+sms_nv_attributaire('20240CSQ0'); 
 				
 //sms_nv_suppleant('20210ASYL'); 
-
-echo isIndivLitStudent('20200A5C8');
-echo getPrixMensuelLit('20200A5C8');
-echo getFacturation(true)['montant'];
+//sms_retours_suppleant('20210ASYL'); 
+//echo isIndivLitStudent('20200A5C8');
+//echo getPrixMensuelLit('20200A5C8');
+//echo getFacturation(true)['montant'];
 
 ?>
 </html>

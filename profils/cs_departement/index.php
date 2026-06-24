@@ -3,18 +3,68 @@
 include('../../traitement/fonction.php');
 
 verif_type_mdp_2($_SESSION['username']);
-$pavillons = getAllPavillons($connexion);
-$pavillonDonne = isset($_GET["pavillon"]) ? $_GET["pavillon"] : htmlspecialchars($pavillons[0]);
-$result = getPaymentDetailsByPavillon1($pavillonDonne, $connexion);
 
-// Regrouper les lits par chambre
-$chambres = [];
-foreach ($result as $row) {
-    $chambres[$row['chambre']][] = $row;
+$etudiant = null;
+
+if (isset($_GET["numCarte"])) {
+    $numCarte = $_GET["numCarte"];
+    $etudiant = studentConnect2($numCarte); // Doit retourner un tableau ou null
+
+if ($etudiant && is_array($etudiant)) {
+    $quota = getQuotaClasse($etudiant['niveauFormation'], $etudiant['sexe'])['COUNT(*)'] ?? 0;
+
+    $statut = getOnestudentStatus(
+        $quota,
+        $etudiant['niveauFormation'],
+        $etudiant['sexe'],
+        $numCarte
+    );
+}
 }
 
 
- //include('../../head.php'); ?>
+if (isset($_GET["suppr"])) {
+    $numCarte = $_GET["suppr"];
+    $req = " DELETE FROM codif_etudiant WHERE num_etu='$numCarte'";
+    $result = $connexion->prepare($req);
+    $result->execute(); 
+    echo"<script>alert('etudiant supprimer avec success');
+    window.location.href = 'etudiant';
+    </script>";
+    
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Vérifier si toutes les données requises sont présentes
+    if (isset($_POST["num_etu"], $_POST["prenoms"], $_POST["nom"], $_POST["telephone"], $_POST["lieuNaissance"], 
+              $_POST["dateNaissance"], $_POST["etablissement"], $_POST["departement"], 
+              $_POST["niveauFormation"], $_POST["moyenne"], $_POST["numIdentite"], $_POST["sexe"])) {
+
+        // Récupération des données
+        $num_etu = $_POST["num_etu"];
+        $prenoms = $_POST["prenoms"];
+        $nom = $_POST["nom"];
+        $telephone = $_POST["telephone"];
+        $lieuNaissance = $_POST["lieuNaissance"];
+        $dateNaissance = $_POST["dateNaissance"];
+        $etablissement = $_POST["etablissement"];
+        $departement = $_POST["departement"];
+        $niveauFormation = $_POST["niveauFormation"];
+        $moyenne = $_POST["moyenne"];
+        $numIdentite = $_POST["numIdentite"];
+        $sexe = $_POST["sexe"];
+        
+
+        // Enregistrement de l'étudiant
+        enregistrerEtudiant($connexion, $num_etu, $prenoms, $nom, $telephone, $lieuNaissance, $dateNaissance, 
+                            $etablissement, $departement, $niveauFormation, $moyenne, $numIdentite, $sexe);
+    } else {
+        echo "Tous les champs du formulaire doivent être remplis.";
+    }
+}
+
+
+ ?>
 
 
 <!DOCTYPE html>
@@ -34,192 +84,302 @@ foreach ($result as $row) {
     <link rel="stylesheet" href="../../assets/bootstrap/js/bootstrap.min.js">
     <link rel="stylesheet" href="../../assets/bootstrap/js/bootstrap.bundle.min.js">
     <link rel="stylesheet" href="../../assets/css/base.css" />
+    <link rel="stylesheet" href="../../assets/css/login.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <?php include('../../head.php'); ?>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        crossorigin="anonymous" />
+
     <style>
-    select.pavillon {
-        width: 250px;
-        /* Ajuste la largeur */
-        height: 50px;
-        /* Augmente la hauteur */
+    /* Amélioration des champs de saisie */
+    .form-control {
+        background-color: rgba(161, 187, 228, 0.1);
         font-size: 16px;
-        /* Augmente la taille du texte si nécessaire */
-        padding: 5px;
-        /* Ajoute un peu d’espace à l’intérieur */
+        height: 60px;
+    }
+
+    .form-control:focus {
+        border-color: #007bff;
+        outline: none;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    }
+
+    /* Centrage et style du conteneur */
+    .container {
+        max-width: 800px;
+        margin: 30px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .container-fluid {
+        max-width: 100%;
+        margin: 30px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Style du tableau */
+    table {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .table th,
+    .table td {
+        text-align: center;
+        vertical-align: middle;
+        font-size: 13px;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    /* Message d'erreur */
+    .alert {
+        font-size: 18px;
+        text-align: center;
+        padding: 15px;
+        margin-top: 20px;
+    }
+
+    /* Style des boutons */
+    .btn-custom {
+        font-size: 14px;
+        padding: 10px 15px;
         border-radius: 5px;
-        /* Arrondi les bords */
+        transition: all 0.3s ease-in-out;
     }
 
-    .row {
-        display: flex;
-        align-items: center;
-        /* Aligne les éléments verticalement */
-        gap: 10px;
-        /* Réduit l’espace entre les éléments */
-    }
-
-    .col-5 {
-        flex: none;
-        /* Empêche l’expansion automatique */
+    .btn-custom:hover {
+        transform: scale(1.05);
     }
     </style>
-</head>
 
 <body>
-    <div class="container-fluid" style="font-size:16px;">
-    <br>
-        <center>
-            <div class="container" style="width:50%;">
-                <form method="get" action="index">
-                    <center>
-                        <div class="row">
-                            <div class="col-5">
-                                <select class="pavillon" name="pavillon" required class="full-width">
-                                    <option value="">Sélectionnez un pavillon</option>
-                                    <?php
-                                    // Boucle pour ajouter les options
-                                    foreach ($pavillons as $pavillon) {
-                                         echo "<option value='" . htmlspecialchars($pavillon) . "'>" . htmlspecialchars($pavillon) . "</option>";
-                                     }?>
-                                </select>
-                            </div>
-                            <div class="col-5">
-                                <button type="submit" class="btn btn-primary pavillon">
-                                    <strong>Rechercher</strong>
-                                </button>
-                            </div>
+    <div class="container">
+        <h2 class="text-center text-primary">Rechercher un étudiant par Numéro carte</h2>
 
-                        </div>
-                    </center>
-                </form>
-            </div>
-        </center>
-        <center>
-            <br><br>
-            <h1> GESTION DES RECOUVREMENTS</h1><br>
-            <h2> PAVILLON : <?= htmlspecialchars($pavillonDonne) ?></h2><BR>
-             <h2> <a href="pavillon_nonLoger?pavillon=<?php echo $pavillonDonne; ?>">Voir Les Etudiants du Pavillon <?php echo $pavillonDonne; ?> A Surveiller</a></h2>
-        </center>
-        <br><br>
-        <center>
-            <table class="table">
-                <thead class="thead-dark">
+        <form method="GET" action="index.php" class="text-center mt-4">
+            <center>
+                <div class="text-center row">
+
+                    <div class="col-md-6">
+                        <input type="text" value="<?php echo maxIdEtu();  ?>" name="numCarte" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary btn-block btn-custom">
+                            <i class="fas fa-search"></i>RECHERCHER
+                        </button>
+                    </div>
+
+                </div>
+            </center>
+        </form>
+    </div>
+    <?php if ($etudiant) : ?>
+    <div class="container-fluid">
+        <!-- Affichage des résultats -->
+        <div class="mt-4">
+            <h3 class="text-center text-success">Informations de l'étudiant</h3>
+            <table class="table table-bordered table-hover mt-3">
+                <thead class="table-info">
                     <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Chambre</th>
-                        <th scope="col">Lit</th>
-                        <th scope="col">Num Etudiant</th>
-                        <th scope="col">Nom</th>
-                        <th scope="col">Montant Facturé</th>
-                        <th scope="col">Montant Payé</th>
-                        <th scope="col">Restant</th>
-                        <th scope="col">Rappel</th>
+                        <th>Num_Carte</th>
+                        <th>Prénom&Nom</th>
+                        <th>Téléphone</th>
+                        <th>Faculte</th>
+                        <th>Departement</th>
+                        <th>NiveauFormation</th>
+                        <th>date_naissance</th>
+                        <th>Statut</th>
+                        <th>Choix</th>
+                        <th>Validation</th>
+                        <th>Paiement</th>
+                        <th>Loger</th>
+                        <!--th>suppr</th-->
+
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (!empty($chambres)) : ?>
-                    <?php $counter = 1; ?>
-                    <?php foreach ($chambres as $chambre => $lits) : ?>
                     <tr>
-                        <th scope="row" rowspan="<?= count($lits) ?>"><?= $counter++ ?></th>
-                        <td rowspan="<?= count($lits) ?>"><?= htmlspecialchars($chambre) ?></td>
-                        <?php foreach ($lits as $i => $litRow) : ?>
-                        <?php
-                                    // Vérification du statut du rappel pour chaque étudiant dans la ligne
-                                    $resteAPayer = (int)$litRow['reste_a_payer_total'];
-                                    $canRemind = false;
-
-                                    // Vérification du montant restant à payer et de la date du dernier rappel
-                                    if ($resteAPayer >= 6000) {
-                                        if (!empty($litRow['rappel_envoye'])) {
-                                            $lastReminderDate = new DateTime($litRow['rappel_envoye']);
-                                            $currentDate = new DateTime();
-                                            $interval = $lastReminderDate->diff($currentDate);
-
-                                            // Si le dernier rappel a plus de 2 mois, autoriser le rappel
-                                            if ($interval->m >= 2) {
-                                                $canRemind = true;
-                                            }
-                                        } else {
-                                            $canRemind = true;  // Si aucun rappel n'a été envoyé
-                                        }
-                                    }
-                                ?>
-                        <?php if ($i > 0): ?>
-                    <tr>
+                        <th><?= htmlspecialchars($etudiant['num_etu']) ?></th>
+                        <td><?= htmlspecialchars($etudiant['prenoms']) ?> <?= htmlspecialchars($etudiant['nom']) ?></td>
+                        <td><?= htmlspecialchars($etudiant['telephone']) ?></td>
+                        <td><?= htmlspecialchars($etudiant['etablissement']) ?></td>
+                        <td><?= htmlspecialchars($etudiant['departement']) ?></td>
+                        <td><?= htmlspecialchars($etudiant['niveauFormation']) ?></td>
+                        <td><?= htmlspecialchars($etudiant['dateNaissance']) ?></td>
+                        <td><?= $statut['statut'] ?></td>
+                        <td><?= !empty($etudiant['dateTime_aff']) ? htmlspecialchars($etudiant['dateTime_aff']) : 'NON' ?>
+                            / <?= !empty($etudiant['lit']) ? htmlspecialchars($etudiant['lit']) : 'NON' ?>
+                        </td>
+                        <td><?= !empty($etudiant['dateTime_val']) ? htmlspecialchars($etudiant['dateTime_val']) : 'NON' ?>
+                        </td>
+                        <td><?= !empty($etudiant['dateTime_paie']) ? htmlspecialchars($etudiant['dateTime_paie']) : 'NON' ?>
+                        </td>
+                        <td><?= !empty($etudiant['dateTime_loger']) ? htmlspecialchars($etudiant['dateTime_loger']) : 'NON' ?>
+                        </td>
+                        <?php 
+                        if ($statut['statut'] == "Non Attributaire" || $statut['statut'] == "Non Defini") :?>
+                        <!--td><a href="?suppr=<?= $etudiant['num_etu'] ?>" onclick="return confirm('Etes-vous sûr de vouloir supprimer cette etudiant ?');" class="text-decoration-underline text-danger">suppr</a></td-->
+                        <?php else : ?>
+                        <!--td><a href="#" class="text-decoration-underline">ND</a></td-->
                         <?php endif; ?>
-                        <td><?= htmlspecialchars($litRow['lit']) ?></td>
-                        <td><?= htmlspecialchars($litRow['num_etu']??"") ?></td>
-                        <td><?= htmlspecialchars($litRow['etudiant_prenoms'] . " " . $litRow['etudiant_nom']) ?></td>
-                        <td><?= number_format($litRow['montant_facture_total'], 0, ',', ' ') ?> F CFA</td>
-                        <td>
-                            <a
-                                href="details.php?id_etu=<?= urlencode($litRow['etudiant_id']??"") ?>&etu=<?= urlencode($litRow['num_etu']??"") ?>">
-                                <?= number_format($litRow['montant_paye_total'], 0, ',', ' ') ?> F CFA
-                            </a>
-                        </td>
-                        <td><?= number_format($litRow['reste_a_payer_total'], 0, ',', ' ') ?> F CFA</td>
-                        <td>
-                            <button class="btn btn-secondary" disabled="disabled">rappel</button>
-                        </td>
+
                     </tr>
-                    <?php endforeach; ?>
-                    <?php endforeach; ?>
-                    <?php else : ?>
-                    <tr>
-                        <td colspan="9">Aucun étudiant trouvé pour ce pavillon.</td>
-                    </tr>
-                    <?php endif; ?>
                 </tbody>
             </table>
-
-            <br><br>
-            <br><br>
-            <button class="btn btn-success" onclick="goBack()">Retour</button>
-
-            <script>
-            function goBack() {
-                window.history.back();
-            }
-            </script>
-        </center>
+            <div class="text-center mt-3">
+                <a href="index.php" class="btn btn-secondary btn-custom"><i class="fas fa-arrow-left"></i> Retour à
+                    la recherche</a>
+            </div>
+        </div>
     </div>
-    <!-- footer
-    ================================================== -->
+    <?php else : ?>
+    <div class="container">
+        <?php if (isset($_GET["numCarte"])) : ?>
+        <?php  $num_etu=$_GET["numCarte"];  ?>
+        <div class="alert alert-danger">
+            <h3>Étudiant non trouvé</h3>
+            <p>Aucun étudiant trouvé avec ce numéro.</p>
+            <!--a href="index.php?ajouter&num_etu=<?php echo $num_etu; ?>" class="btn btn-success btn-custom">
+                <i class="fas fa-user-plus"></i> Ajouter un étudiant
+            </a-->
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+    </div>
+
+   <!-- Condition pour afficher le formulaire d'ajout d'étudiant -->
+    <?php if (isset($_GET["ajouter"])) : ?>
+<?php  
+$num_etu=$_GET["num_etu"];  
+$data=getDonneesEtudiant($num_etu); //var_dump ($data); //die;						
+$faculte= $data[0];
+$departement= $data[1]; 
+$nom= $data[2]; 
+$prenom= $data[3];
+$date_naissance= $data[4]; 
+$lieu_naissance= $data[5];
+//$sexe= $data[6]; 
+$num_identite= $data[7]; 
+$var=substr($num_identite,0,1); 
+if($var=='1'){$sexe='G';}if($var=='2'){$sexe='F';} //echo $sexe; exit();
+$telephone= $data[8];
+?>
+
+    <div class="container">
+        <div class="mt-4">
+            <h3 class="text-center text-primary">Ajouter un étudiant</h3>
+            <form action="index.php" method="POST" class="mt-3">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Numéro Étudiant</label>
+                        <input type="text" name="num_etu" style="background-color: rgba(161, 187, 228, 0.1);" required
+                            value="<?php  echo $num_etu;  ?>" class="form-control" placeholder="">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Prénom</label>
+                        <input type="text" style="background-color: rgba(161, 187, 228, 0.1);" name="prenoms" required
+                            value="<?php  echo $prenom;  ?>" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nom</label>
+                        <input type="text" name="nom" style="background-color: rgba(161, 187, 228, 0.1);" required
+                            value="<?php  echo $nom;  ?>" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Téléphone</label>
+                        <input type="text" name="telephone" style="background-color: rgba(161, 187, 228, 0.1);" required
+                            value="<?php  echo $telephone;  ?>" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Lieu de Naissance</label>
+                        <input type="text" name="lieuNaissance" style="background-color: rgba(161, 187, 228, 0.1);"
+                            required value="<?php  echo $lieu_naissance;  ?>" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Date de Naissance</label>
+                        <input type="text" name="dateNaissance" style="background-color: rgba(161, 187, 228, 0.1);"
+                            required value="<?php  echo $date_naissance;  ?>" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Etablissement</label>
+                        <input type="text" name="etablissement" style="background-color: rgba(161, 187, 228, 0.1);"
+                            required value="<?php  echo $faculte;  ?>" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Département</label>
+                        <input type="text" name="departement" style="background-color: rgba(161, 187, 228, 0.1);"
+                            required value="<?php  echo $departement;  ?>" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Niveau de Formation</label>
+                        <input type="text" name="niveauFormation" style="background-color: rgba(161, 187, 228, 0.1);"
+                            required class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Moyenne</label>
+                        <input type="text" name="moyenne" style="background-color: rgba(161, 187, 228, 0.1);" required
+                            class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Numero Identitè</label>
+                        <input type="text" name="numIdentite" style="background-color: rgba(161, 187, 228, 0.1);"
+                            required value="<?php  echo $num_identite;  ?>" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Sexe</label>
+                        <input type="text" name="sexe" style="background-color: rgba(161, 187, 228, 0.1);" required
+                            value="<?php  echo $sexe;  ?>" class="form-control">
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <button type="submit" class="btn btn-success btn-custom">
+                        <i class="fas fa-save"></i> Enregistrer
+                    </button>
+                    <a href="index.php" class="btn btn-secondary btn-custom"><i class="fas fa-times"></i> Annuler</a>
+                </div>
+            </form>
+        </div>
+        <?php endif; ?>
+
+
+    </div>
+    <!-- footer ================================================== -->
     <footer>
         <div class="row">
             <div class="col-full">
-
                 <div class="footer-logo">
-                    <a class="footer-site-logo" href="#0"><img src="../../assets/images/logo.png" alt="Homepage"></a>
+                    <a class="footer-site-logo" href="#0"><img src="/campuscoud.com/assets/images/logo.png"
+                            alt="Homepage"></a>
                 </div>
-
-
-
             </div>
         </div>
-
         <div class="row footer-bottom">
-
             <div class="col-twelve">
                 <div class="copyright">
                     <span>&copy;Copyright Centre des Oeuvres universitaires de Dakar</span>
                 </div>
-
                 <div class="go-top">
                     <a class="smoothscroll" title="Back to Top" href="#top"><i class="im im-arrow-up"
                             aria-hidden="true"></i></a>
                 </div>
             </div>
-
         </div> <!-- end footer-bottom -->
-
     </footer> <!-- end footer -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <?php //include('footer.php'); ?>
     <script src="../../assets/js/script.js"></script>
     <script src="../../assets/js/jquery-3.2.1.min.js"></script>

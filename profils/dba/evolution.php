@@ -246,7 +246,7 @@ $result = getStatsByFacAndNiveau($fac, $sexe);
             <div class="modal-content">
 
                 <div class="modal-header">
-                    <h5 class="modal-title">Liste des étudiants</h5>
+                    <h5 class="modal-title" id="modalTitle">Liste des étudiants</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
@@ -271,6 +271,9 @@ $(document).on('click', '.btn-voir', function(e) {
     let niveau = $(this).data('niveau');
     let sexe = $(this).data('sexe');
     let fac = $(this).data('fac');
+
+    // Ajouter le niveau dans le titre
+    $('#modalTitle').text("Liste des étudiants - " + niveau);
 
     $('#modalEtu').modal('show');
     $('#contentEtu').html('');

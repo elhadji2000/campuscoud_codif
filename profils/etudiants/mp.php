@@ -5,7 +5,7 @@
 
 include('../../activite.php');
 include('head.html');
-include('../../head.php');
+include('../../head.php'); 
  
 ?>
 

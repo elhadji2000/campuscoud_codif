@@ -37,8 +37,8 @@ $totalMontant = $data['totalMontant'] ?? 0;
 $html = '
 <style>
 table {width:100%;border-collapse:collapse;font-size:12px;}
-th,td {border:1px solid #ddd;padding:6px;}
-th {background:#f2f2f2;}
+th,td {border:1px solid #ddd;padding:6px;font-size:8px;}
+th {background:#f2f2f2;font-size:10px;}
 </style>
 
 <p>

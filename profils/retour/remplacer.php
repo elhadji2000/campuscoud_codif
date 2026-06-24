@@ -68,7 +68,7 @@ $lits = getLitEtudiant($link, $numch);
         <center>
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <label for="search" style="font-weight: bold; font-size: 16px; color: #333;">
-                    🔍 Rechercher Lit :
+                    🔍 Rechercher 1 Lit non Validé par le Titulaire pour forclore ce dernier et le remplacer par son Suppleant:
                 </label>
             </div>
             <?php
@@ -142,7 +142,7 @@ $lits = getLitEtudiant($link, $numch);
                                 <a class="text-decoration-underline"
                                     onclick="return confirm('Êtes-vous sûr de vouloir continuer ?');"
                                     href="trait_rempl?id_etu=<?= htmlspecialchars($lit['id_etu']); ?>&id_lit=<?= htmlspecialchars($lit['id_lit']); ?>&numero=<?= htmlspecialchars($lit['num_etu']); ?>&id_aff=<?= htmlspecialchars($lit['id_aff']); ?>">
-                                    traiter
+                                    TRAITER
                                 </a>
                             </td>
 

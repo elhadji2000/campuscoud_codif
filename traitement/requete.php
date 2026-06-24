@@ -21,7 +21,7 @@ $messageErreurFaculte = "";
 $messageErreurDepartement = "";
 
 // Appel de la fonction getAllEtablissement() dans fonction.php, celle-ci affiche la liste de tous les etablissements
-$dataEtablissement = getAllEtablissement();
+$dataEtablissement = getAllEtablissement_dl();
 if (isset($_GET['fac']) && !empty($_GET['fac'])) {
     // Appel de la fonction getAllDepartement() dans fonction.php, celle-ci affiche la liste de tous les Departements
     $resultatRequeteDepartement = getAllDepartement($_GET['fac']);

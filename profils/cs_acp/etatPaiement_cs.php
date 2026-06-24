@@ -5,7 +5,7 @@ include ('../../traitement/fonction.php');
 connexionBD();
 // Sélectionnez les options à partir de la base de données avec une pagination
 // include( '../../traitement/requete.php' );
-session_start();
+//session_start();
 
 if (isset($_GET['suppr'])) {
     $id_paie = $_GET['suppr'];
@@ -109,7 +109,7 @@ $filterParams = '&date_debut=' . urlencode($date_debut)
     td,
     th,
     tr {
-        font-size: 13px;
+        font-size: 12px;
         text-align: center;
         vertical-align: middle;
     }
@@ -122,8 +122,8 @@ $filterParams = '&date_debut=' . urlencode($date_debut)
     }
 
     .table th,
-    .table td {
-        font-size: 15px;
+    .table td,.table td a {
+        font-size: 11px !important;
         /* Agrandit la taille du texte dans le tableau */
     }
 
@@ -148,6 +148,7 @@ $filterParams = '&date_debut=' . urlencode($date_debut)
         </div>
         <!-- Interval date -->
         <div class="container">
+            <br><br>
             <form action="etatPaiement_cs.php" method="POST" onsubmit="return validateForm()">
 
                 <div class="row g-3 align-items-center justify-content-center">
@@ -183,7 +184,8 @@ $filterParams = '&date_debut=' . urlencode($date_debut)
                         </select>
                     </div>
                 </div>
-                <div class="row g-3 mt-2 justify-content-center">
+
+                <div class="row g-3 mt-3 justify-content-center">
                     <!-- Boutons -->
                     <div class="col-3">
                         <button id="submitBtn" name="rechercher" type="submit" class="btn btn-primary w-100">
@@ -240,7 +242,7 @@ $filterParams = '&date_debut=' . urlencode($date_debut)
                 return true; // Le formulaire est valide
             }
             </script>
-            <br>
+            <br><br>
             <div class="row g-3 align-items-center justify-content-center">
                 <!-- Boutons -->
                 <div class="col-md-3">

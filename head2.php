@@ -1,9 +1,12 @@
-<?php if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
+<?php include('../../traitement/fonction.php');
+
+
+if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
   header('Location: /campuscoud.com/');
   exit();
 }
 
-require_once(__DIR__ . '/traitement/fonction.php');
+//require_once(__DIR__ . '/traitement/fonction.php');
 
 if ($_SESSION['profil'] == 'user') {
   $inforequeteAffectEtu = getStudentChoiseLit($_SESSION['id_etu']);
@@ -145,6 +148,21 @@ include('activite.php');
           </li>
         <?php } 	
 		
+		
+		
+		
+		
+		    <?php if (($_SESSION['profil'] == 'quota') && isset($_SESSION['classe'])) { ?>
+          <li class="nav-item active">
+            <a class="nav-link" href="listeLits" title="Revenir à la page d'accueil">Liste_Lits <span></span></a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="detailsLits" title="Détail des lits affecté à cette classe">Détails_du_choix</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="niveau" title="Changer de niveau de formation ">Changer_de_Formation</a>
+          </li>
+        <?php } ?>
 		
 		
 		

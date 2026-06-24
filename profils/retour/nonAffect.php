@@ -105,6 +105,7 @@ $result2 = getEtuNonAffByFac_3($fac);
             <thead class="thead-dark">
                 <tr>
                     <th>#</th>
+                    <th>ID_lit</th>
                     <th>Chambre</th>
                     <th>Lit</th>
                     <th>Sexe</th>
@@ -121,6 +122,7 @@ $result2 = getEtuNonAffByFac_3($fac);
                 foreach ($result as $resl => $litRow): ?>
                 <tr>
                     <th><?= $counter++ ?></th>
+                    <td><?= htmlspecialchars($litRow['id_lit']) ?></td>
                     <td><?= htmlspecialchars($litRow['chambre']) ?></td>
                     <td><?= htmlspecialchars($litRow['lit']) ?></td>
                     <td><?= htmlspecialchars($litRow['sexe']) ?></td>
@@ -155,6 +157,7 @@ $result2 = getEtuNonAffByFac_3($fac);
                     <th><?= $counter++ ?></th>
 
                     <!-- Chambre / Lit -->
+                    <td><?= htmlspecialchars($litRow['id_lit'] ?? 'NULL') ?></td>
                     <td><?= htmlspecialchars($litRow['chambre'] ?? 'NULL') ?></td>
                     <td><?= htmlspecialchars($litRow['lit'] ?? 'NULL') ?></td>
 

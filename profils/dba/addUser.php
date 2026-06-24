@@ -16,7 +16,7 @@ if (isset($_GET['id'])) {
     $id = intval($_GET['id']);
     // Requête pour récupérer les informations de l'utilisateur
     $query = "SELECT * FROM codif_user WHERE id_user = $id";
-    $result = mysqli_query($connexion, $query);
+    $result = mysqli_query($connexion_user, $query);
     $userToEdit = mysqli_fetch_assoc($result);
 }
 ?>

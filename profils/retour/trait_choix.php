@@ -108,7 +108,7 @@ try {
                1. Affectation
             =============================== */
             //addAffectation($idLit, $idSuppleant);
-            if (!addAffectation($idLit, $idSuppleant)) {
+            if (!addAffectation_clt($idLit, $idSuppleant)) {
                 continue;
             }
 
@@ -169,7 +169,7 @@ try {
             $stmt = $connexion->prepare("
                 INSERT INTO codif_forclusion 
                 (id_etu, dateTime_for, type, motif_manuel, username_user)
-                VALUES (?, NOW(), 'Manuel', 'remplacement', ?)
+                VALUES (?, NOW(), 'Manuel', 'CLT', ?)
             ");
             $stmt->bind_param('is', $idTitulaire, $_SESSION['username']);
             $stmt->execute();

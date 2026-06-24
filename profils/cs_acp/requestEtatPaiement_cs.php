@@ -3,7 +3,6 @@
 include( '../../traitement/fonction.php' );
 
 session_start(); // Démarrer la session au début
-ini_set("pcre.backtrack_limit", "5000000");
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['rechercher'])) {
@@ -18,11 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['fin'] = $date_fin;
         $_SESSION['regisseur'] = $username;
         $_SESSION['libelle'] = $libelle;
-        $page=1;
-        $limit=200;
 
         // Rechercher les paiements
-        $tabPaiment = getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libelle,$page,$limit);
+        $tabPaiment = getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libelle);
         
         if ($tabPaiment == null) {
             header('Location: etatPaiement_cs.php?message=Aucun resultat trouvé');

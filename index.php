@@ -55,6 +55,8 @@ exit();*/
 				<a href="guide" class="smoothscroll5 btn btn--stroke">GUIDE D'UTILISATION</a>
                 <a href="insc" class="smoothscroll5 btn btn--stroke"> CREER UN COMPTE</a>
 				<a href="log" class="smoothscroll6 btn btn--stroke"> SE CONNECTER </a>
+				
+				<!--a href="aidesociale/" class="smoothscroll5 btn btn--stroke">AIDE SOCIALE</a-->
 				</div>
 		
 

@@ -1,11 +1,10 @@
-<?php
-session_start();
+<?php session_start();
 if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
     header('Location: /campuscoud.com/');
     exit();
 }
 
-include ('../../traitement/fonction.php');
+include('../../traitement/fonction.php');
 connexionBD();
 
 verif_type_mdp_2($_SESSION['username']);
@@ -48,57 +47,89 @@ if (isset($_GET['montantMinAvantLoger'])) {
     $_SESSION['montantMinAvantLoger'] = '';
 }
 
-$test = 'false';
+$test = "false";
 if (isset($_GET['data'])) {
     $data = $_GET['data'];
-
+    
+    
     // Recuperation du date debut de codification du niveauFormation de l'etudiant
-    $date_debut = getAllDelai('depart', info($data['num_etu'])[5]);
-    $date_debut = dateFromat($date_debut['data_limite']);
-
+    $date_debut = getAllDelai("depart", info($data['num_etu'])[5]);
+    $date_debut = dateFromat($date_debut['data_limite']);  
+    
     // Calcul du Montant du
-    $montantDu = 0;
-    $moisFactures = 0;
-    $montantLit = 0;
-    $moisFactures = calcul_nbreMois($date_debut);
-    $montantLit = getPrixMensuelLit($data['num_etu']);
-    $montantDu = $moisFactures * $montantLit;
+    $montantDu=0;
+    $moisFactures=0;
+    $montantLit=0;
+    $moisFactures = getNbreMois2($data['num_etu']);
+    $montantLit = getPrixMensuelLit($data['num_etu']); 
+    $montantDu=$moisFactures * $montantLit;
+
+    $montant_reduction = getNbrsReduction($data['num_etu']);
+    echo $montant_reduction;
+
+    
+    	
 
     // Nombre de mois deja payer par l'etudiant
+    /* 
+    $tableau_situation_paye = getAllSituation($data['num_etu']);
+    $i = 0;
+    while ($situation = mysqli_fetch_array($tableau_situation_paye)) {
+        $libelle[$i] = $situation['libelle'];
+        $i++;
+        //$_montant_restant = $situation['restant'];
+    } */
+   
+   
+    /* 
+    if (isset($libelle)) {
+        global $nbr_mois_impaye;
+        $chaine_libelle = json_encode($libelle);
+        $chaine_libelle = str_replace(['[', ']', '"', 'CAUTION'], ' ', $chaine_libelle);
+        $nbr_mois_payer = countWords($chaine_libelle);
+        $nbr_mois_impaye = $nbr_mois_systeme_debut - $nbr_mois_payer;
+    } else {
+        global $nbr_mois_impaye;
+        $nbr_mois_payer = 0;
+        $nbr_mois_impaye = $nbr_mois_systeme_debut;
+    }
+    */
 
-    /*
-     * $tableau_situation_paye = getAllSituation($data['num_etu']);
-     * $i = 0;
-     * while ($situation = mysqli_fetch_array($tableau_situation_paye)) {
-     *     $libelle[$i] = $situation['libelle'];
-     *     $i++;
-     *     //$_montant_restant = $situation['restant'];
-     * }
-     */
+   /* 
+   if ($nbr_mois_systeme_debut <= $nbr_mois_payer) {
+        $test = "true";
+        //$_SESSION['a_jour'] = "ETUDIANT A JOUR AUX PAIEMENTS";
+    }
+    */
+    $fac_1   = $data['etablissement'];
+$annee_1 = $_SESSION["annee"];  
 
-    /*
-     * if (isset($libelle)) {
-     *     global $nbr_mois_impaye;
-     *     $chaine_libelle = json_encode($libelle);
-     *     $chaine_libelle = str_replace(['[', ']', '"', 'CAUTION'], ' ', $chaine_libelle);
-     *     $nbr_mois_payer = countWords($chaine_libelle);
-     *     $nbr_mois_impaye = $nbr_mois_systeme_debut - $nbr_mois_payer;
-     * } else {
-     *     global $nbr_mois_impaye;
-     *     $nbr_mois_payer = 0;
-     *     $nbr_mois_impaye = $nbr_mois_systeme_debut;
-     * }
-     */
 
-    /*
-     * if ($nbr_mois_systeme_debut <= $nbr_mois_payer) {
-     *      $test = "true";
-     *      //$_SESSION['a_jour'] = "ETUDIANT A JOUR AUX PAIEMENTS";
-     *  }
-     */
+
+//DESACTIVEE CAR EMPECHE AU TITULAIRE EN ANNEE N DEVENU SUPPLEANT EN N-1 DE PAYER SES ARRIERES
+/*if (codificationAnneeSuivanteExiste($connexion, $fac_1, $annee_1)) {
+
+    echo "
+    <script>
+        alert('La codification de l\\'année académique choisie a été cloturée. Veuillez vous connecter à l\\'année académique suivante.');
+        window.location.href = 'paiement';
+    </script>
+    ";
+
+    exit();
+}*/
+
+
+//var_dump($data["id_val"]);
+//exit;
+
+
+    
 } else {
     unset($_SESSION['a_jour']);
 }
+
+//echo $fac_1; exit();
 
 ?>
 <!DOCTYPE html>
@@ -127,7 +158,7 @@ if (isset($_GET['data'])) {
 </head>
 
 <body>
-    <?php include ('../../head.php'); ?>
+    <?php include('../../head.php'); ?>
     <div class="container">
         <div class="row">
             <div class="text-center">
@@ -191,33 +222,28 @@ if (isset($_GET['data'])) {
                 </div>
             </div>
             <?php } ?>
-            <?php
-             if (isset($_SESSION['compte'])) {
-                echo '<div class="alert alert-warning text-center">'
-                    . $_SESSION['compte']
-                    . '</div>';
-                unset($_SESSION['compte']);
-            } 
-            ?>
-
             <form action="requestPaiement" method="POST" style="display: flex;justify-content: center">
                 <div class="row">
                     <div class="col-md-10">
-                        <input id="numEtudiant" name="numEtudiant" type="text" class="form-control"
+                        <input name="numEtudiant" id="numEtudiant" type="text" class="form-control"
                             placeholder="NUMERO CARTE ETUDIANT">
                         <script>
                         var inputElement = document.getElementById('numEtudiant');
-                        inputElement.addEventListener('input', function() {
-                            var texte = inputElement.value;
-                            var texteMajuscule = texte.toUpperCase();
-                            inputElement.value = texteMajuscule;
-                            var affichageElement = document.getElementById('affichage');
-                            affichageElement.textContent = texteMajuscule;
-                        });
+                        if (inputElement) {
+                            inputElement.addEventListener('input', function() {
+                                var texte = inputElement.value;
+                                var texteMajuscule = texte.toUpperCase();
+                                inputElement.value = texteMajuscule;
+                                var affichageElement = document.getElementById('affichage');
+                                if (affichageElement) {
+                                    affichageElement.textContent = texteMajuscule;
+                                }
+                            });
+                        }
                         </script>
                     </div>
                     <div class="col-md-2">
-                        <button id="submitBtn" type="submit" class="btn btn-primary" >Rechercher</button>
+                        <button type="submit" class="btn btn-primary">Rechercher</button>
                     </div>
                 </div>
             </form>
@@ -226,29 +252,9 @@ if (isset($_GET['data'])) {
             <div class="col-md-12">
                 <ul class="options">
                     <?php
-
                     if (isset($data)) {
                         $tableau_data_etudiant = getAllSituation($data['num_etu']);
-
-                        /*
-                         * if($data['niveauFormation']=='Droit Prive/Master1' or $data['niveauFormation']=='Droit Prive/Master1/Indiv' or $data['niveauFormation']=='Droit Public/Master1' or $data['niveauFormation']=='Droit Public/Master1/Indiv' or $data['niveauFormation']=='Sciences Politiques/Master1' or $data['niveauFormation']=='Sciences Politiques/Master1/Indiv')
-                         * {
-                         *     echo "La Codification est momentanement suspendue pour votre Formation!";
-                         *     exit();
-                         *
-                         * }
-                         */
-
-                        if (isset($data)) {
-                            $tableau_data_etudiant = getAllSituation($data['num_etu']);
-
-                            if ($data['departement'] == 'F.L.S.H/M1') {
-                                echo 'La Codification est momentanement suspendue pour votre Formation!';
-                                exit();
-                            }
-                        }
-
-                        ?>
+                    ?>
                     <form action="requestPaiement" method="POST" id="form-paiement">
                         <div class="row" style="display: flex;justify-content: center;color:black;">
                             <div class="col-md-4 mb-3">
@@ -270,21 +276,12 @@ if (isset($_GET['data'])) {
                             </div>
                         </div><br>
                         <?php
-                        if (isset($_GET['statut']) && $_GET['statut'] == 'Forclos(e)') {
-                            ?>
-
-
-                        <?php
-                        $type = $data['type'];
-                        if ($data['type'] == 'auto') {
-                            $type = 'Automatique';
-                        }
-                        $motif = $data['motif_manuel'];
-                        if ($data['type'] == 'auto') {
-                            $motif = 'Retard';
-                        }
+                            if (isset($_GET['statut']) && $_GET['statut'] == 'Forclos(e)') { 
+                                $type=$data['type']; 
+                                if($data['type']=='auto'){$type='Automatique';} 
+                                $motif=$data['motif_manuel']; 
+                                if($data['type']=='auto'){$motif='Retard';}
                         ?>
-
                         <div class="row" style="display: flex;justify-content: center;color:black;">
                             <div class="col-md-4 mb-3">
                                 <input class="form-control" placeholder="Type : <?= $type ?>" disabled>
@@ -293,17 +290,9 @@ if (isset($_GET['data'])) {
                                 <input class="form-control" placeholder="Motif :<?= $motif ?>" disabled>
                             </div>
                         </div><br>
-
                         <?php } ?>
+
                         <?php if (isset($data['id_aff'])) { ?>
-                        <!-- <div class="row" style="display: flex;justify-content: center;color:black;">
-                                    <div class="col-md-4 mb-3">
-                                        <input class="form-control" placeholder="CNI: <?= $data['numIdentite'] ?>" disabled>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <input class="form-control" placeholder="Campus: <?= $data['campus'] ?>" disabled>
-                                    </div>
-                                </div><br-->
                         <div class="row" style="display: flex;justify-content: center;color:black;">
                             <div class="col-md-4 mb-3">
                                 <input class="form-control" placeholder="Pavillon: <?= $data['pavillon'] ?>" disabled>
@@ -314,216 +303,220 @@ if (isset($_GET['data'])) {
                                     style="visibility: hidden;">
                             </div>
                         </div>
-                        <!--div class="row" style="display: flex;justify-content: center;color:black;">
-                                    <div class="col-md-4 mb-3">
-                                        <input class="form-control" placeholder="Date Choix Lit: <?= dateFromat($data['dateTime_aff']) ?>" disabled>
-                                    </div-->
-                        <div class="col-md-4 mb-3" style="margin-left:30%">
-                            <?php $date = $data['dateTime_val'];
-                            $date = changedateusfr($date); ?>
+
+
+                        <div class="col-md-6 mb-3" style="margin-left:20%; text-align:center;">
+                            <?php $date=$data['dateTime_val'];$date=changedateusfr($date); $totalF=0; $montantApayer=0;  ?>
                             <!--input class="form-control" placeholder="Validation faite le <?= $date ?>" disabled-->
-                            <input style="font-size: 16px; font-weight: 3000; background-color:#3777b0;"
-                                class="form-control"
-                                placeholder="Facture: Caution=5.000F. <?= $moisFactures ?> Mensualites=<?= $montantDu ?> F."
-                                disabled>
+
+                            <?php $arr = getMontantArrierer($connexion, $_SESSION['num_etu']); 
+                            $totalF=(int)$arr + 5000 + (int)$montantDu;
+                            ?>
+                            <p style="font-size: 16px; font-weight: bold; background-color:#FFFF00;padding:10px 10px;">
+                                Arrierés(N-1)=<?=  $arr ?>F. Caution=5.000F. <?= $moisFactures ?>
+                                Mensualité(s)=<?= $montantDu ?>F </br> Total Facturé=<?= $totalF ?>F .</p>
+
 
                         </div>
+
 
                         <input type="text" class="form-control" name="montantDu" id="montantDu"
                             value="<?= $montantDu ?>" style="visibility: hidden;">
 
-                        <!--/div> -->
-                        <?php
-                        $black = getBlackListInfo($data['num_etu'], $connexion);
+                        <!-- Tableau des paiements -->
+                        <div class="col-md-8" style="margin-left:17%">
+                            <table align='center' class="table table-hover">
+                                <tr class="table" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
+                                    <th>Quittance</th>
+                                    <th>Date Paie</th>
+                                    <th>Libelle</th>
+                                    <th>Montant</th>
+                                    <th>Agent ACP</th>
+                                </tr>
+                                <?php
+                                $compt = 1;
+                                $totalP = 0;
+                                if($tableau_data_etudiant) {
+                                    while ($row = mysqli_fetch_array($tableau_data_etudiant)) {
+                                ?>
+                                <tr class="table" style="font-size: 14px; background-color: rgba(50, 115, 220, 0.1) ;">
+                                    <td><?= $row['quittance'] ?></td>
+                                    <td><?= dateFromat($row['dateTime_paie']) ?></td>
+                                    <td><?= $row['libelle'] ?></td>
+                                    <td><?= number_format($row['montant'], 0, ',', ' ') ?> FCFA</td>
+                                    <td><?= $row[2] ?></td>
+                                </tr>
+                                <?php 
+                                    $compt++; 
+                                    $totalP += $row['montant']; 
+                                    } 
+                                } ?>
+                                <tr class="table" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
+                                    <td align='center' colspan="3">TOTAL PAYE</td>
+                                    <td align='center'><?= number_format($totalP, 0, ',', ' ') ?> FCFA
+                                    </td>
+                                    <td align='center'>-</td>
+                                </tr>
+                            </table>
+                        </div>
 
-                        if ($black && $black['is_blacklisted']) {
-                            $montant_arriere = number_format($black['reste_a_payer'], 0, ',', ' ');
-                            ?>
+                        <?php 
+                        $montantApayer = $totalF - $totalP;
+                        $resteArrieres = max(0, $arr - ($totalP > 0 ? $totalP : 0));
+                        ?>
+
+                        <?php $montantApayer=$totalF-$totalP ;   ?>
+
+                        <div class="col-md-6 mb-3" style="margin-left:20%; text-align:center;">
+
+
+                        </div>
+                        <div class="col-md-6 mb-3" style="margin-left:20%; text-align:center;">
+                            <p style="font-size: 16px; font-weight: bold; background-color:#FFFF00;padding:10px 10px;">
+                                Total A PAYER= <?= $montantApayer ?>F .</p>
+                            <?php if($resteArrieres > 0) { ?>
+                            <p style="font-size: 14px; color: red;">
+                                <i class="fa fa-exclamation-triangle"></i> Dont restants =
+                                <?= number_format($resteArrieres, 0, ',', ' ') ?> FCFA
+                            </p>
+                            <?php } ?>
+                        </div>
+
+                        <!-- Formulaire de paiement normal -->
+                        <div class="row" style="display: flex;justify-content: center;color:black;">
+                            <div class="col-md-4">
+                                <input type="number" name="montant_recu" id="montant_recu" class="form-control"
+                                    placeholder="Montant reçu" required>
+                            </div>
+                            <div class="col-md-4">
+                                <select id="libelle" name="libelle[]" multiple class="selectpicker form-control"
+                                    data-live-search="true" placeholder="SELECTIONNER ICI ..." required>
+                                    <option value="ARRIERES">ARRIERES</option>
+                                    <option value="CAUTION">CAUTION</option>
+                                    <option value="JANVIER_<?= date('Y') ?>">JANVIER_<?= date('Y') ?></option>
+                                    <option value="FEVRIER_<?= date('Y') ?>">FEVRIER_<?= date('Y') ?></option>
+                                    <option value="MARS_<?= date('Y') ?>">MARS_<?= date('Y') ?></option>
+                                    <option value="AVRIL_<?= date('Y') ?>">AVRIL_<?= date('Y') ?></option>
+                                    <option value="MAI_<?= date('Y') ?>">MAI_<?= date('Y') ?></option>
+                                    <option value="JUIN_<?= date('Y') ?>">JUIN_<?= date('Y') ?></option>
+                                    <option value="JUILLET_<?= date('Y') ?>">JUILLET_<?= date('Y') ?></option>
+                                    <option value="OCTOBRE_<?= date('Y') ?>">OCTOBRE_<?= date('Y') ?></option>
+                                    <option value="NOVEMBRE_<?= date('Y') ?>">NOVEMBRE_<?= date('Y') ?></option>
+                                    <option value="DECEMBRE_<?= date('Y') ?>">DECEMBRE_<?= date('Y') ?></option>
+                                </select>
+                            </div>
+                        </div>
+                        <br>
+                        <button class="btn btn-success" type="button" data-toggle="modal"
+                            data-target="#confirmationModal">ENCAISSER PAIEMENT NORMAL</button>
+
+                        <?php } else { ?>
+                        <div class="alert alert-warning">
+                            <i class="fa fa-info-circle"></i> Aucune affiliation trouvée pour cet étudiant.
+                        </div>
+                        <?php } ?>
+
+                        <div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog"
+                            aria-labelledby="confirmationModalLabel" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="confirmationModalLabel">Confirmation</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        Êtes-vous sûr de vouloir effectuer cette action ?
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary"
+                                            data-dismiss="modal">Annuler</button>
+                                        <button type="submit" class="btn btn-primary">Confirmer</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php if (isset($data['id_val'])) { ?>
+                        <input class="form-control" name="valide" value="<?= $data['id_val'] ?>"
+                            style="visibility: hidden;">
+                        <?php } ?>
                     </form>
-                    <div class="alert alert-danger mt-3" style="font-weight:bold;">
-                        Cet étudiant a un arriéré de <?= $montant_arriere ?>
-                        FCFA pour l'année <?= $black['annee'] ?>; Lit: <?= $black['lit'] ?> .
+
+                    <!-- ENCAISSEMENT DES ARRIERES - COMPLETEMENT EN DEHORS DE LA CONDITION if (isset($data['id_aff'])) -->
+                    <?php 
+                    $black = getBlackListInfo($data["num_etu"], $connexion);
+                    
+                    if ($black && $black["is_blacklisted"]) { 
+                        $montant_arriere = number_format($black["reste_a_payer"], 0, ',', ' ');
+                    ?>
+                    <div class="alert alert-danger mt-3" style="font-weight:bold; border-left: 5px solid red;">
+                        <i class="fa fa-exclamation-circle"></i>
+                        <b>ARRIERES DETECTES :</b> Cet étudiant a un arriéré de
+                        <b><?= $montant_arriere ?> FCFA</b>
+                        pour l'année dernière concernant le Lit: <b><?= $black["lit"] ?></b>.
                     </div>
                     <div style="margin-left:2%">
-                        <form action="arr_trait.php" method="POST" class="mt-4 d-flex justify-content-center">
+                        <form action="traitement_arrieres" method="POST" class="mt-4 d-flex justify-content-center">
                             <input type="hidden" name="num_etu" value="<?= htmlspecialchars($data['num_etu']) ?>">
+                            <input type="hidden" class="form-control" name="id_etu" value="<?= $data['id_etu'] ?>">
                             <input type="hidden" name="montant_total"
                                 value="<?= htmlspecialchars($black['reste_a_payer']) ?>">
+                            <?php if (isset($data['valide'])) { ?>
+                            <input type="hidden" name="valide" value="<?= $data['valide'] ?>">
+                            <?php } ?>
 
                             <div class="d-flex align-items-center gap-3 bg-light p-3 rounded shadow-sm"
-                                style="max-width: 600px; width: 100%; justify-content: center;">
+                                style="max-width: 700px; width: 100%; justify-content: center; border: 1px solid #ddd;">
                                 <label for="montant_encaisse" class="fw-bold mb-0" style="white-space: nowrap;">
-                                    Montant à encaisser (FCFA) :
+                                    Montant à encaisser pour arriérés (FCFA) :
                                 </label>
 
                                 <input type="number" name="montant_encaisse" id="montant_encaisse"
                                     class="form-control form-control-lg"
                                     style="max-width: 250px; min-width: 200px; height: 50px; font-size: 1.1rem;"
                                     required min="1" max="<?= $black['reste_a_payer'] ?>">
-                                <?php if (isset($data['id_val'])) { ?>
-                                <input class="form-control" name="valide" value="<?= $data['id_val'] ?>"
-                                    style="visibility: hidden;">
-                                <?php } ?>
 
-                                <button type="submit" class="btn btn-success btn-lg"
-                                    style="height: 50px; font-size: 15px; padding: 0 25px;">
-                                    Encaisser
+                                <button type="submit" class="btn btn-danger btn-lg"
+                                    style="height: 50px; font-size: 15px; padding: 5px 5px;">
+                                    <i class="fa fa-money"></i> ENCAISSER
                                 </button>
                             </div>
                         </form>
                     </div>
-
-
-
+                    <?php } ?>
 
                     <?php } else { ?>
-                    <div class="col-md-8" style="margin-left:17%">
-                        <table align='center' class="table table-hover">
-                            <tr class="table" style="font-size: 16px; font-weight: 400; background-color:#3777b0;">
-                                <td>Quittance</td>
-                                <td>Date Paie</td>
-                                <td>Libelle</td>
-                                <td>Montant</td>
-                                <!--td>Recu</td>
-                                            <td>Restant</td-->
-                                <td>Agent ACP</td>
-                            </tr>
-                            <?php
-                            $count = 1;
-                            $total = 0;
-                            while ($row = mysqli_fetch_array($tableau_data_etudiant)) {
-                                $count++;
-                                $total += $row['montant'];
-                                ?>
-                            <tr class="table" style="font-size: 14px; background-color: rgba(50, 115, 220, 0.1) ;">
-                                <td><?= $row['quittance'] ?></td>
-                                <td><?= dateFromat($row['dateTime_paie']) ?></td>
-                                <td><?= $row['libelle'] ?></td>
-                                <td><?= $row['montant'] ?></td>
-                                <!--td><?php // $row['montant_recu'] ?></td>
-                                                <td><?php // $row['restant'] ?></td-->
-                                <td><?= $row[2] ?></td>
-                            </tr>
-                            
-                            <?php } ?>
-                            <tr class="table" style="font-size: 14px; background-color:#3777b0;">
-                                <td colspan="3" style="text-align: center; " >Total</td>
-                                <td colspan="2" style="text-align: left; "><?= $total ?></td>
-                            </tr>
-                        </table>
+                    <div class="text-center">
+                        <p>Aucun étudiant trouvé. Veuillez rechercher un étudiant.</p>
                     </div>
-                    <?php
-
-                    // if ($test == "true") {
-                    // $_SESSION['a_jour'] = "ETUDIANT A JOUR AUX PAIEMENTS"
-                    ?>
-                    <!-- <div class="row" style="display: flex;justify-content: center;color:black;">
-                                        <div class="col-md-4 mb-3">
-                                            <input type="number" class="form-control" name="montant" placeholder="Montant: <?= $data['montant']; ?> Fr cfa" disabled>
-                                        </div>
-                                        <div class="col-md-4 mb-3"><?php $libelle = str_replace(['[', ']', '"'], '', $data['libelle']); ?>
-                                            <textarea class="form-control" placeholder="Libelle: <?= $libelle; ?>" name="libelle" disabled></textarea>
-                                        </div>
-                                    </div>
-                                    <div class="row" style="display: flex;justify-content: center;color:black;">
-                                        <div class="col-md-4 mb-3">
-                                            <input class="form-control" placeholder="Date Paiement: <?= dateFromat($data['dateTime_paie']) ?>" disabled>
-                                        </div>
-                                    </div> -->
-                    <!--a class="btn btn-secondary" href="/campuscoud.com/profils/paiement/paiement" type="button">RETOUR</a-->
-                    <?php
-                    //  } else {
-                    ?>
-                    <!--div class="row" style="display: flex;justify-content: center;color:black;">
-                                        <div class="col-md-4">
-                                            <input type="number" class="form-control" name="montant" disabled placeholder="Montant à payer : <?php // $_a_payer; ?> fr cfa">
-                                            <input type="number" class="form-control" name="montant" value="<?php // $_a_payer; ?>" style="visibility: hidden;">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <input type="number" class="form-control" disabled placeholder="Mois impayer : <?php // $nbr_mois_impaye; ?> mois">
-                                        </div>
-                                    </div-->
-                    <div class="row" style="display: flex;justify-content: center;color:black;">
-                        <div class="col-md-4">
-                            <input type="number" name="montant_recu" id="montant_recu" class="form-control"
-                                placeholder="Montant recu" required>
-                        </div>
-                        <div class="col-md-4">
-                            <select id="libelle" name="libelle[]" multiple class="selectpicker form-control"
-                                data-live-search="true" placeholder="SELECTIONNER ICI ..." required>
-                                <option value="CAUTION">CAUTION</option>
-                                <option value="JANVIER_<?= date('Y'); ?>">JANVIER</option>
-                                <option value="fevrier">fevrier</option>
-                                <option value="Paiement(s)_<?= $count ?>">Paiement(s)_<?= $count ?></option>
-
-                            </select>
-                        </div>
-                    </div>
-                    <br>
-                    <button class="btn btn-success" type="button" data-toggle="modal"
-                        data-target="#confirmationModal">ENCAISSER</button>
-                    <?php } ?>
-                    <?php  // }
-                        } else {
-                    ?>
                     <a class="btn btn-secondary" href="/campuscoud.com/profils/paiement/paiement"
                         type="button">RETOUR</a>
-                    <?php } ?>
-                    <div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog"
-                        aria-labelledby="confirmationModalLabel" aria-hidden="true">
-                        <div class="modal-dialog" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="confirmationModalLabel">Confirmation</h5>
-                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                                <div class="modal-body">
-                                    Êtes-vous sûr de vouloir effectuer cette action ?
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary"
-                                        data-dismiss="modal">Annuler</button>
-                                    <button type="submit" class="btn btn-primary">Confirmer</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <?php if (isset($data['id_val'])) { ?>
-                    <input class="form-control" name="valide" value="<?= $data['id_val'] ?>"
-                        style="visibility: hidden;">
-                    <?php } ?>
-                    </form>
                     <?php } ?>
                 </ul>
             </div>
         </div>
 
         <script>
-        document.getElementById("form-paiement").addEventListener("submit", function(event) {
-            const montantDu = parseFloat(document.getElementById("montantDu").value);
-            const montantRecu = parseFloat(document.getElementById("montant_recu").value);
+        document.getElementById("form-paiement")?.addEventListener("submit", function(event) {
+            const montantDu = parseFloat(document.getElementById("montantDu")?.value || 0);
+            const montantRecu = parseFloat(document.getElementById("montant_recu")?.value || 0);
 
             const premierPaiement = <?= verifPremierPaiement($_SESSION['num_etu']) ? 'true' : 'false' ?>;
 
             if (montantRecu < montantDu && !premierPaiement) {
-                event.preventDefault(); // empêche l'envoi du formulaire
+                event.preventDefault();
 
                 const confirmContinue = confirm(
                     "Le montant est insuffisant. Voulez-vous quand même continuer ?");
                 if (confirmContinue) {
-                    // l'utilisateur accepte => on soumet le formulaire
                     this.submit();
                 } else {
-                    // l'utilisateur refuse => redirection ou message
                     window.location.href = "paiement.php?montantMinAvantLoger=MONTANT INSUFFISANT !!!";
                 }
             }
         });
         </script>
-
-
 
         <script src="../../assets/js/jquery-3.2.1.min.js"></script>
         <script src="../../assets/js/plugins.js"></script>
@@ -531,10 +524,11 @@ if (isset($_GET['data'])) {
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-        <!-- Bootstrap JS -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-        <!-- Bootstrap Select JS -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js">
         </script>
 </body>
+<script src="../../assets/js/script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>

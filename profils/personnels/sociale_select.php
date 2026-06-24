@@ -1,17 +1,18 @@
-<?php session_start();
+<?php
+session_start();
 if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
     header('Location: /campuscoud/');
     exit();
-} 
-if (isset($_GET['classe'])) {
-    $_SESSION['classe'] = $_GET['classe']."/SOCIALE";
-    $_SESSION['fac2'] = $_GET['classe'];  // Enregistre la classe dans la session
-    header("Location: listeLits"); // Redirige vers la page cible
+}
+if (isset($_GET['faculter']) && !empty($_GET['faculter'])) {
+    $_SESSION['classe'] = $_GET['faculter']; // prend la faculté directement
+    $_SESSION['fac2'] = $_GET['faculter'];   // si tu veux garder aussi fac2
+    header('Location: listeLits.php');
     exit();
 }
 unset($_SESSION['classe']);
-include('../../traitement/fonction.php');
-include('../../traitement/requete.php');
+include ('../../traitement/fonction.php');
+//include ('../../traitement/requete.php');
 
 verif_type_mdp_2($_SESSION['username']);
 
@@ -34,7 +35,7 @@ verif_type_mdp_2($_SESSION['username']);
 </head>
 
 <body>
-    <?php include('../../head.php'); ?>
+    <?php include ('../../head.php'); ?>
     <br>
     <div class="container">
         <div class="row justify-content-center">
@@ -46,12 +47,16 @@ verif_type_mdp_2($_SESSION['username']);
                 <div class="row justify-content-center align-items-end">
                     <div class="col-md-4 mb-3">
                         <label for="selectFac">CHOISIR UNE FACULTÉ</label><span> *</span>
-                        <select class="form-select" id="selectFac" name="classe" aria-label="Default select example" required>
+                        <select class="form-select" id="selectFac" name="faculter" aria-label="Default select example" required>
                             <option value="" selected>Faculté</option>
-                            <?php 
-                        while ($rowNiv = mysqli_fetch_array($dataEtablissement)) { ?>
-                            <option value="<?= $rowNiv['etablissement']; ?>"><?= $rowNiv['etablissement']; ?></option>
-                            <?php } ?>
+                               <?php
+                            $dataEtablissement = getAllEtablissement_dl();
+                            while ($rowNiv = mysqli_fetch_array($dataEtablissement)) {
+                                ?>
+                        <option value="<?= $rowNiv['etablissement']; ?>">
+                            <?= $rowNiv['etablissement']; ?>
+                        </option>
+                        <?php } ?>
                         </select>
                     </div>
 

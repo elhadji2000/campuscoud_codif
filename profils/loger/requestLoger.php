@@ -12,11 +12,26 @@ if (isset($_POST['numEtudiant'])) {
     } else { 
         if ($dataStudentConnect = studentConnect($num_etu)) { 
             $dataStudentConnect_classe = $dataStudentConnect['niveauFormation'];
+            
+            
+            
+                        //CODE PROVISOIRE POUR GERER LA CODIFICATION ESP 2025_2026
+            $fac = $dataStudentConnect['etablissement']; 
+            $annee=$_SESSION['annee'] ; 
+            if($fac=='E.S.P' and $annee!='2025_2026')
+            {
+                echo "<center><br><br><b>Codification E.S.P: Veuillez vous connecter à l'annee 2025_2026.</b></center>"; 
+                exit();
+            }
+            //Fin
+            
+            
             $dataStudentConnect_quota = getQuotaClasse($dataStudentConnect_classe, $dataStudentConnect['sexe'])['COUNT(*)'];
             $dataStudentConnect_statut = getOnestudentStatus($dataStudentConnect_quota, $dataStudentConnect_classe, $dataStudentConnect['sexe'], $num_etu);
             $dataStudentConnect_rang = $dataStudentConnect_statut['rang'];
             if ($dataStudentConnect_statut['statut'] == 'Attributaire') {
                 $data = getOneByValidatePaiement($num_etu, $_SESSION['pavillon']);
+               
                 if (mysqli_num_rows($data) > 0) {
                     while ($row = mysqli_fetch_array($data)) {
                         $array = $row;
@@ -85,7 +100,7 @@ if (isset($_POST['numEtudiant'])) {
         }
     }
 }
-//var_dump($_POST['valide']);
+//var_dump($_POST['valide']); exit();
 if (isset($_POST['valide'])) {
     try {
 
@@ -98,7 +113,7 @@ if (isset($_POST['valide'])) {
             header('Location: loger.php?successValider=Logement Titulaire Effectué avec success !!!');
         }
     } catch (mysqli_sql_exception $e) {
-        header('Location: loger.php?erreurValider=Attention: Attributaire déja logé !!!');
+        header('Location: loger.php?erreurValider=Erreur denregistrement !!!');
     }
 }
 if (isset($_POST['id_val'])) {

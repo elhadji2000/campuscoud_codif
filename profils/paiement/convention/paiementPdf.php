@@ -66,12 +66,12 @@ $html = '
         <table style="width:100%; border-collapse:collapse;">
             <thead>
                 <tr>
-				<th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Quittance</th>
-				<th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Date</th>
-                    <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Libelle</th>
-                    <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Num Étudiant</th>
-                    <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Prenom et NOM</th>
-                    <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Montant</th>
+				<th style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:10px;">Quittance</th>
+				<th style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:10px;">Date</th>
+                    <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:10px;">Libelle</th>
+                    <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:10px;">Num Étudiant</th>
+                    <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:10px;">Prenom et NOM</th>
+                    <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:10px;">Montant</th>
                     
                 </tr>
             </thead>
@@ -80,18 +80,18 @@ $html = '
             foreach ($data as $row) {
             $html .= '
                <tr>
-                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars($row['quittance']) . '</td>
-					 <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars($row['dateTime_paie']) . '</td>
-					 <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars($row['libelle']) . '</td>
-                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars($row['num_etu']) . '</td>
-                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars($row['prenoms']." ".$row['nom']) . '</td>
-                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars($row['montant']) . '</td>
+                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:8px;">' . htmlspecialchars($row['quittance']) . '</td>
+					 <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:8px;">' . htmlspecialchars($row['dateTime_paie']) . '</td>
+					 <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:8px;">' . htmlspecialchars($row['libelle']) . '</td>
+                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:8px;">' . htmlspecialchars($row['num_etu']) . '</td>
+                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:8px;">' . htmlspecialchars($row['prenoms']." ".$row['nom']) . '</td>
+                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:8px;">' . htmlspecialchars($row['montant']) . '</td>
                </tr>';
 			   $total+=$row['montant'];
             }
 			$html .= '<tr>
-                    <td colspan="5" align="center" style="border: 1px solid #dddddd; text-align: left; padding: 8px;">TOTAL DE LA PERIODE</td>                    
-                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">' . htmlspecialchars($total) . '</td>
+                    <td colspan="5" align="center" style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:10px;">TOTAL DE LA PERIODE</td>                    
+                    <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;font-size:10px;">' . htmlspecialchars($total) . '</td>
                </tr>';
 
             $html .= '

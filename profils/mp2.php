@@ -48,7 +48,7 @@ if (isset($_POST['mdp'])){
 					}
 					 
 					 $datesys=date("Y-m-d H:i");
-					 $link = connexionBD();
+					 $link = connexion_user();
 					$requet =("UPDATE  `codif_user` SET `password_user` =SHA1('$mdp_conf'),`type_mdp` ='updated',`datesys` ='$datesys'
 								WHERE  `codif_user`.`username_user` =  '".$login."'");
 					$resultat  = mysqli_query($link,$requet)or die('IMPOSSIBLE DE FAIRE LA MODIFICATION '.mysqli_error());

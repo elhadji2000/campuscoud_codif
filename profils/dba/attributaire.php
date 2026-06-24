@@ -65,7 +65,7 @@ $_SESSION['error'] = '';
                     $tableau_data_etudiant = getAllDatastudentStatus($quota, $row_formation["niveauFormation"], $row_formation["sexe"]);
                     for ($i = 0; $i < count($tableau_data_etudiant); $i++) {  
                        //   if ($tableau_data_etudiant[$i]['statut'] == 'Attributaire') {  
-                        if ($tableau_data_etudiant[$i]['statut'] == 'Attributaire' and ($tableau_data_etudiant[$i]['niveauFormation'] == 'C.U.R.I Licence1' )) { 
+                        if ($tableau_data_etudiant[$i]['statut'] == 'Attributaire' and ($tableau_data_etudiant[$i]['niveauFormation'] == 'E.S.P/DIC3DESCAF3' )) { 
                                                                                                                                             
                          // verifierDemarrage($tableau_data_etudiant[$i]['niveauFormation']);
                           
@@ -82,7 +82,7 @@ $_SESSION['error'] = '';
                             </tr>
                 <?php
                 //Envoi SMS
-               sms_attributaires($tableau_data_etudiant[$i]['num_etu']);     //die;
+             //  sms_attributaires($tableau_data_etudiant[$i]['num_etu']);     //die;
                             
                         }
                     }

@@ -13,7 +13,7 @@ $connexion = connexionBD();
 
 //echo "Stop"; die; 
 $requet = ("SELECT * FROM codif_user where username_user='903108/C3' ");                          
-				$reponse = mysqli_query($connexion,$requet) or die ('ERREUR DE Recherche'.mysqli_error());
+				$reponse = mysqli_query($connexion_user,$requet) or die ('ERREUR DE Recherche'.mysqli_error());
 				
 				while($rst_cons = mysqli_fetch_array($reponse))
 					{

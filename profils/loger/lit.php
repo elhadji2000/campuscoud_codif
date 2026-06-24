@@ -86,7 +86,7 @@ $occupants = getEtudiantByLit($lit,$paie, $connexion); ;
                         <td><?= htmlspecialchars($row['num_etu']) ?></td>
                         <td><?= htmlspecialchars($row['nom']) ?></td>
                         <td><?= htmlspecialchars($row['prenoms']) ?></td>
-                        <td><?= htmlspecialchars($row['telephone']) ?></td>
+                        <td><?= htmlspecialchars($row['telephone']??"null") ?></td>
                         <td><?= htmlspecialchars($row['statut_etudiant']) ?></td>
                     </tr>
                     <?php endforeach; ?>

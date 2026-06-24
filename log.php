@@ -64,7 +64,7 @@ if(isset( $_SESSION['username']))
                                 </div>
                             </div>
                             <?php } ?>
-                        </div><br>
+                        </div>
                         <!-- </span> -->
                         <fieldset>
                             <div class="form-field">
@@ -78,12 +78,13 @@ if(isset( $_SESSION['username']))
                             </div>
                             <div class="form-field">
                                 <select name="annee" id="annee" required class="full-width">
-                                    <option value="">-- Sélectionnez l'année scolaire --</option>
-                                    <option value="2024_2025">2024_2025</option>
-                                    <option value="2025_2026" selected>2025_2026</option>
+                                    <option value="">-- Choisir l'année academique --</option>
+									
+<option value="2024_2025">2024_2025</option>
+<option value="2025_2026">2025_2026</option>
+                                  
                                 </select>
                             </div>
-
 
                             <?php if (isset($error_message)) { ?>
                             <div id="error-message" class="error-message"><?= $error_message ?></div>

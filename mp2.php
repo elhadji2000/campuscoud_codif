@@ -82,7 +82,7 @@ include ('mp1.php');
 		$datesys=date("Y-m-d H:i:s");
         $insertion2 = "INSERT INTO `codif_user`(`login`,`mdp`,`datesys`)
             VALUES('$numeroetudiant','$mdp_encrypt','$datesys')";
-        $execution = mysqli_query($link, $insertion2);
+        $execution = mysqli_query($connexion_user, $insertion2);
         
         
 							if($execution){

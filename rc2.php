@@ -1,12 +1,16 @@
 <html>
-<?php 
+<?php  session_start(); $_SESSION['annee'] = $_POST['annee'];
+include('activite.php');
+require('traitement/fonction.php'); 
+include ('rc.php');
+
+
+
 if (!isset($_POST['num_etu']))
 {echo '<meta http-equiv="refresh" content="0;URL=index">'; exit();}  
 
 
-include('activite.php');
-require('traitement/fonction.php');
-include ('rc.php');
+
 
 if (isset($_POST['num_etu'])){
 		$numeroetudiant= $_POST['num_etu'];
@@ -71,7 +75,7 @@ if (isset($_POST['num_etu'])){
         {
                  ?>
                  <script langage='javascript'>
-                 alert('Votre numero de carte est introuvable! Il se peut que la codification de votre FAC na pas encore demarre.')
+                 alert('Votre numero de carte est introuvable dans lannee academique choisie! Il se peut aussi que la codification de votre FAC na pas encore demarre.')
                  window.history.back();
                  </script>
                  <?php

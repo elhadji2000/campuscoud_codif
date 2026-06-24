@@ -3,13 +3,13 @@ session_start();
 include('../../traitement/fonction.php');
 
 verif_type_mdp_2($_SESSION['username']);
-$departements = getDepartements();
+$faculters = getAllEtablissement_1();
 
 // On récupère le département sélectionné
-$departementDonne = isset($_GET["departement"]) ? $_GET["departement"] : htmlspecialchars($departements[0]);
+$faculterDonnee = isset($_GET["faculte"]) ? $_GET["faculte"] : htmlspecialchars($faculters[0]);
 
 // On appelle la fonction adaptée
-$result = getPaymentDetailsByDepartement($departementDonne, $connexion);
+$result = getPaymentDetailsByFaculter($faculterDonnee, $connexion);
 
 // Regrouper les lits par département (facultatif ici)
 $etudiants = [];
@@ -38,6 +38,8 @@ foreach ($result as $row) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <?php include('../../head.php'); ?>
     <style>
     select.departement {
@@ -57,6 +59,9 @@ foreach ($result as $row) {
     .col-5 {
         flex: none;
     }
+    #tableEtudiants th, #tableEtudiants td{
+        font-size:12px;
+    }
     </style>
 </head>
 
@@ -68,11 +73,11 @@ foreach ($result as $row) {
                 <form method="get" action="black_list">
                     <div class="row">
                         <div class="col-5">
-                            <select class="departement" name="departement" required>
-                                <option value="">Sélectionnez un département</option>
-                                <?php foreach ($departements as $dep) : ?>
+                            <select class="departement" name="faculte" required>
+                                <option value="">Sélectionnez un faculter</option>
+                                <?php foreach ($faculters as $dep) : ?>
                                 <option value="<?= htmlspecialchars($dep) ?>"
-                                    <?= ($dep == $departementDonne) ? 'selected' : '' ?>>
+                                    <?= ($dep == $faculterDonnee) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($dep) ?>
                                 </option>
                                 <?php endforeach; ?>
@@ -90,21 +95,22 @@ foreach ($result as $row) {
 
         <center>
             <h2>GESTION DES ARRIÈRÈS</h2>
-            <p>DÉPARTEMENT : <?= htmlspecialchars($departementDonne) ?></p><br>
-            <a href="black_list_view" class="text-decoration-underline"> voir les etudiants ajouter à la liste noir</a> |
+            <p>FACULTER : <?= htmlspecialchars($faculterDonnee) ?></p><br>
+            <a href="black_list_view" class="text-decoration-underline"> voir les etudiants ajouter à la liste noir</a>
+            |
             <a href="#" class="text-danger text-decoration-underline"
-                onclick="ajouterBlackList('<?php echo $departementDonne; ?>')">
+                onclick="ajouterBlackList('<?php echo $faculterDonnee; ?>')">
                 Ajouter cette liste
             </a>
 
             <script>
-            function ajouterBlackList(departement) {
+            function ajouterBlackList(faculter) {
                 const annee = new Date().getFullYear(); // année en cours
                 if (confirm(
-                        `Voulez-vous vraiment ajouter les étudiants du département ${departement} à la black list ?`
+                        `Voulez-vous vraiment ajouter les étudiants de la faculter ${faculter} à la black list ?`
                     )) {
                     window.location.href =
-                        `black_list_trait.php?action=ajouter&departement=${encodeURIComponent(departement)}`;
+                        `black_list_trait.php?action=ajouter&faculter=${encodeURIComponent(faculter)}`;
                 }
             }
             </script>
@@ -120,7 +126,7 @@ foreach ($result as $row) {
 
         <br><br>
         <center>
-            <table class="table table-bordered table-striped">
+            <table id="tableEtudiants" class="table table-bordered table-striped">
                 <thead class="thead-dark">
                     <tr>
                         <th>#</th>
@@ -146,10 +152,6 @@ foreach ($result as $row) {
                         <td class="text-danger"><?= number_format($etu['reste_a_payer'], 0, ',', ' ') ?> f cfa</td>
                     </tr>
                     <?php endforeach; ?>
-                    <?php else : ?>
-                    <tr>
-                        <td colspan="8">Aucun étudiant trouvé pour ce département.</td>
-                    </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -179,8 +181,39 @@ foreach ($result as $row) {
         </div>
     </footer>
 
+   
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="../../assets/js/main.js"></script>
+
+     <script>
+    $(document).ready(function() {
+        $('#tableEtudiants').DataTable({
+            "pageLength": 100,
+            "lengthMenu": [
+            [50, 100, 200, 300, 500, 1000],
+            [50, 100, 200, 300, 500, 1000]
+        ],
+            "language": {
+                "lengthMenu": "Afficher _MENU_ étudiants",
+                "zeroRecords": "Aucun résultat trouvé",
+                "info": "Page _PAGE_ sur _PAGES_",
+                "infoEmpty": "Aucun étudiant disponible",
+                "infoFiltered": "(filtré sur _MAX_ étudiants)",
+                "search": "Rechercher :",
+                "paginate": {
+                    "first": "Premier",
+                    "last": "Dernier",
+                    "next": "Suivant",
+                    "previous": "Précédent"
+                }
+            }
+        });
+    });
+    </script>
 </body>
 
 </html>

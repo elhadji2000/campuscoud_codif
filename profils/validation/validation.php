@@ -1,55 +1,26 @@
-<?php session_start();
+<?php
+session_start();
 if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
     header('Location: /campuscoud.com/');
     exit();
 }
-//connexion à la base de données
-include('../../traitement/fonction.php');
+
+include ('../../traitement/fonction.php');
 connexionBD();
-// Sélectionnez les options à partir de la base de données avec une pagination
-include('../../traitement/requete.php');
+include ('../../traitement/requete.php');
 
 verif_type_mdp_2($_SESSION['username']);
 
-// Comptez le nombre total d'options dans la base de données details lits affecter (quotas)
-
 $countIn = 0;
-if (isset($_GET['erreurValider'])) {
-    $_SESSION['erreurValider'] = $_GET['erreurValider'];
-} else {
-    $_SESSION['erreurValider'] = '';
-}
-if (isset($_GET['successValider'])) {
-    $_SESSION['successValider'] = $_GET['successValider'];
-} else {
-    $_SESSION['successValider'] = '';
-}
-if (isset($_GET['erreurNonTrouver'])) {
-    $_SESSION['erreurNonTrouver'] = $_GET['erreurNonTrouver'];
-} else {
-    $_SESSION['erreurNonTrouver'] = '';
-}
-if (isset($_GET['erreurForclo'])) {
-    $_SESSION['erreurForclo'] = $_GET['erreurForclo'];
-} else {
-    $_SESSION['erreurForclo'] = '';
-}
-
-
-
-
-        			?>
-<!--script langage='javascript'>
-alert('Veuillez reessayer plus tard.')
-
-</script-->
-<?php
-//echo '<meta http-equiv="refresh" content="0;URL=../../">';
-//	exit();
-
+$messages = [
+    'erreurValider' => $_GET['erreurValider'] ?? null,
+    'successValider' => $_GET['successValider'] ?? null,
+    'erreurNonTrouver' => $_GET['erreurNonTrouver'] ?? null,
+    'erreurForclo' => $_GET['erreurForclo'] ?? null,
+];
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 
 <head>
     <meta charset="UTF-8">
@@ -70,341 +41,287 @@ alert('Veuillez reessayer plus tard.')
 </head>
 
 <body>
-    <?php include('../../head.php'); ?>
+    <?php include ('../../head.php'); ?>
     <div class="container">
         <div class="row">
             <div class="text-center">
                 <h1>VALIDATION PAR PRESENCE PHYSIQUE</h1><br>
             </div>
         </div>
-        <!-- <span style="color: red;"> <?= $_SESSION['erreurValider']; ?> </span> -->
-        <div class="row" style="justify-content: center;">
-            <?php if ($_SESSION['erreurValider']) { ?>
+        <div class="row justify-content-center">
             <div class="col-md-6">
-                <div class="alert alert-warning" role="alert">
-                    <?= $_SESSION['erreurValider']; ?>
+
+                <?php foreach ($messages as $key => $msg): ?>
+                <?php if ($msg): ?>
+                <div class="alert 
+                    <?= str_contains($key, 'success') ? 'alert-success' : 'alert-danger' ?>">
+                    <?= htmlspecialchars($msg) ?>
                 </div>
+                <?php endif; ?>
+                <?php endforeach; ?>
+
             </div>
-            <?php } elseif ($_SESSION['successValider']) { ?>
-            <div class="col-md-6">
-                <div class="alert alert-success" role="alert">
-                    <?= $_SESSION['successValider']; ?>
-                </div>
-            </div>
-            <?php } elseif ($_SESSION['erreurNonTrouver']) { ?>
-            <div class="col-md-6">
-                <div class="alert alert-danger" role="alert">
-                    <?= $_SESSION['erreurNonTrouver']; ?>
-                </div>
-            </div>
-            <?php } elseif ($_SESSION['erreurForclo']) { ?>
-            <div class="col-md-6">
-                <div class="alert alert-dark" role="alert">
-                    <?= $_SESSION['erreurForclo']; ?>
-                </div>
-            </div>
-            <?php } ?>
-            <form action="requestValidation" method="POST" style="display: flex;justify-content: center">
-                <div class="row">
-                    <div class="col-md-10">
-                        <input id="numEtudiant" name="numEtudiant" type="text" class="form-control"
-                            placeholder="NUMERO CARTE ETUDIANT" oninput="checkInput()" onblur="validateInput()">
-                        <!-- <p id="affichage"></p> -->
-                        <script>
-                        // Sélectionner l'élément input
-                        var inputElement = document.getElementById('numEtudiant');
+        </div>
+        <div class="container" style="width:50%;">
+            <form action="requestValidation" method="POST">
+                <div class="row align-items-center justify-content-center">
+                    <div class="col-md-6">
 
-                        // Ajouter un écouteur d'événement sur l'input pour détecter les changements
-                        inputElement.addEventListener('input', function() {
-                            // Récupérer la valeur du champ input
-                            var texte = inputElement.value;
-
-                            // Convertir le texte en majuscule
-                            var texteMajuscule = texte.toUpperCase();
-
-                            // Mettre à jour la valeur du champ input
-                            inputElement.value = texteMajuscule;
-
-                            // Récupérer l'élément où afficher le texte
-                            var affichageElement = document.getElementById('affichage');
-
-                            // Mettre à jour le texte de l'élément
-                            affichageElement.textContent = texteMajuscule;
-                        });
-                        </script>
-                        <!-- <span id="inputMessage" style="color: green; font-size: 12px;"></span> -->
+                        <input id="numEtudiant" name="numEtudiant" type="text" class="form-control text-uppercase"
+                            placeholder="NUMERO CARTE ETUDIANT" required>
                     </div>
-                    <div class="col-md-2">
-                        <button id="submitBtn" type="submit" class="btn btn-primary">Rechercher</button>
+                    <div class="col-md-6">
+
+                        <button type="submit" width="100px" class="btn btn-lg btn-primary">
+                            <i class="fa fa-search"></i> Rechercher
+                        </button>
+
                     </div>
                 </div>
             </form>
-        </div><br><br>
-        <div class="row">
-            <div class="col-md-12">
-                <ul class="options">
+        </div>
+    </div><br>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
 
+                <?php
+                if (isset($_GET['data'])) {
+                    $data = $_GET['data'];
 
+                    $tableau_data_etudiant = getAllSituation($data['num_etu']);
+
+                    if ($data['departement'] == 'F.L.S.H/M1ASS') {
+                        echo "<div class='alert alert-warning text-center'>
+                                Codification momentanément suspendue pour votre formation !
+                            </div>";
+                        exit();
+                    }
+
+                    $rowClass = 'row justify-content-center text-dark';
+                    ?>
+
+                <?php if (isset($_GET['statut'])): ?>
+                <form action="requestValidation" method="POST">
+
+                    <!-- Champs cachés -->
+                    <input type="hidden" name="id_etu" value="<?= $data['id_etu'] ?>">
+                    <input type="hidden" name="num_etu" value="<?= $data['num_etu'] ?>">
+                    
+
+                    <!-- INFOS COMMUNES -->
+                    <div class="<?= $rowClass ?>">
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Prénom : <?= $data['prenoms'] ?>" disabled>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Nom : <?= $data['nom'] ?>" disabled>
+                        </div>
+                    </div>
+
+                    <div class="<?= $rowClass ?>">
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Faculté : <?= $data['etablissement'] ?>" disabled>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Niveau : <?= $data['niveauFormation'] ?>" disabled>
+                        </div>
+                    </div>
+
+                    <div class="<?= $rowClass ?>">
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Numero : <?= $data['num_etu'] ?>" disabled>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Statut : <?= $_GET['statut'] ?>" disabled>
+                        </div>
+                    </div>
+
+                    <!-- =========================
+                    FORCLOS
+                ========================= -->
+                    <?php if ($_GET['statut'] == 'Forclos(e)'): ?>
 
                     <?php
-                    if (isset($_GET['data'])) {
-                        $data = $_GET['data'];
-                        
-                        
-                        
-                        
-                         
-                      
-                    /* if (isset($data)) {
-                        $tableau_data_etudiant = getAllSituation($data['num_etu']);
-                        
-                        if($data['niveauFormation']=='Droit Prive/Master1' or $data['niveauFormation']=='Droit Prive/Master1/Indiv' or $data['niveauFormation']=='Droit Public/Master1' or $data['niveauFormation']=='Droit Public/Master1/Indiv' or $data['niveauFormation']=='Sciences Politiques/Master1' or $data['niveauFormation']=='Sciences Politiques/Master1/Indiv')
-                        {
-                            echo "La Codification est momentanement suspendue pour votre Formation!";
-                            exit();
-                            
-                        }
-                        } 
-                        */
-                        
-                        
-                             if (isset($data)) {
-                        $tableau_data_etudiant = getAllSituation($data['num_etu']);
-                        
-                        if($data['departement']=='F.L.S.H/M1ASS')
-                        {
-                            echo "La Codification est momentanement suspendue pour votre Formation!";
-                            exit();
-                            
-                        }
-                        } 
-                        
-                        
-                        
-                        
-                        
-                        
-                        if (isset($_GET['statut'])) { ?>
-                    <form action="requestValidation" method="POST">
-                        <div class="row" style="display: flex;justify-content: center;color:black;">
-                            <div class="col-md-4 mb-3">
-                                <input type="text" class="form-control" placeholder="Prénom : <?= $data['prenoms'] ?>"
-                                    disabled>
-                                <input class="form-control" name="id_etu" value="<?= $data['id_etu'] ?>"
-                                    style="visibility: hidden;">
-                            </div>
-                            <div class="col-md-4">
-                                <input class="form-control" placeholder="Nom : <?= $data['nom'] ?>" disabled>
-                                <?php if (isset($_GET['idLit'])) { ?>
-                                <input class="form-control" name="idLit" value="<?= $_GET['idLit'] ?>"
-                                    style="visibility: hidden;">
-                                <?php } ?>
-                            </div>
+        $type = ($data['type'] == 'auto')
+            ? 'Automatique'
+            : $data['type'];
+
+        $motif = ($data['type'] == 'auto')
+            ? 'Retard'
+            : $data['motif_manuel'];
+        ?>
+
+                    <div class="<?= $rowClass ?>">
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Type : <?= $type ?>" disabled>
                         </div>
-                        <div class="row" style="display: flex;justify-content: center;color:black;">
-                            <div class="col-md-4 mb-3">
-                                <input class="form-control" placeholder="Faculté : <?= $data['etablissement'] ?>"
-                                    disabled>
-                            </div>
-                            <div class="col-md-4">
-                                <input class="form-control" placeholder="Niveau : <?= $data['niveauFormation'] ?>"
-                                    disabled>
-                            </div>
-                        </div><br>
-                        <div class="row" style="display: flex;justify-content: center;color:black;">
-                            <div class="col-md-4 mb-3">
-                                <input class="form-control" placeholder="Moyenne : <?= $data['moyenne'] ?>" disabled>
-                            </div>
-                            <div class="col-md-4">
-                                <input class="form-control" placeholder="Statut : <?= $_GET['statut'] ?>" disabled>
-                            </div>
-                        </div><br>
 
-
-
-                        <?php if($_GET['statut'] == 'Suppleant(e)')  {
-	
-$sexe_etudiant =  studentConnect($data['num_etu'])['sexe'];
-$quota = getQuotaClasse($data['niveauFormation'], $sexe_etudiant)['COUNT(*)'];
-$dataStatutStudentSearch = getOnestudentStatus($quota, $data['niveauFormation'], $sexe_etudiant, $data['num_etu']);
-$rang = $dataStatutStudentSearch['rang'];
-
-$monTitulaire = getOneTitulaireBySuppleant($quota, $data['niveauFormation'], $sexe_etudiant, $rang);
-$resultatReqLitEtu = getOneLitByStudent($monTitulaire['num_etu']);
-$rows = $resultatReqLitEtu->fetch_assoc();
-$pavillon=$rows['pavillon'];$lit=$rows['lit'];
-?>
-
-                        <div class="row" style="display: flex;justify-content: center;color:black;">
-                            <div class="col-md-4     mb-3">
-                                <input class="form-control" placeholder="Pavillon: <?php echo $pavillon; ?>" disabled>
-                            </div>
-                            <div class="col-md-4    ">
-                                <input class="form-control" placeholder="Lit: <?php echo $lit; ?>" disabled>
-                            </div>
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Motif : <?= $motif ?>" disabled>
                         </div>
+                    </div>
+
+                    <?php endif; ?>
+
+                    <!-- =========================
+                    INCONNU
+                ========================= -->
+                    <?php if ($_GET['statut'] == 'inconnu(e)'): ?>
+
+                    <div class="alert alert-warning text-center mt-3">
+                        L'étudiant doit se rapprocher du service paie.
+                    </div>
+
+                    <?php endif; ?>
+
+                    <!-- =========================
+                    ATTRIBUTAIRE
+                ========================= -->
+                    <?php if ($_GET['statut'] == 'Attributaire'): ?>
+
+                    <div class="<?= $rowClass ?>">
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Campus : <?= $data['campus'] ?>" disabled>
+                        </div>
+                        <input type="hidden" name="valide" value="<?= $data[0]??0 ?>">
+
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Pavillon : <?= $data['pavillon'] ?>" disabled>
+                        </div>
+                    </div>
+
+                    <div class="<?= $rowClass ?>">
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Lit : <?= $data['lit'] ?>" disabled>
+                        </div>
+                    </div>
+
+                    <?php endif; ?>
+
+                    <!-- =========================
+                    SUPPLEANT
+                ========================= -->
+                    <?php if ($_GET['statut'] == 'Suppleant(e)'): ?>
+
+                    <?php
+        $sexe = studentConnect($data['num_etu'])['sexe'];
+
+        $quota = getQuotaClasse(
+            $data['niveauFormation'],
+            $sexe
+        )['COUNT(*)'];
+
+        $rang = getOnestudentStatus(
+            $quota,
+            $data['niveauFormation'],
+            $sexe,
+            $data['num_etu']
+        )['rang'];
+
+        $titulaire = getOneTitulaireBySuppleant(
+            $quota,
+            $data['niveauFormation'],
+            $sexe,
+            $rang
+        );
+
+        $litData = getOneLitByStudent(
+            $titulaire['num_etu']
+        )->fetch_assoc();
+        ?>
+
+                    <div class="<?= $rowClass ?>">
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Pavillon : <?= $litData['pavillon'] ?>" disabled>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <input class="form-control" value="Lit : <?= $litData['lit'] ?>" disabled>
+                            <input type="hidden" name="idLit" value="<?= $litData['id_lit'] ?>">
+                        </div>
+                    </div>
+
+                    <?php endif; ?>
+
+                    <!-- =========================
+                    VALIDATION
+                ========================= -->
+
+                    <?php if ($_GET['statut'] != 'Forclos(e)' && $_GET['statut'] != 'inconnu(e)'): ?>
+
+                    <?php if ($data['migration_status'] == 'Migré'): ?>
+
+                    <div class="text-center mt-3">
+                        <input class="form-control text-center"
+                            value="Validé le <?= dateFromat($data['dateTime_val']) ?>" disabled>
+                    </div>
+
+                    <?php else: ?>
+
+                    <div class="text-center mt-3">
+
+                        <?php if ($_GET['statut'] == 'Attributaire'): ?>
 
                         <?php
-}                               
-?>
+                    $date_debut = getAllDelai(
+                        'depart',
+                        info($data['num_etu'])[5]
+                    );
 
-                        <?php
-                                if (isset($_GET['statut']) && $_GET['statut'] != 'Forclos(e)') {
-                                ?>
-                        <button class="btn btn-success" type="button" data-toggle="modal"
-                            data-target="#confirmationModal">VALIDER</button>
-                        <?php
-                                } else { ?>
-                        <div class="row" style="display: flex;justify-content: center;color:black;">
-                            <?php $type=$data['type'];          if($data['type']=='auto'){$type='Automatique';} 
-								      $motif=$data['motif_manuel']; if($data['type']=='auto'){$motif='Retard';} 								
-								?>
-                            <div class="col-md-4 mb-3">
-                                <input class="form-control" placeholder="Type de Forclusion : <?= $type ?>" disabled>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <input class="form-control" placeholder="Motif : <?= $motif ?>" disabled>
-                            </div>
-                        </div><br>
-                        <a class="btn btn-secondary" href="/campuscoud.com/profils/validation/validation"
-                            type="button">RETOUR</a>
-                        <?php } ?>
-                        <div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog"
-                            aria-labelledby="confirmationModalLabel" aria-hidden="true">
-                            <div class="modal-dialog" role="document">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="confirmationModalLabel">Confirmation</h5>
-                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                    </div>
-                                    <div class="modal-body">
-                                        Êtes-vous sûr de vouloir effectuer cette action ?
-                                    </div>
-                                    <div class="modal-footer">
-                                        <!-- Boutons pour confirmer ou annuler -->
-                                        <button type="button" class="btn btn-secondary"
-                                            data-dismiss="modal">Annuler</button>
-                                        <button type="submit" class="btn btn-primary">Confirmer</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                    <?php } else {
-                        ?>
-                    <form action="requestValidation" method="POST">
-                        <div class="row" style="display: flex;justify-content: center;color:black;">
-                            <div class="col-md-4     mb-3">
-                                <input type="text" class="form-control" placeholder="Prenom: <?= $data['prenoms'] ?>"
-                                    disabled>
-                                <input class="form-control" name="valide" value="<?= $data['0'] ?>"
-                                    style="visibility: hidden;">
-                            </div>
-                            <div class="col-md-4    ">
-                                <input class="form-control" placeholder="Nom: <?= $data['nom'] ?>" disabled>
-                            </div>
-                        </div>
-                        <div class="row" style="display: flex;justify-content: center;color:black;">
-                            <div class="col-md-4     mb-3">
-                                <input class="form-control" placeholder="FAC: <?= $data['etablissement'] ?>" disabled>
-                            </div>
-                            <div class="col-md-4    ">
-                                <input class="form-control" placeholder="Niveau: <?= $data['niveauFormation'] ?>"
-                                    disabled>
-                            </div>
-                        </div><br>
-                        <div class="row" style="display: flex;justify-content: center;color:black;">
-                            <div class="col-md-4     mb-3">
-                                <input class="form-control" placeholder="Numero carte: <?= $data['num_etu'] ?>"
-                                    disabled>
-                            </div>
-                            <div class="col-md-4    ">
-                                <input class="form-control" placeholder="Campus: <?= $data['campus'] ?>" disabled>
-                            </div>
-                        </div><br>
-                        <div class="row" style="display: flex;justify-content: center;color:black;">
-                            <div class="col-md-4     mb-3">
-                                <input class="form-control" placeholder="Pavillon: <?= $data['pavillon'] ?>" disabled>
-                            </div>
-                            <div class="col-md-4    ">
-                                <input class="form-control" placeholder="Lit: <?= $data['lit'] ?>" disabled>
-                            </div>
-                        </div>
-                        <?php if ($data['migration_status'] == 'Migré') { ?>
-                        <div class="row" style="display: flex;justify-content: center;color:black;">
-                            <div class="col-md-4     mb-3">
-                                <input class="form-control"
-                                    placeholder="Validé le <?= dateFromat($data['dateTime_val']) ?>" disabled>
-                            </div>
-                        </div>
-                        <a class="btn btn-secondary" href="/campuscoud.com/profils/validation/validation"
-                            type="button">RETOUR</a>
-                        <?php } else { 
-                                
-                               // DEBUT INFOS FACTURATION    
-                                
-                                    // Recuperation du date debut de codification du niveauFormation de l'etudiant
-    $date_debut = getAllDelai("depart", info($data['num_etu'])[5]);
-    $date_debut = dateFromat($date_debut['data_limite']);  
-    
-    // Calcul du Montant du
-    $montantDu=0;$moisFactures=0;$montantLit=0;
-    $moisFactures = calcul_nbreMois($date_debut); 
-    $montantLit = getPrixMensuelLit($data['num_etu']); 
-    $montantDu=$moisFactures * $montantLit;
-                                
-                          ?> <div class="row" style="display: flex;justify-content: center;color:black;">
-                            <div class="col-md-4     mb-3">
-                                <input class="form-control"
-                                    placeholder="Facture: Caution=5.000F. <?= $moisFactures ?> Mensualites=<?= $montantDu ?> F."
-                                    disabled>
-                            </div>
-                        </div>
+                    $date_debut = dateFromat(
+                        $date_debut['data_limite']
+                    );
 
-                        <!-- FIN INFOS FACTURATION    -->
+                    $mois = calcul_nbreMois($date_debut);
 
-                        <button class="btn btn-success" type="button" data-toggle="modal"
-                            data-target="#confirmationModal">VALIDER</button>
-                        <?php } ?>
-                        <!-- Modal -->
-                        <div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog"
-                            aria-labelledby="confirmationModalLabel" aria-hidden="true">
-                            <div class="modal-dialog" role="document">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="confirmationModalLabel">Confirmation</h5>
-                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                    </div>
-                                    <div class="modal-body">
-                                        Êtes-vous sûr de vouloir effectuer cette action ?
-                                    </div>
-                                    <div class="modal-footer">
-                                        <!-- Boutons pour confirmer ou annuler -->
-                                        <button type="button" class="btn btn-secondary"
-                                            data-dismiss="modal">Annuler</button>
-                                        <button type="submit" class="btn btn-primary">Confirmer</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                    <?php }
-                    } ?>
-                </ul>
+                    $prix = getPrixMensuelLit($data['num_etu']);
+
+                    $montant = $mois * $prix;
+                    ?>
+
+                        <input class="form-control mb-3 text-center"
+                            value="Facture : Caution=5000F | <?= $mois ?> mois = <?= $montant ?> F" disabled>
+
+                        <?php endif; ?>
+
+                        <input class="form-control mb-3" name="tel_tuteur" placeholder="Tel tuteur : +221..." required>
+
+                        <button class="btn btn-success btn-lg">
+                            <i class="fa fa-check"></i>
+                            VALIDER
+                        </button>
+
+                    </div>
+
+                    <?php endif; ?>
+
+                    <?php endif; ?>
+
+                </form>
+
+                <?php endif;
+                } ?>
+
             </div>
         </div>
-        <script src="../../assets/js/jquery-3.2.1.min.js"></script>
-        <script src="../../assets/js/plugins.js"></script>
-        <script src="../../assets/js/main.js"></script>
+    </div>
+    <script>
+    document.getElementById('numEtudiant').addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+    </script>
+    <script src="../../assets/js/jquery-3.2.1.min.js"></script>
+    <script src="../../assets/js/plugins.js"></script>
+    <script src="../../assets/js/main.js"></script>
 
-        <!-- JavaScript de Bootstrap (assurez-vous d'ajuster le chemin si nécessaire) -->
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- JavaScript de Bootstrap (assurez-vous d'ajuster le chemin si nécessaire) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 <script src="../../assets/js/script.js"></script>
 </body>
