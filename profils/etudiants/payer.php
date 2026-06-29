@@ -317,7 +317,7 @@ $num_etu = $_SESSION['num_etu'];
                             <!-- Free Money (optionnel) -->
                             <label class="payment-option">
                                 <input type="radio" name="wallet" value="free_money">
-                                <img src="images/free_money.webp" alt="Free Money" loading="lazy">
+                                <img src="images/Yas_logo_2024.svg" alt="Free Money" loading="lazy">
                                 <h6>Free Money</h6>
                                 <small>Sécurisé</small>
                             </label>
@@ -389,7 +389,7 @@ $num_etu = $_SESSION['num_etu'];
 
     <script>
         // Sélection visuelle des moyens de paiement
-        document.querySelectorAll('.payment-option').forEach(opt => {
+        /* document.querySelectorAll('.payment-option').forEach(opt => {
             opt.addEventListener('click', function(e) {
                 // Ne pas déclencher si on clique sur l'input (évite double)
                 if (e.target.tagName === 'INPUT') return;
@@ -398,7 +398,7 @@ $num_etu = $_SESSION['num_etu'];
                 const radio = this.querySelector('input[type="radio"]');
                 if (radio) radio.checked = true;
             });
-        });
+        }); */
 
         // Validation minimale du montant (côté client)
        /*  document.querySelector('form').addEventListener('submit', function(e) {

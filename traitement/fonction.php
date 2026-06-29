@@ -5345,23 +5345,39 @@ function isChoix($num_etu)
 
 // ######## FONCTION UTILISER DANS DBA ###################
 // ############ POUR RECUPERER LES USERS ############################
-function getUsers()
+function getUsers() 
 {
     global $connexion_user;
 
-    // Requête SQL sécurisée
-    $query = "SELECT id_user, username_user, prenom_user, nom_user, telephone_user, profil_user, var, sexe_user, type_mdp, pavillon, campus, is_active, datesys FROM codif_user where profil_user !='user'";
+    $query = "SELECT 
+                    id_user,
+                    username_user,
+                    prenom_user,
+                    nom_user,
+                    telephone_user,
+                    profil_user,
+                    var,
+                    sexe_user,
+                    type_mdp,
+                    pavillon,
+                    campus,
+                    is_active,
+                    datesys
+              FROM codif_user
+              WHERE profil_user != 'user'
+              ORDER BY datesys DESC";
+
     $stmt = $connexion_user->prepare($query);
     $stmt->execute();
     $result = $stmt->get_result();
 
-    // Stocker les utilisateurs dans un tableau
     $users = [];
+
     while ($row = $result->fetch_assoc()) {
         $users[] = $row;
     }
 
-    return $users;  // Retourne la liste des utilisateurs
+    return $users;
 }
 
 // ############  POUR RECUPERER LES PAVILLONS  #################
@@ -8565,5 +8581,26 @@ function getNbrsReduction($num_etu)
     }
 
     return 0;
+}
+
+function resetPasswordUser($id_user)
+{
+    global $connexion;
+
+    $nouveau_mdp = sha1('COUD');
+
+    $query = "UPDATE codif_user
+              SET password_user = ?
+              WHERE id_user = ?";
+
+    $stmt = $connexion->prepare($query);
+
+    if (!$stmt) {
+        return false;
+    }
+
+    $stmt->bind_param("si", $nouveau_mdp, $id_user);
+
+    return $stmt->execute();
 }
 ?>

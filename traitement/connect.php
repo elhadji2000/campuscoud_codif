@@ -79,6 +79,11 @@ if (!empty($_POST['username_user']) && !empty($_POST['password_user'])) {
             $_SESSION['chef_service'] = $row['profil_user'];
             header('Location: ../profils/chef_service/sociale');
             exit();
+        }
+        else if ($row['profil_user'] == 'kpay') {
+            $_SESSION['kpay'] = $row['profil_user'];
+            header('Location: ../profils/kpay/search');
+            exit();
         }else if ($row['profil_user'] == 'liste_rouge') {
             $_SESSION['liste_rouge'] = $row['profil_user'];
             header('Location: ../profils/listerouge/index');

@@ -11,8 +11,6 @@ function getKpayToken()
 
     $ch = curl_init($url);
 
-    $ch = curl_init($url);
-
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 30,
@@ -245,5 +243,73 @@ function updatePaiementKpay(
     mysqli_stmt_execute($stmt);
 
     mysqli_stmt_close($stmt);
+}
+
+function searchPayments(
+    $token,
+    $filters = []
+) {
+    $url = 'https://encaissements-test.kpay-api.com/v1/payment/search';
+
+    $params = [];
+
+    if (!empty($filters['fromDate'])) {
+        $params['fromDate'] = $filters['fromDate'];
+    }
+
+    if (!empty($filters['status'])) {
+        $params['status'] = $filters['status'];
+    }
+
+    if (!empty($filters['page'])) {
+        $params['page'] = $filters['page'];
+    }
+
+    if (!empty($filters['customerPhoneNumber'])) {
+        $params['customerPhoneNumber'] =
+            $filters['customerPhoneNumber'];
+    }
+
+    if (!empty($filters['merchantPhoneNumber'])) {
+        $params['merchantPhoneNumber'] =
+            $filters['merchantPhoneNumber'];
+    }
+
+    if (!empty($params)) {
+        $url .= '?' . http_build_query($params);
+    }
+
+    $ch = curl_init($url);
+
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . $token,
+            'Accept: application/json'
+        ]
+    ]);
+
+    $response = curl_exec($ch);
+
+    if (curl_errno($ch)) {
+        throw new Exception(curl_error($ch));
+    }
+
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    curl_close($ch);
+
+    if ($httpCode != 200) {
+        throw new Exception(
+            'Erreur KPay ('
+            . $httpCode
+            . ') : '
+            . $response
+        );
+    }
+
+    return json_decode($response, true);
 }
 ?>
