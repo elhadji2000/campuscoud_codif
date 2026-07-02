@@ -2463,7 +2463,7 @@ function getOneByAffectation($num_etu)
  * Fonction d'affichage des information du lit deja valider par le personnel selon son numero etudiant, elle sera appeler dans la page paiement
  * ********************************************************************************
  */
-function getOneByValidate($num_etu)
+function getOneByValidate($num_etu) 
 {
     global $connexion;
     $requeteLitClasseValide = "SELECT *, vl.id_val, CASE WHEN pc.id_val IS NOT NULL THEN 'Migré dans codif_paiement' WHEN codif_paiement.id_val IS NOT NULL THEN 'Migré dans autre_table' ELSE 'Non migré' END AS migration_status FROM codif_validation vl JOIN codif_affectation a ON vl.id_aff = a.id_aff JOIN codif_etudiant ce ON a.id_etu = ce.id_etu JOIN codif_lit cl ON a.id_lit = cl.id_lit LEFT JOIN codif_paiement pc ON vl.id_val = pc.id_val LEFT JOIN codif_paiement ON vl.id_val = codif_paiement.id_val WHERE ce.num_etu = '$num_etu'";
@@ -2656,6 +2656,17 @@ function setPaiement($buttonId, $user, $montant, $libelle, $quittance, $an, $ord
 
     $requeteInsertcodif_quota = "INSERT INTO `codif_paiement` (`id_val`, `username_user`, `dateTime_paie`, `montant`,`libelle`,`quittance`,`an`,`num_ordre_user`) 
 \tVALUES ('$buttonId', '$user', '$date', '$montant', '$libelle','$quittance','$an','$ordre')";
+    $requete = $connexion->prepare($requeteInsertcodif_quota);
+    return $requete->execute();
+}
+
+function setPaiement_money($buttonId, $user, $montant, $libelle, $quittance, $an, $ordre, $ref_money)
+{
+    global $connexion, $requete;
+    $date = date('Y-m-d H:i:s');
+
+    $requeteInsertcodif_quota = "INSERT INTO `codif_paiement` (`id_val`, `username_user`, `dateTime_paie`, `montant`,`libelle`,`quittance`,`an`,`num_ordre_user`,`ref_money`) 
+\tVALUES ('$buttonId', '$user', '$date', '$montant', '$libelle','$quittance','$an','$ordre','$ref_money')";
     $requete = $connexion->prepare($requeteInsertcodif_quota);
     return $requete->execute();
 }
@@ -5708,7 +5719,7 @@ function enregistrerEtudiant($connexion, $num_etu, $prenoms, $nom, $telephone, $
 
     // Exécution de la requête
     if (mysqli_query($connexion, $sql)) {
-        echo "<script>alert('Étudiant enregistré avec succès !'); window.location.href='etudiant.php';</script>";
+        echo "<script>alert('Étudiant enregistré avec succès !');</script>";
     } else {
         echo "<script>alert('Erreur lors de l\'enregistrement : " . mysqli_error($connexion) . "');</script>";
     }
@@ -8603,4 +8614,6 @@ function resetPasswordUser($id_user)
 
     return $stmt->execute();
 }
+
+
 ?>

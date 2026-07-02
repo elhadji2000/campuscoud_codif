@@ -149,46 +149,47 @@ if (isset($_POST['valide'])) {
             $ordre = $n_rows0['numauto'] + 1;
             $quittance = $an . '-' . $accronyme . '-' . $ordre;
             // echo $chaine_libelle." ".$quittance;die;
+
+            $connexion_suivante = connexionDb_suivante();
+            $blackListInfo = getBlackListInfo($_SESSION['num_etu'], $connexion_suivante);
+            if ($blackListInfo['is_blacklisted']) {
+                $reste_a_payer = floatval($blackListInfo['reste_a_payer']);
+                // montant payé actuellement
+                $montant_paye = floatval($montant_recu);
+
+                // nouveau reste à payer
+                $nouveau_reste = $reste_a_payer - $montant_paye;
+                // var_dump($reste_a_payer);
+
+                // éviter les valeurs négatives
+                if ($nouveau_reste <= 0) {
+                    $nouveau_reste = 0;
+                }
+
+                if ($nouveau_reste == 0) {
+                    // var_dump($nouveau_reste);
+                    // exit;
+                    // Supprimer si le reste à payer est 0
+                    $sql_delete = 'DELETE FROM black_list WHERE num_etu = ?';
+                    $stmt3 = $connexion_suivante->prepare($sql_delete);
+                    $stmt3->bind_param('s', $_SESSION['num_etu']);
+                    $stmt3->execute();
+                    $stmt->close();
+                } else {
+                    // var_dump($nouveau_reste);
+                    // exit;
+                    // Mettre à jour le montant restant dans la blacklist
+                    $sql_update = 'UPDATE black_list SET reste_a_payer = ? WHERE num_etu = ?';
+                    $stmt2 = $connexion_suivante->prepare($sql_update);
+                    $stmt2->bind_param('ds', $nouveau_reste, $_SESSION['num_etu']);
+                    $stmt2->execute();
+                }
+            }
             $requete = setPaiement($id_val, $user, $montant_recu, $chaine_libelle, $quittance, $an0, $ordre);
             if ($requete == 1) {
                 /*$ins0 = "select max(id_paie) as numauto from codif_paiement where id_val='$id_val'";var_dump($ins0);
                 $exx0 = mysqli_query($link, $ins0); $n_rows = mysqli_fetch_assoc($exx0); */
                 // $num_recu=$n_rows['numauto'];
-
-                $connexion_suivante = connexionDb_suivante();
-
-                if ($connexion_suivante !== false) {
-                    $blackListInfo = getBlackListInfo($_SESSION['num_etu'], $connexion_suivante);
-                    if ($blackListInfo['is_blacklisted']) {
-                        $reste_a_payer = floatval($blackListInfo['reste_a_payer']);
-                        // montant payé actuellement
-                        $montant_paye = floatval($montant_recu);
-
-                        // nouveau reste à payer
-                        $nouveau_reste = $reste_a_payer - $montant_paye;
-
-                        // éviter les valeurs négatives
-                        if ($nouveau_reste < 0) {
-                            $nouveau_reste = 0;
-                        }
-
-                        if ($nouveau_reste = 0) {
-                            // Supprimer si le reste à payer est 0
-                            $sql_delete = 'DELETE FROM black_list WHERE num_etu = ?';
-                            $stmt3 = $connexion_suivante->prepare($sql_delete);
-                            $stmt3->bind_param('s', $num_etu);
-                            $stmt3->execute();
-                            $stmt->close();
-                        } else {
-                            // Mettre à jour le montant restant dans la blacklist
-                            $sql_update = 'UPDATE black_list SET reste_a_payer = ? WHERE num_etu = ?';
-                            $stmt2 = $connexion_suivante->prepare($sql_update);
-                            $stmt2->bind_param('ds', $nouveau_montant, $num_etu);
-                            $stmt2->execute();
-                        }
-                    }
-                }
-
 
                 $telephone = getTelephoneEtudiant($_SESSION['num_etu']);
 

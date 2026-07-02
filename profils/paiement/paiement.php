@@ -214,7 +214,6 @@ $annee_1 = $_SESSION["annee"];
                     <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
                 </div>
             </div>
-
             <?php } elseif (isset($_SESSION['a_jour'])) { ?>
             <div class="col-md-6">
                 <div class="alert alert-info" role="alert">

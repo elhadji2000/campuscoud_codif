@@ -214,14 +214,14 @@ include ('activite.php');
                 </li>
 
                 <!-- li class="nav-item">
-            <a class="nav-link" href="attributaire" title="Affiche users ">Attributaires</a>
-          </li>
-           <li class="nav-item">
-            <a class="nav-link" href="suppleant" title="Affiche users ">Suppleants</a>
-          </li>
-           <li class="nav-item">
-            <a class="nav-link" href="index" title="Affiche evolution ">Evolution</a>
-          </li -->
+                    <a class="nav-link" href="attributaire" title="Affiche users ">Attributaires</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="suppleant" title="Affiche users ">Suppleants</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="index" title="Affiche evolution ">Evolution</a>
+                </li -->
 
                 <?php } ?>
 

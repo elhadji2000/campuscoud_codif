@@ -35,6 +35,23 @@ function getKpayToken()
     return $data['access_token'];
 }
 
+function getKpaySessionToken()
+{
+    if (
+        isset($_SESSION['kpay_token']) &&
+        isset($_SESSION['kpay_expire']) &&
+        $_SESSION['kpay_expire'] > time()
+    ) {
+        return $_SESSION['kpay_token'];
+    }
+
+    $token = getKpayToken();
+
+    $_SESSION['kpay_token'] = $token;
+    $_SESSION['kpay_expire'] = time() + (24 * 3600) - 300;
+
+    return $token;
+}
 function initiatePayment(
     $token,
     $telephone,
@@ -46,11 +63,11 @@ function initiatePayment(
 
     $payload = [
         'merchant' => [
-            'fullName' => 'madiop',
+            'fullName' => 'COUD',
             'phoneNumber' => '221784413400'
         ],
-        'customerPhoneNumber' => '221764019647',
-        'amount' => 100,
+        'customerPhoneNumber' => $telephone,
+        'amount' => $montant,
         'description' => 'Paiement logement étudiant',
         'callbackUrl' => 'https://campuscoud.com/',
         'useUniqueWallet' => false,
@@ -311,5 +328,138 @@ function searchPayments(
     }
 
     return json_decode($response, true);
+}
+
+function cancelPayment(
+    $token,
+    $correlationReference
+) {
+
+    $url = "https://encaissements-test.kpay-api.com/v1/payment/cancel_payment"
+        . "?correlation_reference="
+        . urlencode($correlationReference);
+
+    $ch = curl_init($url);
+
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_HTTPHEADER => [
+            "Authorization: Bearer " . $token,
+            "Accept: application/json"
+        ]
+    ]);
+
+    $response = curl_exec($ch);
+
+    if (curl_errno($ch)) {
+        throw new Exception(curl_error($ch));
+    }
+
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    curl_close($ch);
+
+    if ($httpCode != 200) {
+        throw new Exception($response);
+    }
+
+    return json_decode($response, true);
+}
+function refundPayment(
+    $token,
+    $correlationReference
+) {
+
+    $url = "https://encaissements-test.kpay-api.com/v1/payment/refund_payment"
+        . "?correlation_reference="
+        . urlencode($correlationReference);
+
+    $ch = curl_init($url);
+
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_HTTPHEADER => [
+            "Authorization: Bearer " . $token,
+            "Accept: application/json"
+        ]
+    ]);
+
+    $response = curl_exec($ch);
+
+    if (curl_errno($ch)) {
+        throw new Exception(curl_error($ch));
+    }
+
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    curl_close($ch);
+
+    if ($httpCode != 200) {
+        throw new Exception($response);
+    }
+
+    return json_decode($response, true);
+}
+
+function resendOtp(
+    $token,
+    $correlationReference
+) {
+
+    $url =
+        "https://encaissements-test.kpay-api.com/v1/payment/resend_otp"
+        . "?correlation_reference="
+        . urlencode($correlationReference);
+
+    $ch = curl_init($url);
+
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_HTTPHEADER => [
+            "Authorization: Bearer " . $token,
+            "Accept: application/json"
+        ]
+    ]);
+
+    $response = curl_exec($ch);
+
+    if (curl_errno($ch)) {
+        throw new Exception(curl_error($ch));
+    }
+
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    curl_close($ch);
+
+    if ($httpCode != 200) {
+        throw new Exception($response);
+    }
+
+    return json_decode($response, true);
+}
+
+function getIdPayByReference($reference)
+{
+    global $connexion;
+
+    $req = "SELECT id_paie
+            FROM codif_paiement
+            WHERE ref_money = '$reference'";
+
+    $ex = mysqli_query($connexion, $req);
+
+    if ($st = mysqli_fetch_assoc($ex)) {
+        $id_paie = $st['id_paie'];
+    } else {
+        $id_paie = 0;
+    }
+
+    return $id_paie;
 }
 ?>

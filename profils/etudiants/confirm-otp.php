@@ -100,7 +100,7 @@ try {
      * |--------------------------------------------------------------------------
      */
 
-    if ($status === 'succeeded') {
+    if ($status === 'succeeded') { 
         /*
          * |--------------------------------------------------------------------------
          * | UPDATE paiement
@@ -108,13 +108,26 @@ try {
          * |
          */
 
-        updatePaiementKpay(
-            $kpayReference,
-            'SUCCEEDED'
-        );
+        updatePaiementKpay($kpayReference,'SUCCEEDED' );
 
-        $_SESSION['success'] =
-            'Paiement effectué avec succès.';
+        $_SESSION['success'] = 'Paiement effectué avec succès.';
+        $data = isValider($num_etu);
+        $id_val = $data["id_val"];
+        $datesys0 = date('Y-m-d');
+        $datesys = strtotime($datesys0);
+        $user = $_SESSION['username'];
+        $an0 = date('Y', $datesys); 
+        $an = substr($an0, 2, 2);
+        $accronyme = accronyme($user);
+        $link = connexionBD();
+
+        $ins00 = "select max(num_ordre_user) as numauto from codif_paiement where an='$an0' and username_user='$user'";  // echo $ins00;
+        $exx00 = mysqli_query($link, $ins00);
+        $n_rows0 = mysqli_fetch_assoc($exx00);
+        $ordre = $n_rows0['numauto'] + 1;
+        $quittance = $an . '-' . $accronyme . '-' . $ordre;
+        $chaine_libelle = "Mobile_paye";
+        $requete = setPaiement_money($id_val, $user, $montant, $chaine_libelle, $quittance, $an0, $ordre, $correlationReference);
 
         unset($_SESSION['paiement']);
 

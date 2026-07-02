@@ -121,7 +121,7 @@ function getOrCreateStudentId($connexion, $num_etu, $niveauFormation, $moyenneFi
         error("l’étudiant ($num_etu) n’est pas Inscrit(e) a l'annee academique ". $_SESSION['annee']);
     }
 
-    return enregistrerEtudiant2(
+    return enregistrerEtudiant(
         $connexion,
         $num_etu,
         $etu['prenom'],

@@ -353,7 +353,7 @@ $num_etu = $_SESSION['num_etu'];
                             <!-- Montant -->
                             <div class="input-group-custom">
                                 <label><i class="fas fa-coins text-success"></i> Montant (FCFA)</label>
-                                <input type="number" class="form-control" name="montant" step="100" required>
+                                <input type="number" class="form-control" name="montant" required>
                             </div>
 
                             <!-- Mode de validation -->

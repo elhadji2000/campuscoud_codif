@@ -9,18 +9,52 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-$telephone = '221764019647';
-$montant = 100;
+/*
+|--------------------------------------------------------------------------
+| Téléphone
+|--------------------------------------------------------------------------
+|
+| On supprime tous les espaces, tirets, parenthèses...
+| Puis on ajoute l'indicatif 221 si nécessaire.
+|
+*/
+
+$telephone = $_POST['telephone'] ?? '';
+$telephone = preg_replace('/\D/', '', $telephone);
+// Enlever un éventuel 221 déjà présent
+if (substr($telephone, 0, 3) === '221') {
+    $telephone = substr($telephone, 3);
+}
+// Vérifier qu'il reste 9 chiffres
+if (strlen($telephone) != 9) {
+    $_SESSION["error"]="Numéro de téléphone invalide.";
+    header('Location:payer.php');
+    exit();
+}
+
+// Ajouter l'indicatif Sénégal
+$telephone = '221' . $telephone;
+
+/*
+|--------------------------------------------------------------------------
+| Montant
+|--------------------------------------------------------------------------
+|
+| On enlève les espaces, les séparateurs de milliers
+| puis on convertit en entier.
+|
+*/
+$montant = $_POST['montant'] ?? '';
+$montant = preg_replace('/[^\d]/', '', $montant);
+
+$montant = (int)$montant;
 $mode_validation = $_POST['mode_validation'] ?? 'OTP';
 
 if (empty($telephone)) {
-    die("Numéro de téléphone obligatoire");
+    $_SESSION["error"]="Numéro de téléphone obligatoire";
+    header('Location:payer.php');
+    exit();
 }
-
-/* if ($montant < 3000) {
-    die("Montant minimum 3000 FCFA");
-} */
-
 $num_etu = $_SESSION['num_etu'];
 
 try {
@@ -51,7 +85,7 @@ try {
     */
     if (
         empty($result) ||
-        !isset($result['kpayReference'])
+        !isset($result['kpayReference']) 
     ) {
 
         throw new Exception(

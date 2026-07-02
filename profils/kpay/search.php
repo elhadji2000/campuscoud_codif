@@ -17,7 +17,8 @@ $filters = [
     'merchantPhoneNumber' => $_GET['merchantPhoneNumber'] ?? ''
 ];
 
-$token = getKpayToken();
+// $token = getKpayToken();
+$token = getKpaySessionToken();
 
 $transactions = searchPayments(
     $token,
@@ -28,6 +29,7 @@ $transactions = searchPayments(
 
 $success = 0;
 $pending = 0;
+$refunded = 0;
 $failed = 0;
 $canceled = 0;
 $totalMontant = 0;
@@ -42,6 +44,9 @@ foreach ($transactions as $t) {
 
         case 'pending':
             $pending++;
+            break;
+        case 'refunded':
+            $refunded++;
             break;
 
         case 'failed':
@@ -106,6 +111,15 @@ foreach ($transactions as $t) {
     .kpay-filter .btn {
         min-width: 130px !important;
     }
+
+    table tr td {
+        font-size: 12px !important;
+    }
+
+    table tr td a {
+        font-size: 12px !important;
+        text-decoration: underline !important;
+    }
     </style>
 </head>
 <?php include ('../../head.php'); ?>
@@ -137,28 +151,40 @@ foreach ($transactions as $t) {
 
                 <div class="row mb-4">
 
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="alert alert-success text-center">
                             <h5><?= $success ?></h5>
                             <small>Réussis</small>
                         </div>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="alert alert-warning text-center">
                             <h5><?= $pending ?></h5>
                             <small>En attente</small>
                         </div>
                     </div>
-
-                    <div class="col-md-3">
-                        <div class="alert alert-danger text-center">
-                            <h5><?= $failed + $canceled ?></h5>
-                            <small>Echecs</small>
+                    <div class="col-md-2">
+                        <div class="alert alert-primary text-center">
+                            <h5><?= $refunded ?></h5>
+                            <small>Rembourser</small>
                         </div>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-2">
+                        <div class="alert alert-danger text-center">
+                            <h5><?= $failed?></h5>
+                            <small>Echecs</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="alert alert-secondary text-center">
+                            <h5><?= $canceled ?></h5>
+                            <small>Annulé</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
                         <div class="alert alert-info text-center">
                             <h5><?= number_format($totalMontant, 0, ' ', ' ') ?></h5>
                             <small>FCFA</small>
@@ -205,6 +231,11 @@ foreach ($transactions as $t) {
                                         <option value="failed"
                                             <?= (($_GET['status'] ?? '') == 'failed') ? 'selected' : '' ?>>
                                             Échoué
+                                        </option>
+
+                                        <option value="refunded"
+                                            <?= (($_GET['status'] ?? '') == 'refunded') ? 'selected' : '' ?>>
+                                            Rembourser
                                         </option>
 
                                         <option value="initiated"
@@ -255,12 +286,24 @@ foreach ($transactions as $t) {
                 </div>
 
                 <div class="table-responsive">
+                    <!-- Messages -->
+                    <?php
+                    if (isset($_SESSION['error'])) {
+                        echo '<div class="alert alert-danger text-center">' . $_SESSION['error'] . '</div>';
+                        unset($_SESSION['error']);
+                    }
+                    if (isset($_SESSION['success'])) {
+                        echo '<div class="alert alert-success text-center">' . $_SESSION['success'] . '</div>';
+                        unset($_SESSION['success']);
+                    }
+                    ?>
 
                     <table id="tableKpay" class="table table-bordered table-hover align-middle" id="tableKpay">
 
                         <thead class="table-info">
 
                             <tr>
+                                <th>#</th>
                                 <th>Date</th>
                                 <th>Référence</th>
                                 <th>Num_etu</th>
@@ -269,16 +312,20 @@ foreach ($transactions as $t) {
                                 <th>Téléphone</th>
                                 <th>Montant</th>
                                 <th>Statut</th>
-                                <th>Message</th>
+                                <th>Action</th>
                             </tr>
 
                         </thead>
 
                         <tbody>
 
-                            <?php foreach ($transactions as $t): ?>
+                            <?php
+                            $n = 1;
+                            foreach ($transactions as $t):
+                                ?>
 
                             <?php
+
                             $num = substr(strrchr($t['correlationReference'], '_'), 1);
                             $status = strtolower($t['status']);
 
@@ -303,6 +350,9 @@ foreach ($transactions as $t) {
                             ?>
 
                             <tr>
+                                <td>
+                                    <?= $n++; ?>
+                                </td>
 
                                 <td>
                                     <?= date('d/m/Y H:i', strtotime($t['createdAt'])) ?>
@@ -331,13 +381,49 @@ foreach ($transactions as $t) {
                                 </td>
 
                                 <td>
-                                    <span class=" text-white badge bg-<?= $badge ?>">
+                                    <span class="text-white badge bg-<?= $badge ?>">
                                         <?= strtoupper($t['status']) ?>
                                     </span>
                                 </td>
 
                                 <td>
-                                    <?= $t['message'] ?? '-' ?>
+
+                                    <!-- Annuler -->
+                                    <?php if ($status == 'pending'): ?>
+
+                                    <a class="text-warning text-decoration-underline"
+                                        onclick="return confirm('Annuler ce paiement ?')"
+                                        href="action_paiement.php?action=cancel&reference=<?= urlencode($t['correlationReference']) ?>&kpay_reference=<?= urlencode($t['kpayReference']) ?>">
+                                        Annuler
+                                    </a>
+
+                                    <?php else: ?>
+
+                                    <a class="text-muted">
+                                        Annuler
+                                    </a>
+
+                                    <?php endif; ?>
+
+                                    |
+
+                                    <!-- Rembourser -->
+                                    <?php if ($status == 'succeeded'): ?>
+
+                                    <a class="text-danger text-decoration-underline"
+                                        onclick="return confirm('Confirmer le remboursement ?')"
+                                        href="action_paiement.php?action=refund&reference=<?= urlencode($t['correlationReference']) ?>&kpay_reference=<?= urlencode($t['kpayReference']) ?>">
+                                        Rembourser
+                                    </a>
+
+                                    <?php else: ?>
+
+                                    <a class="text-muted">
+                                        Rembourser
+                                    </a>
+
+                                    <?php endif; ?>
+
                                 </td>
 
                             </tr>
@@ -377,18 +463,24 @@ foreach ($transactions as $t) {
     </script>
     <script>
     $(document).ready(function() {
+
         $('#tableKpay').DataTable({
+
             pageLength: 100,
+
             lengthMenu: [100, 200, 500, 1000],
-            dom: 'lBfrtip', //  ajout du "l"
 
-
+            dom: 'lBfrtip',
 
             buttons: [{
                 extend: 'excelHtml5',
                 text: 'Export Excel',
                 className: 'btn btn-success btn-sm',
-                title: 'Liste des Agents'
+                title: 'kpay paiement',
+
+                exportOptions: {
+                    columns: ':not(:last-child)'
+                }
             }],
 
             language: {
@@ -400,7 +492,9 @@ foreach ($transactions as $t) {
                     next: "Suivant"
                 }
             }
+
         });
+
     });
     </script>
 
