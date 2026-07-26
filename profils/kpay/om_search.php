@@ -8,24 +8,21 @@ if (empty($_SESSION['username']) && empty($_SESSION['mdp'])) {
 // $fac = $_SESSION['fac'];
 include ('../../traitement/fonction.php');
 include ('../../traitement/kpay_fonction.php');
+include ('../../traitement/om_fonction.php');
 verif_type_mdp_2($_SESSION['username']);
 
 $filters = [
     'fromDate' => $_GET['fromDate'] ?? '',
-    'toDate' => $_GET['toDate'] ?? '',
     'status' => $_GET['status'] ?? '',
     'customerPhoneNumber' => $_GET['customerPhoneNumber'] ?? '',
     'merchantPhoneNumber' => $_GET['merchantPhoneNumber'] ?? ''
 ];
 
-// Si aucune date de fin n'est fournie, on prend hier à 23:59:59
-if (empty($filters['toDate'])) {
-    $filters['toDate'] = date('Y-m-d\T23:59:59', strtotime('-1 day'));
-}
+$token = getOrangeToken();
 
-$token = getKpaySessionToken();
-
-$transactions = searchPayments($token, $filters);
+$transactions = searchOrangeTransactions($token,$filters);
+var_dump($transactions);
+exit;
 ?>
 <?php
 
@@ -204,19 +201,11 @@ foreach ($transactions as $t) {
 
                                 <div class="col-md-2">
                                     <label class="form-label">
-                                        date_Debut
+                                        Depuis le
                                     </label>
 
                                     <input type="datetime-local" name="fromDate"
                                         value="<?= htmlspecialchars($_GET['fromDate'] ?? '') ?>" class="form-control">
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label"> 
-                                        Date_Fin
-                                    </label>
-
-                                    <input type="datetime-local" name="toDate"
-                                        value="<?= htmlspecialchars($_GET['toDate'] ?? '') ?>" class="form-control">
                                 </div>
 
                                 <div class="col-md-2">
@@ -263,6 +252,16 @@ foreach ($transactions as $t) {
 
                                     <input type="text" name="customerPhoneNumber"
                                         value="<?= htmlspecialchars($_GET['customerPhoneNumber'] ?? '') ?>"
+                                        class="form-control" placeholder="2217xxxxxxx">
+                                </div>
+
+                                <div class="col-md-2">
+                                    <label class="form-label">
+                                        Tél. Marchand
+                                    </label>
+
+                                    <input type="text" name="merchantPhoneNumber"
+                                        value="<?= htmlspecialchars($_GET['merchantPhoneNumber'] ?? '') ?>"
                                         class="form-control" placeholder="2217xxxxxxx">
                                 </div>
 

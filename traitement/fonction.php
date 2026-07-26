@@ -29,18 +29,16 @@ function connexionBD()
 
 $connexion = connexionBD();
 
-
 function connexionDb_suivante()
 {
     mysqli_report(MYSQLI_REPORT_OFF);
 
     $serveur = 'localhost';
-    $user    = 'root';
-    $pw      = '';
-    $base    = 'campuscoud';
+    $user = 'root';
+    $pw = '';
+    $base = 'campuscoud';
 
     try {
-
         $check = mysqli_connect($serveur, $user, $pw);
 
         if (!$check) {
@@ -67,14 +65,12 @@ function connexionDb_suivante()
         );
 
         return $connexion ?: false;
-
     } catch (Exception $e) {
         return false;
     }
 }
 
 $connexion_suivante = connexionDb_suivante();
-
 
 // FONCTION POUR APLLI SECURITE COUD (https://campuscoud/securite/) ///////////////////////////////////////////////
 function connexionBD2()
@@ -409,7 +405,7 @@ function getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libel
         ? '%' . mysqli_real_escape_string($connexion, $libelle) . '%'
         : '';
 
-    $baseQuery = "
+    $baseQuery = '
     (
         SELECT
             ce.num_etu,
@@ -451,7 +447,7 @@ function getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libel
         WHERE pc.id_val IS NULL
            OR pc.id_val = 0
     ) p
-    ";
+    ';
 
     // =====================
     // LISTE DES PAIEMENTS
@@ -476,12 +472,12 @@ function getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libel
         }
     }
 
-    $sql .= "
+    $sql .= '
     ORDER BY
         dateTime_paie DESC,
         quittance DESC,
         nom ASC
-    ";
+    ';
 
     $result = $connexion->query($sql);
 
@@ -498,7 +494,6 @@ function getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libel
     $totalMontant = 0;
 
     if (empty($libelleFilter)) {
-
         $sqlTotal = "
         SELECT SUM(montant) AS montantTotal
         FROM $baseQuery
@@ -509,9 +504,7 @@ function getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libel
         if (!empty($username)) {
             $sqlTotal .= " AND username_user = '$username'";
         }
-
     } elseif ($libelleFilter === 'CAUTION') {
-
         $sqlTotal = "
         SELECT COUNT(*) AS countPayments
         FROM $baseQuery
@@ -524,9 +517,7 @@ function getPaiementWithDateInterval_2($date_debut, $date_fin, $username, $libel
         }
 
         $sqlTotal .= " AND libelle LIKE '%CAUTION%'";
-
     } elseif ($libelleFilter === 'LOYER') {
-
         $sqlTotal = "
         SELECT
             SUM(
@@ -1455,11 +1446,11 @@ function getAllRegisseurs($connexion)
     // $date_fin = !empty($date_fin) ? $date_fin : date('Y-m-d'); // Aujourd'hui par défaut
 
     // Construire la requête avec des conditions dynamiques
-    $sql = 'SELECT ce.num_etu, ce.nom, ce.prenoms, pc.dateTime_paie, pc.montant, pc.quittance, pc.username_user, pc.libelle 
-            FROM codif_etudiant ce 
-            JOIN codif_affectation a ON ce.id_etu = a.id_etu 
-            JOIN codif_validation vl ON a.id_aff = vl.id_aff 
-            JOIN codif_paiement pc ON pc.id_val = vl.id_val 
+    $sql = 'SELECT ce.num_etu, ce.nom, ce.prenoms, pc.dateTime_paie, pc.montant, pc.quittance, pc.username_user, pc.libelle
+            FROM codif_etudiant ce
+            JOIN codif_affectation a ON ce.id_etu = a.id_etu
+            JOIN codif_validation vl ON a.id_aff = vl.id_aff
+            JOIN codif_paiement pc ON pc.id_val = vl.id_val
             WHERE pc.dateTime_paie >= ? AND pc.dateTime_paie <= ? order by username_user, num_ordre_user';
 
     // Ajouter la condition pour `username_user` si le paramètre est fourni
@@ -1495,7 +1486,7 @@ function getPaiementWithDateInterval_cs($date_debut, $date_fin, $username)
 {
     global $connexion;
 
-    $sql = "
+    $sql = '
     SELECT *
     FROM (
         SELECT
@@ -1537,18 +1528,18 @@ function getPaiementWithDateInterval_cs($date_debut, $date_fin, $username)
     ) t
     WHERE t.dateTime_paie >= ?
       AND t.dateTime_paie <= ?
-    ";
+    ';
 
     $params = [$date_debut, $date_fin];
     $types = 'ss';
 
     if (!empty($username)) {
-        $sql .= " AND t.username_user = ?";
+        $sql .= ' AND t.username_user = ?';
         $params[] = $username;
         $types .= 's';
     }
 
-    $sql .= " ORDER BY t.username_user, t.num_ordre_user";
+    $sql .= ' ORDER BY t.username_user, t.num_ordre_user';
 
     $stmt = $connexion->prepare($sql);
     $stmt->bind_param($types, ...$params);
@@ -2463,7 +2454,7 @@ function getOneByAffectation($num_etu)
  * Fonction d'affichage des information du lit deja valider par le personnel selon son numero etudiant, elle sera appeler dans la page paiement
  * ********************************************************************************
  */
-function getOneByValidate($num_etu) 
+function getOneByValidate($num_etu)
 {
     global $connexion;
     $requeteLitClasseValide = "SELECT *, vl.id_val, CASE WHEN pc.id_val IS NOT NULL THEN 'Migré dans codif_paiement' WHEN codif_paiement.id_val IS NOT NULL THEN 'Migré dans autre_table' ELSE 'Non migré' END AS migration_status FROM codif_validation vl JOIN codif_affectation a ON vl.id_aff = a.id_aff JOIN codif_etudiant ce ON a.id_etu = ce.id_etu JOIN codif_lit cl ON a.id_lit = cl.id_lit LEFT JOIN codif_paiement pc ON vl.id_val = pc.id_val LEFT JOIN codif_paiement ON vl.id_val = codif_paiement.id_val WHERE ce.num_etu = '$num_etu'";
@@ -4094,7 +4085,7 @@ function getPaiementWithDateInterval($date_debut, $date_fin, $username)
 {
     global $connexion;
 
-    $sql = "
+    $sql = '
     SELECT *
     FROM (
         SELECT
@@ -4133,24 +4124,24 @@ function getPaiementWithDateInterval($date_debut, $date_fin, $username)
           AND (pc.id_val IS NULL OR pc.id_val = 0)
     ) t
     WHERE 1=1
-    ";
+    ';
 
     $params = [$username, $username];
     $types = 'ss';
 
     if (!empty($date_debut)) {
-        $sql .= " AND t.dateTime_paie >= ?";
+        $sql .= ' AND t.dateTime_paie >= ?';
         $params[] = $date_debut . ' 00:00:00';
         $types .= 's';
     }
 
     if (!empty($date_fin)) {
-        $sql .= " AND t.dateTime_paie <= ?";
+        $sql .= ' AND t.dateTime_paie <= ?';
         $params[] = $date_fin . ' 23:59:59';
         $types .= 's';
     }
 
-    $sql .= " ORDER BY t.id_paie DESC";
+    $sql .= ' ORDER BY t.id_paie DESC';
 
     $stmt = $connexion->prepare($sql);
     $stmt->bind_param($types, ...$params);
@@ -4279,8 +4270,8 @@ function info4($id)
 function getAllSituation_2($num_etu)
 {
     global $connexion;
-    $requeteSelect = 
-    "SELECT * FROM `codif_paiement` 
+    $requeteSelect =
+        "SELECT * FROM `codif_paiement` 
         JOIN `codif_validation` ON codif_validation.id_val = codif_paiement.id_val 
         JOIN `codif_affectation`ON codif_affectation.id_aff = codif_validation.id_aff 
         JOIN `codif_etudiant` ON codif_etudiant.id_etu = codif_affectation.id_etu 
@@ -5124,38 +5115,48 @@ function addForcloreManuel($num_etu, $motif, $username_user)
 
 function details($id_etu, $connexion)
 {
-    // Requête SQL pour récupérer les paiements d'un étudiant en fonction de id_etu
+    $id_etu = mysqli_real_escape_string($connexion, $id_etu);
+
     $sql = "
         SELECT
-            e.num_etu AS num_etu,
-            e.nom,
-            e.prenoms,
+            COALESCE(e.num_etu, etu.num_etu) AS num_etu,
+            COALESCE(e.nom, etu.nom) AS nom,
+            COALESCE(e.prenoms, etu.prenoms) AS prenoms,
             p.dateTime_paie,
             p.montant,
             p.libelle,
-\t\t\tp.quittance,
+            p.quittance,
             p.id_paie
-        FROM 
-            codif_paiement p
-        JOIN codif_validation v ON v.id_val = p.id_val
-        JOIN codif_affectation a ON v.id_aff = a.id_aff
-        JOIN codif_etudiant e ON e.id_etu = a.id_etu
-        WHERE 
-            e.id_etu = '$id_etu';  -- Filtrer par l'identifiant de l'étudiant
+        FROM codif_paiement p
+        LEFT JOIN codif_validation v
+            ON v.id_val = p.id_val
+        LEFT JOIN codif_affectation a
+            ON a.id_aff = v.id_aff
+        LEFT JOIN codif_etudiant e
+            ON e.id_etu = a.id_etu
+        LEFT JOIN codif_etudiant etu
+            ON etu.id_etu = p.id_etu
+        WHERE (
+            e.id_etu = '$id_etu'
+            OR etu.id_etu = '$id_etu'
+        )
+        ORDER BY p.id_paie ASC
     ";
 
     $result = $connexion->query($sql);
-    if (empty($result)) {
-        die('Aucun paiement trouvé pour cet étudiant.' . $connexion->error);
+
+    if (!$result) {
+        die('Erreur : ' . $connexion->error);
     }
-    // Récupérer les résultats
+
     $data = [];
+
     while ($row = $result->fetch_assoc()) {
         $data[] = $row;
     }
 
     $result->free();
-    // Si aucun résultat n'est trouvé, retourner un message d'information
+
     if (empty($data)) {
         return 'Aucun paiement trouvé pour cet étudiant.';
     }
@@ -5356,7 +5357,7 @@ function isChoix($num_etu)
 
 // ######## FONCTION UTILISER DANS DBA ###################
 // ############ POUR RECUPERER LES USERS ############################
-function getUsers() 
+function getUsers()
 {
     global $connexion_user;
 
@@ -5955,30 +5956,50 @@ function getPaymentDetailsByPavillon1($pavillonDonne, $connexion, $dateDebut = n
         lg.datetime_loger AS date_log,
 
         COALESCE((
-            SELECT SUM(p.montant)
-            FROM codif_paiement p
-            WHERE p.id_val = v.id_val $dateCondition
+        SELECT SUM(p.montant)
+        FROM codif_paiement p
+        WHERE
+        (
+            p.id_val = v.id_val
+            OR p.id_etu = e.id_etu
+        )
+        $dateCondition
         ), 0) AS montant_paye_total,
 
         COALESCE((
-            SELECT 
-                CASE 
-                    WHEN EXISTS (
-                        SELECT 1 FROM codif_paiement p 
-                        WHERE p.id_val = v.id_val $dateCondition
-                        AND (p.libelle LIKE '%CAUTION%' OR p.libelle LIKE '%caution%')
-                    ) THEN 5000 
-                    ELSE 0 
-                END
+        SELECT
+        CASE
+            WHEN EXISTS (
+                SELECT 1
+                FROM codif_paiement p
+                WHERE
+                    (
+                        p.id_val = v.id_val
+                        OR p.id_etu = e.id_etu
+                    )
+                    $dateCondition
+                    AND UPPER(p.libelle) LIKE '%CAUTION%'
+            )
+            THEN 5000
+            ELSE 0
+        END
         ), 0) AS caution_payee,
 
         COALESCE((
-            SELECT SUM(CASE 
-                WHEN p.libelle NOT LIKE '%CAUTION%' THEN p.montant 
-                ELSE 0 
-            END)
-            FROM codif_paiement p
-            WHERE p.id_val = v.id_val $dateCondition
+        SELECT SUM(
+        CASE
+            WHEN UPPER(p.libelle) NOT LIKE '%CAUTION%'
+            THEN p.montant
+            ELSE 0
+        END
+        )
+        FROM codif_paiement p
+        WHERE
+        (
+            p.id_val = v.id_val
+            OR p.id_etu = e.id_etu
+        )
+        $dateCondition
         ), 0) AS loyer_paye
 
     FROM 
@@ -7566,11 +7587,11 @@ function getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libel
         ? '%' . mysqli_real_escape_string($connexion, $libelle) . '%'
         : '';
 
-    $page = max(1, (int)$page);
-    $limit = max(1, (int)$limit);
+    $page = max(1, (int) $page);
+    $limit = max(1, (int) $limit);
     $offset = ($page - 1) * $limit;
 
-    $baseQuery = "
+    $baseQuery = '
     (
         SELECT
             ce.num_etu,
@@ -7612,7 +7633,7 @@ function getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libel
         WHERE pc.id_val IS NULL
            OR pc.id_val = 0
     ) p
-    ";
+    ';
 
     // =========================
     // LISTE DES PAIEMENTS
@@ -7659,7 +7680,6 @@ function getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libel
     $totalMontant = 0;
 
     if (empty($libelleFilter)) {
-
         $sqlTotal = "
         SELECT SUM(montant) AS montantTotal
         FROM $baseQuery
@@ -7670,9 +7690,7 @@ function getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libel
         if (!empty($username)) {
             $sqlTotal .= " AND username_user = '$username'";
         }
-
     } elseif ($libelleFilter === 'CAUTION') {
-
         $sqlTotal = "
         SELECT COUNT(*) AS countPayments
         FROM $baseQuery
@@ -7685,9 +7703,7 @@ function getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libel
         }
 
         $sqlTotal .= " AND libelle LIKE '%CAUTION%'";
-
     } elseif ($libelleFilter === 'LOYER') {
-
         $sqlTotal = "
         SELECT
         SUM(
@@ -7712,7 +7728,6 @@ function getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libel
     $resultTotal = $connexion->query($sqlTotal);
 
     if ($rowTotal = $resultTotal->fetch_assoc()) {
-
         if (isset($rowTotal['montantTotal'])) {
             $totalMontant = $rowTotal['montantTotal'];
         } elseif (isset($rowTotal['countPayments'])) {
@@ -7736,7 +7751,6 @@ function getPaiementWithDateInterval_3($date_debut, $date_fin, $username, $libel
     }
 
     if (!empty($libelle)) {
-
         if ($libelleFilter === 'LOYER') {
             $sqlCount .= " AND libelle <> 'CAUTION'";
         } else {
@@ -8184,8 +8198,8 @@ function getStatistiquesToutesFacultes_2()
         COUNT(DISTINCT CASE WHEN v.id_val IS NOT NULL AND e.sexe = 'F' THEN a.id_etu END) AS valide_fille,
 
         /* LOGÉS */
-        COUNT(DISTINCT CASE WHEN p.id_paie IS NOT NULL AND e.sexe = 'G' THEN a.id_etu END) AS loge_garcon,
-        COUNT(DISTINCT CASE WHEN p.id_paie IS NOT NULL AND e.sexe = 'F' THEN a.id_etu END) AS loge_fille
+        COUNT(DISTINCT CASE WHEN lg.id_etu IS NOT NULL AND e.sexe = 'G' THEN a.id_etu END) AS loge_garcon,
+        COUNT(DISTINCT CASE WHEN lg.id_etu IS NOT NULL AND e.sexe = 'F' THEN a.id_etu END) AS loge_fille
 
     FROM codif_etudiant e
 
@@ -8193,6 +8207,65 @@ function getStatistiquesToutesFacultes_2()
     LEFT JOIN codif_lit l ON l.id_lit = a.id_lit
     LEFT JOIN codif_validation v ON v.id_aff = a.id_aff
     LEFT JOIN codif_paiement p ON p.id_val = v.id_val
+    LEFT JOIN codif_loger lg ON lg.id_etu = e.id_etu
+
+    GROUP BY e.etablissement
+    ORDER BY e.etablissement
+    ";
+
+    $stmt = $connexion->prepare($sql);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function getStatistiquesToutesFacultes_3()
+{
+    global $connexion;
+
+    $sql = "
+    SELECT
+        e.etablissement,
+
+        /* STRUCTURE */
+        COUNT(DISTINCT l.chambre) AS nb_chambres,
+        COUNT(DISTINCT l.id_lit) AS nb_lits,
+
+        /* AFFECTÉS */
+        COUNT(DISTINCT CASE
+            WHEN e.sexe='G' THEN a.id_etu
+        END) AS affecte_garcon,
+
+        COUNT(DISTINCT CASE
+            WHEN e.sexe='F' THEN a.id_etu
+        END) AS affecte_fille,
+
+        /* VALIDÉS OU LOGÉS (sans doublon) */
+        COUNT(DISTINCT CASE
+            WHEN e.sexe='G'
+             AND (lg.id_etu IS NOT NULL OR v.id_val IS NOT NULL)
+            THEN a.id_etu
+        END) AS valide_loge_garcon,
+
+        COUNT(DISTINCT CASE
+            WHEN e.sexe='F'
+             AND (lg.id_etu IS NOT NULL OR v.id_val IS NOT NULL)
+            THEN a.id_etu
+        END) AS valide_loge_fille
+
+    FROM codif_etudiant e
+
+    LEFT JOIN codif_affectation a
+        ON a.id_etu = e.id_etu
+
+    LEFT JOIN codif_lit l
+        ON l.id_lit = a.id_lit
+
+    LEFT JOIN codif_validation v
+        ON v.id_aff = a.id_aff
+
+    LEFT JOIN codif_loger lg
+        ON lg.id_etu = e.id_etu
 
     GROUP BY e.etablissement
     ORDER BY e.etablissement
@@ -8577,12 +8650,12 @@ function getNbrsReduction($num_etu)
 {
     global $connexion;
 
-    $sql = "SELECT nbr_mois 
+    $sql = 'SELECT nbr_mois 
             FROM codif_reduction 
-            WHERE num_etu = ?";
+            WHERE num_etu = ?';
 
     $stmt = $connexion->prepare($sql);
-    $stmt->bind_param("s", $num_etu);
+    $stmt->bind_param('s', $num_etu);
     $stmt->execute();
 
     $result = $stmt->get_result();
@@ -8600,9 +8673,9 @@ function resetPasswordUser($id_user)
 
     $nouveau_mdp = sha1('COUD');
 
-    $query = "UPDATE codif_user
+    $query = 'UPDATE codif_user
               SET password_user = ?
-              WHERE id_user = ?";
+              WHERE id_user = ?';
 
     $stmt = $connexion->prepare($query);
 
@@ -8610,10 +8683,9 @@ function resetPasswordUser($id_user)
         return false;
     }
 
-    $stmt->bind_param("si", $nouveau_mdp, $id_user);
+    $stmt->bind_param('si', $nouveau_mdp, $id_user);
 
     return $stmt->execute();
 }
-
 
 ?>

@@ -79,10 +79,13 @@ window.history.back();
                 'telephone' => $api['telephone'],
                 'email_ucad' => $api['email_ucad'],
                 'lieuNaissance' => $api['lieu_naissance'],
+                'NiveauFormation' => $api['niveau_formation'],
                 'sexe' => $api['sexe'],
                 'annee' => $api['annee'],
-                'numIdentite' => $api['num_identite']
+                'numIdentite' => $api['num_identite'],
+                'payant' => $api['payant']
             ];
+            $payant = $user['payant'];
             $nom = $user['nom'];
             $prenoms = $user['prenoms'];
             $dateNaissance = $user['dateNaissance'];
@@ -95,18 +98,39 @@ window.history.back();
             $datesys = date('Y-m-d H:i:s');
             $default_mdp = generer_mdp();
             $default_mdp_encrypt = SHA1($default_mdp);
-
-            $anneeEtudiant = $user['annee'];  // ex: 2024_2025
-            $anneeFin = intval(substr($anneeEtudiant, -4));  // 2025
-            $annee = isset($_POST['annee']) ? $_POST['annee'] : date('Y');
-            $anneeCourante = intval(substr($annee, -4));
             $profil = 'user';
             $var = 'user non dans codif_etudiant';
 
-            if (($anneeCourante - $anneeFin) >= 2) {
-                echo '<script type="text/javascript">alert("ETUDIANT Non Inscrit(e) !!!")</script>';
-                echo '<meta http-equiv="refresh" content="0;URL=log">';
-                exit();
+            $anneeEtudiant = $user['annee'];  // ex: 2024_2025
+            $anneeFin = intval(substr($anneeEtudiant, -4));  // 2025
+
+            $annee = isset($_POST['annee']) ? $_POST['annee'] : date('Y');
+            $anneeCourante = intval(substr($annee, -4));
+
+            $niveauFormation = strtolower(trim($user['NiveauFormation']));
+            $ecartAnnee = $anneeCourante - $anneeFin;
+
+             if ($payant == "Régime Payant") {
+                    echo '<script type="text/javascript">alert("ETUDIANT Régime Payant !!!")</script>';
+                    echo '<meta http-equiv="refresh" content="0;URL=log">';
+                    exit();
+                }
+
+            // Cas Master
+            if (strpos($niveauFormation, 'master') != false) {
+                if ($ecartAnnee > 2) {
+                    echo '<script type="text/javascript">alert("ETUDIANT Non Inscrit(e) !!!")</script>';
+                    echo '<meta http-equiv="refresh" content="0;URL=log">';
+                    exit();
+                }
+            }
+            // Autres niveaux
+            else {
+                if ($ecartAnnee >= 2) {
+                    echo '<script type="text/javascript">alert("ETUDIANT Non Inscrit(e) !!!")</script>';
+                    echo '<meta http-equiv="refresh" content="0;URL=log">';
+                    exit();
+                }
             }
 
             try {
@@ -134,18 +158,17 @@ window.history.back();
             }
         } else {
             ?>
-    <script langage='javascript'>
-    alert('Les informations saisies semblent incorrectes ou inexistantes dans lannee academique choisie!')
-    </script>
-    <script langage='javascript'>
-    alert('Vous pouvez consulter le Guide dUtilisation pour plus dinformations!')
-    </script>
-    <?php
+                <script langage='javascript'>
+                alert('Les informations saisies semblent incorrectes ou inexistantes dans lannee academique choisie!')
+                </script>
+                <script langage='javascript'>
+                alert('Vous pouvez consulter le Guide dUtilisation pour plus dinformations!')
+                </script>
+            <?php
             echo '<meta http-equiv="refresh" content="0;URL=guide">';
             exit();
         }
-    } 
-    else {
+    } else {
         $datesys = date('Y-m-d H:i:s');
         $default_mdp = generer_mdp();
         $default_mdp_encrypt = SHA1($default_mdp);

@@ -1,3 +1,4 @@
 RewriteEngine On
 
 RewriteRule ^logement/([^/]+)/?$ logement.php?numero=$1 [L,QSA]
+RewriteRule ^users/([^/]+)/?$ users.php?numero=$1 [L,QSA]

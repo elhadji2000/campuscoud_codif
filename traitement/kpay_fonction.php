@@ -262,16 +262,18 @@ function updatePaiementKpay(
     mysqli_stmt_close($stmt);
 }
 
-function searchPayments(
-    $token,
-    $filters = []
-) {
+function searchPayments($token, $filters = [])
+{
     $url = 'https://encaissements-test.kpay-api.com/v1/payment/search';
 
     $params = [];
 
     if (!empty($filters['fromDate'])) {
         $params['fromDate'] = $filters['fromDate'];
+    }
+
+    if (!empty($filters['toDate'])) {
+        $params['toDate'] = $filters['toDate'];
     }
 
     if (!empty($filters['status'])) {
@@ -283,13 +285,11 @@ function searchPayments(
     }
 
     if (!empty($filters['customerPhoneNumber'])) {
-        $params['customerPhoneNumber'] =
-            $filters['customerPhoneNumber'];
+        $params['customerPhoneNumber'] = $filters['customerPhoneNumber'];
     }
 
     if (!empty($filters['merchantPhoneNumber'])) {
-        $params['merchantPhoneNumber'] =
-            $filters['merchantPhoneNumber'];
+        $params['merchantPhoneNumber'] = $filters['merchantPhoneNumber'];
     }
 
     if (!empty($params)) {
@@ -320,10 +320,7 @@ function searchPayments(
 
     if ($httpCode != 200) {
         throw new Exception(
-            'Erreur KPay ('
-            . $httpCode
-            . ') : '
-            . $response
+            'Erreur KPay (' . $httpCode . ') : ' . $response
         );
     }
 

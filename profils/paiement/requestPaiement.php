@@ -122,13 +122,20 @@ if (isset($_POST['valide'])) {
         $tableau_situation_paye = getAllSituation($_SESSION['num_etu']);
         $compt = 0;
 
-        // ANNULATION DU CONTROLE DE DOUBLON DE MOIS PAYES, POUR REMPLACER LES MOIS PAR 'MENSUALITE(S)'
+        // ANNULATION DU CONTROLE DE DOUBLON DE MOIS PAYES,
+        // POUR REMPLACER LES MOIS PAR 'MENSUALITE(S)' ET AUTORISER LES ARRIERES
         while ($situation = mysqli_fetch_array($tableau_situation_paye)) {
             $motsA = explode(' ', $chaine_libelle);
             $motsA = str_replace(' ', '', $motsA);
+
             foreach ($motsA as $mot) {
+                // On ignore le mot ARRIERER / ARRIERE / ARRIÉRÉ
+                if (in_array(strtoupper($mot), ['ARRIERER', 'ARRIERE', 'ARRIÉRÉ'])) {
+                    continue;
+                }
+
                 if (strlen($mot) > 2) {
-                    if (strpos($situation['libelle'], $mot) !== false) {
+                    if (stripos($situation['libelle'], $mot) !== false) {
                         $compt++;
                         $queryString = http_build_query(['data' => $situation]);
                         header('Location: paiement.php?erreurMois=' . $mot . '&' . $queryString);

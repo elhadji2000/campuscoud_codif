@@ -3,7 +3,7 @@
 header('Content-Type: application/json; charset=UTF-8');
 
 /* Authentification */
-$utilisateurs = [
+$utilisateurs = [ 
     [
         'login' => 'admin',
         'password' => '123456'

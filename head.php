@@ -381,6 +381,15 @@ include ('activite.php');
                 </li>
                 <?php } ?>
 
+                <?php if (($_SESSION['profil'] == 'kpay')) { ?>
+                <li class="nav-item active">
+                    <a class="nav-link" href="search" title="Suivre le kpay">kpay</a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="om_search" title="Voir les om">OM</a>
+                </li>
+                <?php } ?>
+
 
 
 

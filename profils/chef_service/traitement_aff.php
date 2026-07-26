@@ -69,11 +69,11 @@ function isAffecteDansAutreLit($idEtu, $litActuel) {
 /* -------------------------------------------------------
    UPDATE ETUDIANT & QUOTA
 ------------------------------------------------------- */
-function updateEtudiant2($connexion, $idEtu, $niveauFormation, $moyenne)
+function updateEtudiant2($connexion, $idEtu, $niveauFormation, $fac, $moyenne)
 {
-    $sql = "UPDATE codif_etudiant SET niveauFormation=?, moyenne=? WHERE id_etu=?";
+    $sql = "UPDATE codif_etudiant SET niveauFormation=?, moyenne=?, faculte=?, departement=? WHERE id_etu=?";
     $stmt = mysqli_prepare($connexion, $sql);
-    mysqli_stmt_bind_param($stmt, "sdi", $niveauFormation, $moyenne, $idEtu);
+    mysqli_stmt_bind_param($stmt, "sssdi", $niveauFormation,$fac,$fac, $moyenne, $idEtu);
     mysqli_stmt_execute($stmt);
 }
 
@@ -83,42 +83,66 @@ function updateEtudiant2($connexion, $idEtu, $niveauFormation, $moyenne)
 ------------------------------------------------------- */
 function getOrCreateStudentId($connexion, $num_etu, $niveauFormation, $moyenneFixee, $litActuel)
 {
+    global $fac;
+
     $id = getIdByNumCarte($num_etu);
 
     if ($id) {
-        $ee = studentConnect($num_etu);
-        $quotaRow = getQuotaClasse($ee['niveauFormation'], $ee['sexe']);
-        $quota = intval($quotaRow['COUNT(*)']);
-        $dataStatutStudent = getOnestudentStatus($quota, $ee['niveauFormation'], $ee['sexe'], $num_etu);
-        if($dataStatutStudent["statut"] == "Attributaire"){
-            error("L’étudiant ($num_etu) est déjà Attributaire.");
-        }
-        if($dataStatutStudent["statut"] == "Suppleant(e)"){
-            error("L’étudiant ($num_etu) est déjà Suppleant(e).");
+
+        // Vérifier si l'étudiant est déjà dans le lit courant
+        $occupants = getOccupantsByLit($litActuel);
+
+        foreach ($occupants as $occupant) {
+            if ($occupant['id_etu'] == $id) {
+
+                updateEtudiant2(
+                    $connexion,
+                    $id,
+                    $niveauFormation,
+                    $fac,
+                    $moyenneFixee
+                );
+
+                return $id;
+            }
         }
 
-        // Si étudiant affecté dans un autre lit → erreur
+        // Vérifier qu'il n'est pas dans un autre lit
         if (isAffecteDansAutreLit($id, $litActuel)) {
             error("L’étudiant ($num_etu) est déjà affecté dans un autre lit.");
         }
 
-        updateEtudiant2($connexion, $id, $niveauFormation, $moyenneFixee);
+        updateEtudiant2(
+            $connexion,
+            $id,
+            $niveauFormation,
+            $fac,
+            $moyenneFixee
+        );
+
         return $id;
     }
 
-    // NON EXISTANT → récupération API
+    // ============================
+    // Etudiant inexistant
+    // ============================
+
     $etu = getDonneesEtudiant_2($num_etu);
+
     if (!$etu) {
         error("Impossible de récupérer les données de l’étudiant ($num_etu).");
     }
-    elseif ($etu["etat_inscription"] != "Inscrit(e)") {
-        error("l’étudiant ($num_etu) n’est pas Inscrit(e).");
+
+    if ($etu["etat_inscription"] != "Inscrit(e)") {
+        error("L’étudiant ($num_etu) n’est pas inscrit.");
     }
-    elseif ( $etu["payant"] != "Régime Non Payant") {
-        error("l’étudiant ($num_etu) est Régime payant.");
+
+    if ($etu["payant"] != "Régime Non Payant") {
+        error("L’étudiant ($num_etu) est en régime payant.");
     }
-    elseif ( $etu["annee"] != $_SESSION["annee"]) {
-        error("l’étudiant ($num_etu) n’est pas Inscrit(e) a l'annee academique ". $_SESSION['annee']);
+
+    if ($etu["annee"] != $_SESSION["annee"]) {
+        error("L’étudiant ($num_etu) n’est pas inscrit pour l'année académique ".$_SESSION["annee"]);
     }
 
     return enregistrerEtudiant(
@@ -129,8 +153,8 @@ function getOrCreateStudentId($connexion, $num_etu, $niveauFormation, $moyenneFi
         $etu['telephone'],
         $etu['lieu_naissance'],
         $etu['date_naissance'],
-        $etu['faculte'],
-        $etu['departement'],
+        $fac,
+        $fac,
         $niveauFormation,
         $moyenneFixee,
         $etu['num_identite'],
@@ -148,51 +172,88 @@ if ($num_titulaire == "") {
 /* -------------------------------------------------------
    TRAITEMENT TITULAIRE
 ------------------------------------------------------- */
-$moyenneTitulaire = 10;
-$idTitulaire = getOrCreateStudentId($connexion, $num_titulaire, $niveauFormation, $moyenneTitulaire, $lit2);
 
-// Cas 1: lit vide → insertion du titulaire
+$moyenneTitulaire = 10;
+
+$idTitulaire = getOrCreateStudentId(
+    $connexion,
+    $num_titulaire,
+    $niveauFormation,
+    $moyenneTitulaire,
+    $lit2
+);
+
+$occupants = getOccupantsByLit($lit2);
+$nb = count($occupants);
+
+// Aucun occupant
 if ($nb == 0) {
 
     addAffectation($idLit, $idTitulaire);
     updatequota($connexion, $idLit, $niveauFormation);
-    $nb++;
 
-// Cas 2: lit non vide et titulaire différent → erreur
-} elseif ($occupants[0]['id_etu'] != $idTitulaire) {
+    $occupants = getOccupantsByLit($lit2);
+    $nb = count($occupants);
 
-    error("Un titulaire existe déjà dans ce lit.");
+}
+// Vérifier que le titulaire est bien celui du lit
+else {
 
+    $titulaireExiste = false;
+
+    foreach ($occupants as $o) {
+        if ($o['id_etu'] == $idTitulaire) {
+            $titulaireExiste = true;
+            break;
+        }
+    }
+
+    if (!$titulaireExiste) {
+        error("Un autre titulaire est déjà enregistré dans ce lit.");
+    }
 }
 
 /* -------------------------------------------------------
    TRAITEMENT SUPPLEANT
 ------------------------------------------------------- */
-if ($num_suppleant != "") {
+
+if (!empty($num_suppleant)) {
 
     if ($litIndividuel) {
         error("Ce lit est individuel : aucun suppléant n'est autorisé.");
     }
 
-    if ($nb == 2) {
+    $occupants = getOccupantsByLit($lit2);
+    $nb = count($occupants);
+
+    if ($nb >= 2) {
         error("Ce lit possède déjà un suppléant.");
     }
 
     $moyenneSuppleant = 5;
-    $idSuppleant = getOrCreateStudentId($connexion, $num_suppleant, $niveauFormation, $moyenneSuppleant, $lit2);
 
-    if ($nb == 0) {
-        error("Impossible d'ajouter un suppléant avant le titulaire.");
+    $idSuppleant = getOrCreateStudentId(
+        $connexion,
+        $num_suppleant,
+        $niveauFormation,
+        $moyenneSuppleant,
+        $lit2
+    );
+
+    if ($idSuppleant == $idTitulaire) {
+        error("Le suppléant doit être différent du titulaire.");
     }
 
-    if ($nb == 1) {
-        addAffectationOnSuppleant($idLit, $idSuppleant);
+    foreach ($occupants as $o) {
+        if ($o['id_etu'] == $idSuppleant) {
+            error("Cet étudiant est déjà enregistré dans ce lit.");
+        }
     }
+
+    addAffectationOnSuppleant($idLit, $idSuppleant);
 }
 
 /* -------------------------------------------------------
    SUCCESS
 ------------------------------------------------------- */
 redirectWithMessage("Attribution enregistrée avec succès !", "success", $lit2);
-
-

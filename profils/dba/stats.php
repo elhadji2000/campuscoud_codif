@@ -10,7 +10,7 @@ if (!isset($_SESSION['username'])) {
 
 include('../../activite.php'); 
 
-$stats = getStatistiquesToutesFacultes_2();
+$stats = getStatistiquesToutesFacultes_3();
 $statsCampus = getStatsCampus();
 ?>
 
@@ -126,9 +126,12 @@ $statsCampus = getStatsCampus();
 }
 
 .na-item {
-    width: 160px;           /* même largeur */
-    text-align: center;     /* texte centré */
-    font-size: 14px;        /* taille uniforme */
+    width: 160px;
+    /* même largeur */
+    text-align: center;
+    /* texte centré */
+    font-size: 14px;
+    /* taille uniforme */
     font-weight: 500;
     padding: 8px 12px;
     border-radius: 6px;
@@ -143,18 +146,18 @@ $statsCampus = getStatsCampus();
 
 <div class="container-fluid mt-4">
 
-    
+
     <div class="mb-3 d-flex gap-2">
 
-    <button class="btn btn-primary nav-btn active na-item" data-target="faculte">
-        Facultés
-    </button>
+        <button class="btn btn-primary nav-btn active na-item" data-target="faculte">
+            Facultés
+        </button>
 
-    <button class="btn btn-outline-primary nav-btn na-item" data-target="capacite">
-        Capacité
-    </button>
+        <button class="btn btn-outline-primary nav-btn na-item" data-target="capacite">
+            Capacité
+        </button>
 
-</div>
+    </div>
     <div id="faculte" class="content-section">
         <h4 class="mb-3"> Statistiques par faculté</h4>
         <table id="tableStats" class="table table-bordered table-striped">
@@ -165,27 +168,30 @@ $statsCampus = getStatsCampus();
                     <th>Nb Lits</th>
                     <th>G Affectés</th>
                     <th>F Affectées</th>
-                    <th>G Validés</th>
-                    <th>F Validées</th>
                     <th>G Logés</th>
                     <th>F Logées</th>
                 </tr>
             </thead>
 
             <tbody>
-                <?php 
-        $tot = ['ch'=>0,'lits'=>0,'ag'=>0,'af'=>0,'vg'=>0,'vf'=>0,'lg'=>0,'lf'=>0];
+                <?php
+        $tot = [
+            'ch'   => 0,
+            'lits' => 0,
+            'ag'   => 0,
+            'af'   => 0,
+            'lg'   => 0,
+            'lf'   => 0
+        ];
 
-        foreach ($stats as $s): 
+        foreach ($stats as $s):
 
-            $tot['ch'] += $s['nb_chambres'];
+            $tot['ch']   += $s['nb_chambres'];
             $tot['lits'] += $s['nb_lits'];
-            $tot['ag'] += $s['affecte_garcon'];
-            $tot['af'] += $s['affecte_fille'];
-            $tot['vg'] += $s['valide_garcon'];
-            $tot['vf'] += $s['valide_fille'];
-            $tot['lg'] += $s['loge_garcon'];
-            $tot['lf'] += $s['loge_fille'];
+            $tot['ag']   += $s['affecte_garcon'];
+            $tot['af']   += $s['affecte_fille'];
+            $tot['lg']   += $s['valide_loge_garcon'];
+            $tot['lf']   += $s['valide_loge_fille'];
         ?>
                 <tr>
                     <td><?= htmlspecialchars($s['etablissement']) ?></td>
@@ -193,23 +199,19 @@ $statsCampus = getStatsCampus();
                     <td><?= $s['nb_lits'] ?></td>
                     <td><?= $s['affecte_garcon'] ?></td>
                     <td><?= $s['affecte_fille'] ?></td>
-                    <td><?= $s['valide_garcon'] ?></td>
-                    <td><?= $s['valide_fille'] ?></td>
-                    <td><?= $s['loge_garcon'] ?></td>
-                    <td><?= $s['loge_fille'] ?></td>
+                    <td><?= $s['valide_loge_garcon'] ?></td>
+                    <td><?= $s['valide_loge_fille'] ?></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
 
-            <tfoot class="table-success">
+            <tfoot class="table-success fw-bold">
                 <tr>
                     <th>TOTAL</th>
                     <th><?= $tot['ch'] ?></th>
                     <th><?= $tot['lits'] ?></th>
                     <th><?= $tot['ag'] ?></th>
                     <th><?= $tot['af'] ?></th>
-                    <th><?= $tot['vg'] ?></th>
-                    <th><?= $tot['vf'] ?></th>
                     <th><?= $tot['lg'] ?></th>
                     <th><?= $tot['lf'] ?></th>
                 </tr>

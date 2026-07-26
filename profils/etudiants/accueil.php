@@ -325,7 +325,7 @@ if (isset($_GET['data'])) {
         </div>
 
         <div class="grid-container">
-            <a href="restauration.php" class="grid-card">
+            <a target="_blank" href="jwtRestaurant.php" class="grid-card">
                 <i class="fas fa-utensils"></i>
                 <span>Restauration</span>
             </a>
